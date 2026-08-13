@@ -137,7 +137,64 @@ function copyRekening() {
     document.body.removeChild(temp);
     showToast("Tersalin!", "Nomor rekening 7000005009 disalin ke clipboard.");
 }
+// ==========================================
+// DRAG & DROP FILE HANDLER
+// ==========================================
+const dropZone = document.getElementById('drop-zone');
 
+// Cegah perilaku default browser agar file tidak terbuka di tab baru
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+});
+function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+// Efek visual saat file diseret ke atas area
+['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => dropZone.classList.add('border-emerald-500', 'bg-emerald-50'), false);
+});
+['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-emerald-500', 'bg-emerald-50'), false);
+});
+
+// Tangani file yang dijatuhkan
+dropZone.addEventListener('drop', handleDrop, false);
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    handleFiles(dt.files);
+}
+
+// Tangani file yang dipilih lewat klik
+function handleFileSelect(e) {
+    handleFiles(e.target.files);
+}
+
+// Proses file ke Base64
+function handleFiles(files) {
+    if (files.length === 0) return;
+    const file = files[0];
+    
+    // Validasi Ukuran (Maks 3MB)
+    if (file.size > 3 * 1024 * 1024) {
+        showToast("File Terlalu Besar", "Maksimal ukuran file adalah 3MB. Silakan kompres file Anda.");
+        document.getElementById('input-file').value = ''; // Reset
+        return;
+    }
+
+    // Tampilkan nama file
+    document.getElementById('file-name').innerText = file.name;
+    document.getElementById('file-preview').classList.remove('hidden');
+
+    // Baca file sebagai Base64 String
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('input-resi-base64').value = e.target.result;
+        document.getElementById('input-resi-filename').value = file.name;
+    }
+    reader.readAsDataURL(file);
+}
 // ==========================================
 // FORM SUBMIT (MAHASISWA) KE GOOGLE SHEETS
 // ==========================================
@@ -158,11 +215,22 @@ async function handleFormSubmit(e) {
     const resi = document.getElementById('input-resi').value.trim();
     const catatan = document.getElementById('input-catatan').value.trim();
 
+    // Ambil data Base64 dari hidden input
+    const resiBase64 = document.getElementById('input-resi-base64').value;
+    const resiFilename = document.getElementById('input-resi-filename').value;
+
+    if (!resiBase64) {
+        showToast("Peringatan", "Harap unggah bukti transfer (resi) terlebih dahulu.");
+        btnSubmit.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>KIRIM KONFIRMASI PEMBAYARAN</span>`;
+        btnSubmit.disabled = false;
+        return;
+    }
     const newItem = {
         action: 'addTransaction',
         id: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
         nim, nama, email, prodi, tingkatan, nominal, bank, tanggal,
-        resiUrl: resi,
+        resiBase64: resiBase64,     // Mengirim Base64
+        resiFilename: resiFilename, // Mengirim Nama File
         catatan: catatan || '-',
         status: 'Pending',
         adminNote: 'Setoran angsuran sedang dalam proses verifikasi mutasi rekening.'
