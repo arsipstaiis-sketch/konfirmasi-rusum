@@ -2,8 +2,8 @@
 const BIAYA_RUSUM_STANDAR = 2500000;
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyoXy7Ewl8VK3ApGnDpiinwsWiuesh0wbC6gOWEzDCQGxio7_0JCcfybd4JDjAAVeo/exec'; // Ganti dengan URL Google Apps Script Anda
 
-let mockData = []; // Akan diisi dari Spreadsheet (Tab: Transaksi)
-let mockMahasiswaMaster = []; // Akan diisi dari Spreadsheet (Tab: Mahasiswa)
+let transaksiData = []; // Akan diisi dari Spreadsheet (Tab: Transaksi)
+let mahasiswaMaster = []; // Akan diisi dari Spreadsheet (Tab: Mahasiswa)
 
 let activeTab = 'form';
 let activeAdminSubtab = 'verifikasi';
@@ -29,12 +29,12 @@ async function fetchSpreadsheetData() {
         const data = await response.json();
         
         // Konversi nominal string dari GSheets menjadi Number
-        mockData = data.transaksi.map(tx => ({
+        transaksiData = data.transaksi.map(tx => ({
             ...tx,
             nominal: Number(tx.nominal)
         })).reverse(); // Reverse agar data terbaru tampil di atas
         
-        mockMahasiswaMaster = data.mahasiswa;
+        mahasiswaMaster = data.mahasiswa;
         
         showToast("Berhasil", "Data berhasil dimuat dari database Google Sheets.");
         
@@ -51,7 +51,7 @@ async function fetchSpreadsheetData() {
 // LOGIKA KALKULASI & CEK MAHASISWA
 // ==========================================
 function getStudentPaymentSummary(nim) {
-    const approvedTx = mockData.filter(d => d.nim === nim && d.status === 'Disetujui');
+    const approvedTx = transaksiData.filter(d => d.nim === nim && d.status === 'Disetujui');
     const totalDibayar = approvedTx.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
     const sisaTagihan = Math.max(0, BIAYA_RUSUM_STANDAR - totalDibayar);
     const percentPaid = Math.min(100, Math.round((totalDibayar / BIAYA_RUSUM_STANDAR) * 100));
@@ -76,7 +76,7 @@ function checkPreviousInstallments() {
     }
 
     const summary = getStudentPaymentSummary(nim);
-    const mhs = mockMahasiswaMaster.find(m => m.nim === nim);
+    const mhs = mahasiswaMaster.find(m => m.nim === nim);
 
     if (mhs) {
         document.getElementById('input-nama').value = mhs.nama;
@@ -175,7 +175,7 @@ async function handleFormSubmit(e) {
         });
 
         // Update UI Lokal
-        mockData.unshift(newItem); // Tambahkan ke paling atas
+        transaksiData.unshift(newItem); // Tambahkan ke paling atas
         document.getElementById('form-konfirmasi').reset();
         document.getElementById('nim-installment-info').classList.add('hidden');
 
@@ -210,7 +210,7 @@ function executeStatusSearch() {
         return;
     }
 
-    const filtered = mockData.filter(d => 
+    const filtered = transaksiData.filter(d => 
         (d.nim && d.nim.toLowerCase().includes(query)) || 
         (d.nama && d.nama.toLowerCase().includes(query))
     );
@@ -336,12 +336,12 @@ function renderAdminDashboard() {
 }
 
 function updateAdminStats() {
-    const total = mockData.length;
-    const pending = mockData.filter(d => d.status === 'Pending').length;
-    const disetujui = mockData.filter(d => d.status === 'Disetujui').length;
-    const ditolak = mockData.filter(d => d.status === 'Ditolak').length;
+    const total = transaksiData.length;
+    const pending = transaksiData.filter(d => d.status === 'Pending').length;
+    const disetujui = transaksiData.filter(d => d.status === 'Disetujui').length;
+    const ditolak = transaksiData.filter(d => d.status === 'Ditolak').length;
 
-    const totalPenerimaan = mockData
+    const totalPenerimaan = transaksiData
         .filter(d => d.status === 'Disetujui')
         .reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
 
@@ -358,7 +358,7 @@ function filterAdminTable() {
     const search = document.getElementById('admin-filter-search').value.toLowerCase();
     const statusFilter = document.getElementById('admin-filter-status').value;
 
-    const filtered = mockData.filter(d => {
+    const filtered = transaksiData.filter(d => {
         const matchSearch = (d.nama && d.nama.toLowerCase().includes(search)) || (d.nim && d.nim.toLowerCase().includes(search));
         const matchStatus = statusFilter === 'ALL' || d.status === statusFilter;
         return matchSearch && matchStatus;
@@ -399,7 +399,7 @@ function renderAngkatanMonitoring() {
     const selectedTA = document.getElementById('ta-select').value;
     const selectedTingkatan = document.getElementById('tingkatan-select').value;
 
-    let cohortStudents = mockMahasiswaMaster;
+    let cohortStudents = mahasiswaMaster;
     if (selectedTA !== 'ALL') cohortStudents = cohortStudents.filter(m => m.tahunAkademik === selectedTA);
     if (selectedTingkatan !== 'ALL') cohortStudents = cohortStudents.filter(m => m.tingkatan === selectedTingkatan);
 
@@ -486,7 +486,7 @@ function sendReminderWA(phone, nama, nim) {
 // MODAL REVIEW & UPDATE KE GOOGLE SHEETS
 // ==========================================
 function openAdminDetailModal(id) {
-    const item = mockData.find(d => d.id === id);
+    const item = transaksiData.find(d => d.id === id);
     if (!item) return;
 
     activeReviewItem = item;
@@ -577,7 +577,7 @@ async function sendEmailNotificationFromModal() {
 // MODAL KWITANSI & PDF
 // ==========================================
 function openKwitansiPreview(id) {
-    const item = mockData.find(d => d.id === id);
+    const item = transaksiData.find(d => d.id === id);
     if (!item) return;
 
     activeKwitansiItem = item;
