@@ -62,7 +62,7 @@
                     </div>
                     <div>
                         <h1 class="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">STAI Imam Syafi'i Cianjur</h1>
-                        <p class="text-xs text-emerald-200 font-medium">Sistem Pembayaran & Angsuran Rusum Tahunan</p>
+                        <p class="text-xs text-emerald-200 font-medium">Sistem Pembayaran Rusum Tahunan Mahasiswa</p>
                     </div>
                 </div>
 
@@ -71,7 +71,7 @@
                         <i class="fa-solid fa-file-signature"></i><span>Formulir Konfirmasi</span>
                     </button>
                     <button id="tab-btn-status" onclick="selectTab('status')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60">
-                        <i class="fa-solid fa-magnifying-glass"></i><span>Cek Status & Angsuran</span>
+                        <i class="fa-solid fa-magnifying-glass"></i><span>Cek Status Konfirmasi</span>
                     </button>
                     <button id="tab-btn-admin" onclick="selectTab('admin')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60">
                         <i class="fa-solid fa-user-shield"></i><span>Panel Admin</span>
@@ -128,7 +128,7 @@
                 <form id="form-konfirmasi" onsubmit="handleFormSubmit(event)" class="space-y-6">
                     <div class="border-b border-slate-100 pb-4">
                         <h3 class="title-section"><i class="fa-solid fa-id-card text-emerald-700"></i><span>Data Identitas Mahasiswa</span></h3>
-                        <p class="text-desc mt-1">Ketik NIM Anda untuk mengecek riwayat pembayaran sebelumnya.</p>
+                        <p class="text-desc mt-1">Silahkan melengkapi data sesuai ketentuan berikut.</p>
                     </div>
 
                     <!-- URUTAN KOLOM ISIAN YANG SUDAH DISESUAIKAN -->
@@ -136,18 +136,18 @@
                         <!-- Baris 1 Kiri: Nama Lengkap -->
                         <div>
                             <label for="input-nama" class="form-label">Nama Lengkap Mahasiswa *</label>
-                            <input type="text" id="input-nama" required placeholder="Nama sesuai KRS / KPM" class="form-input">
+                            <input type="text" id="input-nama" required placeholder="Nama sesuai Ijazah" class="form-input">
                         </div>
                         <!-- Baris 1 Kanan: Email Aktif -->
                         <div>
                             <label for="input-email" class="form-label">Email Aktif Mahasiswa *</label>
-                            <input type="email" id="input-email" required placeholder="nama@staiis.ac.id" class="form-input">
+                            <input type="email" id="input-email" required placeholder="nama@gmail.com" class="form-input">
                         </div>
 
                         <!-- Baris 2 Kiri: NIM (dengan fungsi cek otomatis) -->
                         <div>
                             <label for="input-nim" class="form-label">Nomor Induk Mahasiswa (NIM) *</label>
-                            <input type="text" id="input-nim" oninput="checkPreviousInstallments()" required placeholder="Contoh: 20240101" class="form-input">
+                            <input type="text" id="input-nim" oninput="checkPreviousInstallments()" required placeholder="Contoh: 25110235" class="form-input">
                             <div id="nim-installment-info" class="hidden mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1"></div>
                         </div>
                         <!-- Baris 2 Kanan: Program Studi -->
@@ -174,7 +174,7 @@
                     </div>
 
                     <div class="border-b border-slate-100 pb-4 pt-2">
-                        <h3 class="title-section"><i class="fa-solid fa-receipt text-emerald-700"></i><span>Rincian Transaksi / Angsuran Pembayaran</span></h3>
+                        <h3 class="title-section"><i class="fa-solid fa-receipt text-emerald-700"></i><span>Rincian Transaksi</span></h3>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -227,8 +227,8 @@
         <section id="tab-content-status" class="space-y-6 hidden">
             <div class="card-main space-y-6">
                 <div>
-                    <h2 class="text-xl font-extrabold text-slate-800">Pemeriksaan Status & Kalkulasi Angsuran</h2>
-                    <p class="text-desc mt-1">Masukkan Nomor Induk Mahasiswa (NIM) Anda untuk melihat histori.</p>
+                    <h2 class="text-xl font-extrabold text-slate-800">Pemeriksaan Status Konfirmasi</h2>
+                    <p class="text-desc mt-1">Masukkan Nomor Induk Mahasiswa (NIM) Anda untuk melihat histori konfirmasi.</p>
                 </div>
                 <div class="space-y-3">
                     <div class="flex items-center space-x-2">
