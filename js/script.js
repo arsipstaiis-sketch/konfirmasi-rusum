@@ -181,9 +181,15 @@ async function handleFormSubmit(e) {
 
         showToast("Pengajuan Terkirim", `Konfirmasi pembayaran untuk ${nama} berhasil disimpan.`);
         selectTab('status');
-        document.getElementById('search-status-input').value = nim;
-        executeStatusSearch();
-        
+        document.getElementById('search-status-input').value = '';
+        document.getElementById('search-status-results').innerHTML = `
+            <div id="search-status-initial" class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-3 text-lg">
+                    <i class="fa-solid fa-search"></i>
+                </div>
+                <h4 class="text-xs font-bold text-slate-700">Silakan Cari Berdasarkan NIM</h4>
+            </div>
+        `;
     } catch (error) {
         showToast("Gagal Menyimpan", "Terjadi kesalahan koneksi server.");
     } finally {
