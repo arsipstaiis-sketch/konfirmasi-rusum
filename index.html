@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplikasi Konfirmasi Pembayaran Rusum STAIIS</title>
     
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Font Awesome Icons -->
@@ -19,29 +19,36 @@
     <!-- html2pdf.js for Kwitansi PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
-    <!-- Tailwind Custom Config (Tetap di HTML karena menggunakan CDN) -->
+    <!-- Tailwind Custom Config & Style -->
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    },
-                    colors: {
-                        emerald: {
-                            50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0',
-                            300: '#6ee7b7', 400: '#34d399', 500: '#10b981',
-                            600: '#059669', 700: '#047857', 800: '#065f46',
-                            900: '#064e3b', 950: '#022c22',
-                        }
-                    }
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { emerald: { 50: '#ecfdf5', 100: '#d1fae5', 200: '#a7f3d0', 300: '#6ee7b7', 400: '#34d399', 500: '#10b981', 600: '#059669', 700: '#047857', 800: '#065f46', 900: '#064e3b', 950: '#022c22' } }
                 }
             }
         }
     </script>
-
-    <!-- Custom CSS -->
+    
+    <!-- CSS Eksternal dalam folder css/ -->
     <link rel="stylesheet" href="css/style.css">
+
+    <style type="text/tailwindcss">
+        .card-main { @apply bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8; }
+        .card-stat { @apply bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1; }
+        .title-section { @apply text-base font-bold text-slate-800 flex items-center space-x-2; }
+        .text-desc { @apply text-xs text-slate-500; }
+        .form-label { @apply block text-xs font-bold text-slate-700 mb-1.5; }
+        .form-input { @apply w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition bg-white; }
+        .btn-primary { @apply w-full py-3.5 px-6 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs tracking-wide shadow-lg shadow-emerald-900/20 transition flex items-center justify-center space-x-2; }
+        .btn-action { @apply px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1.5 shadow-sm; }
+        .btn-outline { @apply px-4 py-2 bg-slate-100 hover:bg-rose-50 text-rose-700 rounded-xl text-xs font-bold transition border border-slate-200 flex items-center space-x-1.5; }
+        .table-th { @apply p-3.5 bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider; }
+        .table-td { @apply p-3.5 border-b border-slate-50; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between antialiased">
 
@@ -51,9 +58,7 @@
             <div class="flex items-center justify-between h-20">
                 <div class="flex items-center space-x-3.5">
                     <div class="w-12 h-12 bg-white rounded-full p-1 flex items-center justify-center shadow-md shrink-0">
-                        <div class="w-full h-full bg-emerald-800 rounded-full flex items-center justify-center text-white font-extrabold text-xs">
-                            STAIIS
-                        </div>
+                        <div class="w-full h-full bg-emerald-800 rounded-full flex items-center justify-center text-white font-extrabold text-xs">STAIIS</div>
                     </div>
                     <div>
                         <h1 class="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">STAI Imam Syafi'i Cianjur</h1>
@@ -94,18 +99,12 @@
         <!-- TAB 1: FORMULIR KONFIRMASI -->
         <section id="tab-content-form" class="space-y-6">
             <div class="bg-emerald-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
-                <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl">
-                    <i class="fa-solid fa-building-columns"></i>
-                </div>
+                <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl"><i class="fa-solid fa-building-columns"></i></div>
                 <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
                     <div class="lg:col-span-2 space-y-2">
-                        <span class="inline-block px-3 py-1 bg-emerald-800 text-emerald-200 text-xs font-bold rounded-full uppercase tracking-wider">
-                            Dukungan Pelunasan & Angsuran Berangsur
-                        </span>
+                        <span class="inline-block px-3 py-1 bg-emerald-800 text-emerald-200 text-xs font-bold rounded-full uppercase tracking-wider">Dukungan Pelunasan & Angsuran Berangsur</span>
                         <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight">Konfirmasi Pembayaran Rusum Tahunan</h2>
-                        <p class="text-xs sm:text-sm text-emerald-100 leading-relaxed">
-                            Sistem akan menghitung akumulasi total pembayaran dan sisa tagihan Anda secara otomatis.
-                        </p>
+                        <p class="text-xs sm:text-sm text-emerald-100 leading-relaxed">Mendukung pembayaran Lunas maupun Berangsur / Dicicil.</p>
                     </div>
 
                     <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 space-y-2 shrink-0">
@@ -117,9 +116,7 @@
                             <p class="text-xs text-emerald-100">Bank Syariah Indonesia (BSI)</p>
                             <div class="flex items-center justify-between gap-2">
                                 <p class="text-xl sm:text-2xl font-black tracking-wider font-mono text-white select-all">7000005009</p>
-                                <button type="button" onclick="copyRekening()" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-900 rounded-lg text-xs font-bold transition shrink-0 flex items-center space-x-1 shadow">
-                                    <i class="fa-regular fa-copy"></i><span>Salin</span>
-                                </button>
+                                <button type="button" onclick="copyRekening()" class="btn-action bg-white text-emerald-900 hover:bg-emerald-50"><i class="fa-regular fa-copy"></i><span>Salin</span></button>
                             </div>
                             <p class="text-[11px] font-medium text-emerald-200">a.n. STAI IMAM SYAFI'I</p>
                         </div>
@@ -127,45 +124,46 @@
                 </div>
             </div>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+            <div class="card-main">
                 <form id="form-konfirmasi" onsubmit="handleFormSubmit(event)" class="space-y-6">
                     <div class="border-b border-slate-100 pb-4">
-                        <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
-                            <i class="fa-solid fa-id-card text-emerald-700"></i>
-                            <span>Data Identitas Mahasiswa</span>
-                        </h3>
-                        <p class="text-xs text-slate-500">Ketik NIM Anda untuk mengecek riwayat pembayaran sebelumnya jika ingin melanjutkan cicilan.</p>
+                        <h3 class="title-section"><i class="fa-solid fa-id-card text-emerald-700"></i><span>Data Identitas Mahasiswa</span></h3>
+                        <p class="text-desc mt-1">Ketik NIM Anda untuk mengecek riwayat pembayaran sebelumnya.</p>
                     </div>
 
+                    <!-- URUTAN KOLOM ISIAN YANG SUDAH DISESUAIKAN -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- Baris 1 Kiri: Nama Lengkap -->
                         <div>
-                            <label for="input-nim" class="block text-xs font-bold text-slate-700 mb-1.5">Nomor Induk Mahasiswa (NIM) *</label>
-                            <input type="text" id="input-nim" oninput="checkPreviousInstallments()" required placeholder="Contoh: 20240101" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
+                            <label for="input-nama" class="form-label">Nama Lengkap Mahasiswa *</label>
+                            <input type="text" id="input-nama" required placeholder="Nama sesuai KRS / KPM" class="form-input">
+                        </div>
+                        <!-- Baris 1 Kanan: Email Aktif -->
+                        <div>
+                            <label for="input-email" class="form-label">Email Aktif Mahasiswa *</label>
+                            <input type="email" id="input-email" required placeholder="nama@staiis.ac.id" class="form-input">
+                        </div>
+
+                        <!-- Baris 2 Kiri: NIM (dengan fungsi cek otomatis) -->
+                        <div>
+                            <label for="input-nim" class="form-label">Nomor Induk Mahasiswa (NIM) *</label>
+                            <input type="text" id="input-nim" oninput="checkPreviousInstallments()" required placeholder="Contoh: 20240101" class="form-input">
                             <div id="nim-installment-info" class="hidden mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1"></div>
                         </div>
-
+                        <!-- Baris 2 Kanan: Program Studi -->
                         <div>
-                            <label for="input-nama" class="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap Mahasiswa *</label>
-                            <input type="text" id="input-nama" required placeholder="Nama sesuai Ijazah" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
-                        </div>
-
-                        <div>
-                            <label for="input-email" class="block text-xs font-bold text-slate-700 mb-1.5">Email Aktif Mahasiswa *</label>
-                            <input type="email" id="input-email" required placeholder="nama@gmail.com (email aktif)" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
-                        </div>
-
-                        <div>
-                            <label for="input-prodi" class="block text-xs font-bold text-slate-700 mb-1.5">Program Studi *</label>
-                            <select id="input-prodi" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition bg-white">
+                            <label for="input-prodi" class="form-label">Program Studi *</label>
+                            <select id="input-prodi" required class="form-input">
                                 <option value="" disabled selected>-- Pilih Program Studi --</option>
                                 <option value="Pendidikan Bahasa Arab (PBA)">Pendidikan Bahasa Arab (PBA)</option>
                                 <option value="Hukum Keluarga Islam (HKI)">Hukum Keluarga Islam (HKI)</option>
                             </select>
                         </div>
 
+                        <!-- Baris 3 Kiri: Tingkatan -->
                         <div>
-                            <label for="input-tingkatan" class="block text-xs font-bold text-slate-700 mb-1.5">Tingkatan *</label>
-                            <select id="input-tingkatan" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition bg-white">
+                            <label for="input-tingkatan" class="form-label">Tingkatan *</label>
+                            <select id="input-tingkatan" required class="form-input">
                                 <option value="" disabled selected>-- Pilih Tingkatan --</option>
                                 <option value="Ula">Ula</option>
                                 <option value="Tsaniyah">Tsaniyah</option>
@@ -176,60 +174,49 @@
                     </div>
 
                     <div class="border-b border-slate-100 pb-4 pt-2">
-                        <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
-                            <i class="fa-solid fa-receipt text-emerald-700"></i>
-                            <span>Rincian Pembayaran</span>
-                        </h3>
+                        <h3 class="title-section"><i class="fa-solid fa-receipt text-emerald-700"></i><span>Rincian Transaksi / Angsuran Pembayaran</span></h3>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <div>
-                            <label for="input-nominal" class="block text-xs font-bold text-slate-700 mb-1.5">Nominal Transfer (Rp) *</label>
-                            <input type="number" id="input-nominal" required placeholder="Contoh: 1000000" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 text-xs outline-none transition">
+                            <label for="input-nominal" class="form-label">Nominal Transfer (Rp) *</label>
+                            <input type="number" id="input-nominal" required placeholder="Contoh: 1000000" class="form-input">
                         </div>
-
                         <div>
-                            <label for="input-bank" class="block text-xs font-bold text-slate-700 mb-1.5">Bank Pengirim</label>
-                            <input type="text" id="input-bank" required placeholder="Contoh: BSI, BCA, Mandiri" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 text-xs outline-none transition">
+                            <label for="input-bank" class="form-label">Bank Pengirim / Channel *</label>
+                            <input type="text" id="input-bank" required placeholder="Contoh: BSI, BCA, Mandiri" class="form-input">
                         </div>
-
                         <div>
-                            <label for="input-tanggal" class="block text-xs font-bold text-slate-700 mb-1.5">Tanggal Transfer *</label>
-                            <input type="date" id="input-tanggal" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 text-xs outline-none transition">
+                            <label for="input-tanggal" class="form-label">Tanggal Transfer *</label>
+                            <input type="date" id="input-tanggal" required class="form-input">
                         </div>
                     </div>
 
+                    <!-- Upload Resi Drag & Drop -->
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Unggah Bukti Transfer (Resi) *</label>
+                        <label class="form-label">Unggah Bukti Transfer (Resi) *</label>
                         <div id="drop-zone" class="w-full relative border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-slate-50 transition cursor-pointer bg-white group">
-                            <!-- Input file asli yang disembunyikan di atas area -->
                             <input type="file" id="input-file" required accept="image/*,application/pdf" onchange="handleFileSelect(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-                            
                             <i class="fa-solid fa-cloud-arrow-up text-3xl text-emerald-600 mb-3 group-hover:scale-110 transition-transform"></i>
                             <p class="text-xs font-bold text-slate-700 mb-1">Tarik & Lepas File di sini</p>
                             <p class="text-[11px] text-slate-500">atau klik untuk menelusuri (PDF / Gambar, Maks 3MB)</p>
                             
-                            <!-- Tempat preview nama file -->
                             <div id="file-preview" class="hidden mt-4 p-2 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-800 text-[11px] font-bold flex items-center justify-center space-x-2 w-full max-w-xs z-20 relative">
-                                <i class="fa-solid fa-file-circle-check"></i>
-                                <span id="file-name" class="truncate"></span>
+                                <i class="fa-solid fa-file-circle-check"></i><span id="file-name" class="truncate"></span>
                             </div>
                         </div>
-                        
-                        <!-- Input tersembunyi untuk menyimpan data Base64 file sebelum dikirim -->
                         <input type="hidden" id="input-resi-base64">
                         <input type="hidden" id="input-resi-filename">
                     </div>
 
                     <div>
-                        <label for="input-catatan" class="block text-xs font-bold text-slate-700 mb-1.5">Catatan (Opsional)</label>
-                        <textarea id="input-catatan" rows="2" placeholder="Contoh: Pembayaran Angsuran ke-2 Rusum Tahunan..." class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 text-xs outline-none transition"></textarea>
+                        <label for="input-catatan" class="form-label">Catatan Angsuran (Opsional)</label>
+                        <textarea id="input-catatan" rows="2" placeholder="Contoh: Pembayaran Angsuran ke-2 Rusum Tahunan..." class="form-input"></textarea>
                     </div>
 
                     <div class="pt-2">
-                        <button type="submit" id="btn-submit-form" class="w-full py-3.5 px-6 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs tracking-wide shadow-lg shadow-emerald-900/20 transition flex items-center justify-center space-x-2">
-                            <i class="fa-solid fa-paper-plane"></i>
-                            <span>KIRIM KONFIRMASI PEMBAYARAN</span>
+                        <button type="submit" id="btn-submit-form" class="btn-primary">
+                            <i class="fa-solid fa-paper-plane"></i><span>KIRIM KONFIRMASI PEMBAYARAN</span>
                         </button>
                     </div>
                 </form>
@@ -238,27 +225,23 @@
 
         <!-- TAB 2: CEK STATUS -->
         <section id="tab-content-status" class="space-y-6 hidden">
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
+            <div class="card-main space-y-6">
                 <div>
                     <h2 class="text-xl font-extrabold text-slate-800">Pemeriksaan Status & Kalkulasi Angsuran</h2>
-                    <p class="text-xs text-slate-500 mt-1">Masukkan Nomor Induk Mahasiswa (NIM) Anda untuk melihat histori.</p>
+                    <p class="text-desc mt-1">Masukkan Nomor Induk Mahasiswa (NIM) Anda untuk melihat histori.</p>
                 </div>
                 <div class="space-y-3">
                     <div class="flex items-center space-x-2">
                         <div class="relative flex-1">
                             <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-                            <input type="text" id="search-status-input" onkeyup="if(event.key==='Enter') executeStatusSearch()" placeholder="Ketikkan NIM Anda di sini..." class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 text-xs font-medium outline-none transition">
+                            <input type="text" id="search-status-input" onkeyup="if(event.key==='Enter') executeStatusSearch()" placeholder="Ketikkan NIM Anda di sini..." class="form-input pl-10">
                         </div>
-                        <button type="button" onclick="executeStatusSearch()" class="px-5 py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition shadow-md">
-                            Cari
-                        </button>
+                        <button type="button" onclick="executeStatusSearch()" class="btn-action py-3 px-5">Cari</button>
                     </div>
                 </div>
                 <div id="search-status-results" class="space-y-4">
                     <div id="search-status-initial" class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
-                        <div class="w-12 h-12 bg-emerald-50 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-3 text-lg">
-                            <i class="fa-solid fa-search"></i>
-                        </div>
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-3 text-lg"><i class="fa-solid fa-search"></i></div>
                         <h4 class="text-xs font-bold text-slate-700">Silakan Cari Berdasarkan NIM</h4>
                     </div>
                 </div>
@@ -267,26 +250,22 @@
 
         <!-- TAB 3: PANEL ADMIN -->
         <section id="tab-content-admin" class="space-y-6 hidden">
-            <div id="admin-login-card" class="max-w-md mx-auto bg-white rounded-2xl shadow-md border border-slate-200 p-6 sm:p-8 space-y-5">
+            <div id="admin-login-card" class="max-w-md mx-auto card-main space-y-5">
                 <div class="text-center space-y-1.5">
-                    <div class="w-12 h-12 bg-emerald-900 text-white rounded-2xl flex items-center justify-center mx-auto shadow-md">
-                        <i class="fa-solid fa-lock text-lg"></i>
-                    </div>
+                    <div class="w-12 h-12 bg-emerald-900 text-white rounded-2xl flex items-center justify-center mx-auto shadow-md"><i class="fa-solid fa-lock text-lg"></i></div>
                     <h3 class="text-lg font-bold text-slate-800">Otorisasi Pengelola Keuangan</h3>
                 </div>
                 <div class="space-y-4">
-                    <input type="password" id="admin-pin-input" placeholder="Masukkan PIN" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 text-center text-lg font-mono outline-none">
-                    <button type="button" onclick="loginAdmin()" class="w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs shadow-md transition">MASUK DASHBOARD</button>
-                    <button type="button" onclick="loginAdminDemo()" class="w-full py-2 bg-slate-100 text-slate-700 rounded-xl font-semibold text-xs border border-slate-200">Demo (PIN: 1234)</button>
+                    <input type="password" id="admin-pin-input" placeholder="Masukkan PIN" class="form-input text-center text-lg font-mono tracking-widest">
+                    <button type="button" onclick="loginAdmin()" class="btn-primary py-3">MASUK DASHBOARD</button>
+                    <button type="button" onclick="loginAdminDemo()" class="btn-outline w-full justify-center text-slate-600">Demo (PIN: 1234)</button>
                 </div>
             </div>
 
             <div id="admin-dashboard" class="space-y-6 hidden">
-                <div class="flex flex-col sm:flex-row justify-between bg-white p-6 rounded-2xl border border-slate-200">
-                    <div>
-                        <h2 class="text-xl font-extrabold text-slate-800">Dashboard Keuangan STAIIS</h2>
-                    </div>
-                    <button type="button" onclick="logoutAdmin()" class="px-4 py-2 bg-slate-100 text-rose-700 rounded-xl text-xs font-bold border border-slate-200 flex items-center space-x-1.5">
+                <div class="flex flex-col sm:flex-row justify-between card-main p-6 border border-slate-200">
+                    <h2 class="text-xl font-extrabold text-slate-800">Dashboard Keuangan STAIIS</h2>
+                    <button type="button" onclick="logoutAdmin()" class="btn-outline text-rose-700">
                         <i class="fa-solid fa-right-from-bracket"></i><span>Keluar Admin</span>
                     </button>
                 </div>
@@ -303,47 +282,30 @@
                 <!-- VIEW 1: VERIFIKASI -->
                 <div id="admin-view-verifikasi" class="space-y-6">
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                        <div class="bg-white p-4 rounded-xl border border-slate-200">
-                            <p class="text-[10px] font-bold text-slate-500 uppercase">Total Transaksi</p>
-                            <p id="admin-stat-total" class="text-2xl font-black text-slate-800">0</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200">
-                            <p class="text-[10px] font-bold text-amber-600 uppercase">Pending</p>
-                            <p id="admin-stat-pending" class="text-2xl font-black text-amber-600">0</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200">
-                            <p class="text-[10px] font-bold text-emerald-600 uppercase">Disetujui</p>
-                            <p id="admin-stat-disetujui" class="text-2xl font-black text-emerald-600">0</p>
-                        </div>
-                        <div class="bg-white p-4 rounded-xl border border-slate-200">
-                            <p class="text-[10px] font-bold text-rose-600 uppercase">Ditolak</p>
-                            <p id="admin-stat-ditolak" class="text-2xl font-black text-rose-600">0</p>
-                        </div>
+                        <div class="card-stat"><p class="text-[10px] font-bold text-slate-500 uppercase">Total</p><p id="admin-stat-total" class="text-2xl font-black text-slate-800">0</p></div>
+                        <div class="card-stat"><p class="text-[10px] font-bold text-amber-600 uppercase">Pending</p><p id="admin-stat-pending" class="text-2xl font-black text-amber-600">0</p></div>
+                        <div class="card-stat"><p class="text-[10px] font-bold text-emerald-600 uppercase">Disetujui</p><p id="admin-stat-disetujui" class="text-2xl font-black text-emerald-600">0</p></div>
+                        <div class="card-stat"><p class="text-[10px] font-bold text-rose-600 uppercase">Ditolak</p><p id="admin-stat-ditolak" class="text-2xl font-black text-rose-600">0</p></div>
                         <div class="col-span-2 bg-emerald-900 text-white p-5 rounded-2xl">
-                            <p class="text-[10px] font-bold text-emerald-200 uppercase flex items-center space-x-1">
-                                <i class="fa-solid fa-vault"></i><span>Total Penerimaan</span>
-                            </p>
+                            <p class="text-[10px] font-bold text-emerald-200 uppercase flex items-center space-x-1"><i class="fa-solid fa-vault"></i><span>Total Penerimaan</span></p>
                             <p id="admin-stat-penerimaan" class="text-2xl font-extrabold text-white">Rp 0</p>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div class="card-main !p-0 overflow-hidden">
                         <div class="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                             <div class="flex items-center space-x-2 w-full">
-                                <input type="text" id="admin-filter-search" onkeyup="filterAdminTable()" placeholder="Cari Nama / NIM..." class="px-3.5 py-2 rounded-xl border border-slate-300 text-xs w-full sm:w-60 outline-none">
-                                <select id="admin-filter-status" onchange="filterAdminTable()" class="px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none">
-                                    <option value="ALL">Semua</option>
-                                    <option value="Pending">Pending</option>
-                                    <option value="Disetujui">Disetujui</option>
-                                    <option value="Ditolak">Ditolak</option>
+                                <input type="text" id="admin-filter-search" onkeyup="filterAdminTable()" placeholder="Cari Nama / NIM..." class="form-input w-full sm:w-60 py-2">
+                                <select id="admin-filter-status" onchange="filterAdminTable()" class="form-input py-2">
+                                    <option value="ALL">Semua</option><option value="Pending">Pending</option><option value="Disetujui">Disetujui</option><option value="Ditolak">Ditolak</option>
                                 </select>
                             </div>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-xs">
                                 <thead>
-                                    <tr class="bg-slate-100 text-slate-700 uppercase text-[10px]">
-                                        <th class="p-3.5">Mhs</th><th class="p-3.5">Prodi</th><th class="p-3.5">Nominal</th><th class="p-3.5">Bank/Tgl</th><th class="p-3.5">Status</th><th class="p-3.5">Aksi</th>
+                                    <tr>
+                                        <th class="table-th">Mhs</th><th class="table-th">Prodi</th><th class="table-th">Nominal</th><th class="table-th">Bank/Tgl</th><th class="table-th text-center">Status</th><th class="table-th text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="admin-table-body" class="divide-y divide-slate-100"></tbody>
@@ -354,25 +316,18 @@
 
                 <!-- VIEW 2: PEMANTAUAN -->
                 <div id="admin-view-angkatan" class="space-y-6 hidden">
-                    <div class="bg-white p-5 rounded-2xl border border-slate-200 flex flex-col md:flex-row justify-between gap-4">
+                    <div class="card-main flex flex-col md:flex-row justify-between gap-4 p-5">
                         <div class="flex items-center gap-4 w-full md:w-auto">
                             <div class="flex items-center space-x-3">
                                 <label class="text-[10px] font-bold uppercase text-slate-400">TA</label>
-                                <select id="ta-select" onchange="renderAngkatanMonitoring()" class="font-bold text-xs outline-none">
-                                    <option value="ALL">Semua TA</option>
-                                    <option value="2026/2027">2026/2027</option>
-                                    <option value="2025/2026" selected>2025/2026</option>
-                                    <option value="2024/2025">2024/2025</option>
+                                <select id="ta-select" onchange="renderAngkatanMonitoring()" class="font-bold text-xs outline-none bg-transparent">
+                                    <option value="ALL">Semua</option><option value="2026/2027">2026/2027</option><option value="2025/2026" selected>2025/2026</option><option value="2024/2025">2024/2025</option>
                                 </select>
                             </div>
                             <div class="flex items-center space-x-3 border-l border-slate-200 pl-4">
                                 <label class="text-[10px] font-bold uppercase text-slate-400">Tingkat</label>
-                                <select id="tingkatan-select" onchange="renderAngkatanMonitoring()" class="font-bold text-xs outline-none">
-                                    <option value="ALL">Semua</option>
-                                    <option value="Ula">Ula</option>
-                                    <option value="Tsaniyah">Tsaniyah</option>
-                                    <option value="Tsalisah">Tsalisah</option>
-                                    <option value="Robiah">Robiah</option>
+                                <select id="tingkatan-select" onchange="renderAngkatanMonitoring()" class="font-bold text-xs outline-none bg-transparent">
+                                    <option value="ALL">Semua</option><option value="Ula">Ula</option><option value="Tsaniyah">Tsaniyah</option><option value="Tsalisah">Tsalisah</option><option value="Robiah">Robiah</option>
                                 </select>
                             </div>
                         </div>
@@ -385,41 +340,25 @@
                     </div>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                        <div class="bg-white p-5 rounded-xl border border-slate-200">
-                            <p class="text-[10px] uppercase text-slate-400">Total Mhs</p>
-                            <p id="cohort-stat-total" class="text-2xl font-black">0 Mhs</p>
-                        </div>
-                        <div class="bg-emerald-50 p-5 rounded-xl border border-emerald-200">
-                            <p class="text-[10px] uppercase text-emerald-700">Terima</p>
-                            <p id="cohort-stat-paid-nominal" class="text-2xl font-black text-emerald-700">Rp 0</p>
-                            <p id="cohort-stat-paid" class="text-[11px] text-emerald-800">0 Lunas, 0 Cicil</p>
-                        </div>
-                        <div class="bg-rose-50 p-5 rounded-xl border border-rose-200">
-                            <p class="text-[10px] uppercase text-rose-700">Tunggakan</p>
-                            <p id="cohort-stat-unpaid-nominal" class="text-2xl font-black text-rose-700">Rp 0</p>
-                            <p id="cohort-stat-unpaid" class="text-[11px] text-rose-800">Belum Penuh: 0 Mhs</p>
-                        </div>
-                        <div class="bg-white p-5 rounded-xl border border-slate-200 flex flex-col justify-center">
-                            <div class="flex justify-between text-xs mb-1">
-                                <span class="font-bold">Progress Lunas</span>
-                                <span id="cohort-progress-text" class="text-emerald-800 font-bold">0%</span>
-                            </div>
-                            <div class="w-full bg-slate-100 rounded-full h-3">
-                                <div id="cohort-progress-bar" class="bg-emerald-700 h-full rounded-full w-0"></div>
-                            </div>
+                        <div class="card-stat p-5"><p class="text-[10px] uppercase text-slate-400">Total Mhs</p><p id="cohort-stat-total" class="text-2xl font-black">0 Mhs</p></div>
+                        <div class="card-stat p-5 bg-emerald-50 border-emerald-200"><p class="text-[10px] uppercase text-emerald-700">Terima</p><p id="cohort-stat-paid-nominal" class="text-2xl font-black text-emerald-700">Rp 0</p><p id="cohort-stat-paid" class="text-[11px] text-emerald-800">0 Lunas, 0 Cicil</p></div>
+                        <div class="card-stat p-5 bg-rose-50 border-rose-200"><p class="text-[10px] uppercase text-rose-700">Tunggakan</p><p id="cohort-stat-unpaid-nominal" class="text-2xl font-black text-rose-700">Rp 0</p><p id="cohort-stat-unpaid" class="text-[11px] text-rose-800">Belum Penuh: 0 Mhs</p></div>
+                        <div class="card-stat p-5 flex flex-col justify-center">
+                            <div class="flex justify-between text-xs mb-1"><span class="font-bold">Progress Lunas</span><span id="cohort-progress-text" class="text-emerald-800 font-bold">0%</span></div>
+                            <div class="w-full bg-slate-100 rounded-full h-3"><div id="cohort-progress-bar" class="bg-emerald-700 h-full rounded-full w-0"></div></div>
                             <p id="cohort-progress-sub" class="text-[10px] mt-1 text-slate-500">0 dari 0 Lunas</p>
                         </div>
                     </div>
 
-                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                        <div class="p-4 bg-slate-50 flex justify-between">
+                    <div class="card-main !p-0 overflow-hidden">
+                        <div class="p-4 bg-slate-50 flex justify-between border-b border-slate-100">
                             <h3 class="text-xs font-bold uppercase"><i class="fa-solid fa-list-check"></i> Daftar Mahasiswa</h3>
                             <span id="cohort-table-count" class="px-2 py-0.5 bg-slate-200 rounded-full text-[10px]">0 Data</span>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-left text-xs">
-                                <thead class="bg-slate-100 text-[10px] uppercase text-slate-600">
-                                    <tr><th class="p-3">Mhs</th><th class="p-3">Info</th><th class="p-3">Dibayar</th><th class="p-3">Sisa</th><th class="p-3 text-center">Status</th><th class="p-3 text-center">Aksi</th></tr>
+                                <thead>
+                                    <tr><th class="table-th">Mhs</th><th class="table-th">Info</th><th class="table-th">Dibayar</th><th class="table-th">Sisa</th><th class="table-th text-center">Status</th><th class="table-th text-center">Aksi</th></tr>
                                 </thead>
                                 <tbody id="cohort-table-body" class="divide-y divide-slate-100"></tbody>
                             </table>
@@ -434,14 +373,14 @@
     <!-- MODAL REVIEW ADMIN -->
     <div id="modal-review" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div class="p-5 bg-emerald-900 text-white flex justify-between sticky top-0">
+            <div class="p-5 bg-emerald-900 text-white flex justify-between sticky top-0 z-10">
                 <h3 class="font-bold"><i class="fa-solid fa-file-circle-check"></i> Tinjauan Transaksi</h3>
                 <button onclick="closeModalReview()" class="w-8 h-8 rounded-lg bg-emerald-800 hover:bg-emerald-700 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
             </div>
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2">
                     <p class="text-xs font-bold uppercase">BUKTI RESI</p>
-                    <div class="bg-slate-100 p-2 border border-slate-200 min-h-[220px] flex items-center">
+                    <div class="bg-slate-100 p-2 border border-slate-200 min-h-[220px] flex items-center justify-center">
                         <a id="modal-resi-link" href="#" target="_blank" class="w-full text-center">
                             <img id="modal-resi-img" src="" class="max-h-60 mx-auto rounded">
                         </a>
@@ -462,17 +401,17 @@
                         <p id="modal-mhs-kalkulasi" class="font-bold text-emerald-800 text-[11px]"></p>
                     </div>
                 </div>
-                <div class="col-span-1 md:col-span-2 space-y-4 border-t pt-4">
-                    <label class="block text-xs font-bold">Keputusan Status *</label>
+                <div class="col-span-1 md:col-span-2 space-y-4 border-t border-slate-100 pt-4">
+                    <label class="form-label">Keputusan Status *</label>
                     <div class="grid grid-cols-3 gap-2">
                         <button id="btn-status-pending" onclick="selectModalStatus('Pending')" class="py-2.5 border rounded-xl text-xs font-bold"><i class="fa-solid fa-clock"></i> Pending</button>
                         <button id="btn-status-disetujui" onclick="selectModalStatus('Disetujui')" class="py-2.5 border rounded-xl text-xs font-bold"><i class="fa-solid fa-check"></i> Setuju</button>
                         <button id="btn-status-ditolak" onclick="selectModalStatus('Ditolak')" class="py-2.5 border rounded-xl text-xs font-bold"><i class="fa-solid fa-xmark"></i> Tolak</button>
                     </div>
-                    <textarea id="modal-admin-note" rows="3" class="w-full px-3 py-2 border rounded-xl text-xs"></textarea>
+                    <textarea id="modal-admin-note" rows="3" class="form-input"></textarea>
                     <div class="flex justify-end space-x-3">
                         <button onclick="previewKwitansiFromAdminModal()" class="w-11 h-11 bg-emerald-100 text-emerald-800 rounded-xl"><i class="fa-solid fa-receipt"></i></button>
-                        <button onclick="sendEmailNotificationFromModal()" class="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-save mr-1"></i> SIMPAN & EMAIL</button>
+                        <button onclick="sendEmailNotificationFromModal()" class="btn-primary !w-auto"><i class="fa-solid fa-save"></i><span>SIMPAN & EMAIL</span></button>
                     </div>
                 </div>
             </div>
@@ -485,8 +424,8 @@
             <div class="p-4 bg-slate-100 border-b flex justify-between items-center">
                 <h3 class="text-xs font-bold uppercase"><i class="fa-solid fa-receipt"></i> Preview Kwitansi</h3>
                 <div class="flex space-x-2">
-                    <button onclick="downloadKwitansiFromModal()" class="px-3 py-1 bg-emerald-800 text-white rounded-lg text-xs font-bold"><i class="fa-solid fa-file-pdf"></i> Unduh</button>
-                    <button onclick="closeKwitansiModal()" class="w-8 h-8 rounded-lg bg-slate-200 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+                    <button onclick="downloadKwitansiFromModal()" class="btn-action"><i class="fa-solid fa-file-pdf"></i><span>Unduh</span></button>
+                    <button onclick="closeKwitansiModal()" class="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </div>
             <div id="kwitansi-print-area" class="p-8 bg-white text-slate-800 space-y-6">
@@ -500,14 +439,15 @@
                     </div>
                     <div class="text-right">
                         <span id="kwitansi-badge-status" class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded-md text-[10px] font-bold">SAH</span>
-                        <p id="kwitansi-no" class="text-[10px] mt-1"></p>
+                        <p id="kwitansi-no" class="text-[10px] mt-1 text-slate-500"></p>
                     </div>
                 </div>
                 <div class="space-y-4 text-xs">
                     <div class="text-center">
-                        <h3 class="font-bold uppercase underline">BUKTI KWITANSI</h3>
+                        <h3 class="font-bold uppercase underline tracking-wider">BUKTI KWITANSI</h3>
                         <p id="kwitansi-tgl" class="text-[11px] text-slate-500"></p>
                     </div>
+                    
                     <table class="w-full">
                         <tr class="border-b border-slate-100">
                             <td class="py-2 w-40 text-slate-500 font-medium">Terima Dari</td>
@@ -538,6 +478,7 @@
                             <td class="py-2 font-bold text-rose-700">: <span id="kwitansi-sisa"></span></td>
                         </tr>
                     </table>
+                    
                     <div class="pt-8 text-right pr-12"><p class="font-bold underline">Keuangan STAIIS</p></div>
                 </div>
             </div>
@@ -551,7 +492,7 @@
         <p>&copy; 2026 STAI Imam Syafi'i Cianjur. All Rights Reserved.</p>
     </footer>
 
-    <!-- App Logic Script -->
+    <!-- Script dari folder js/ -->
     <script src="js/script.js"></script>
 </body>
 </html>
