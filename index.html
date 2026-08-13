@@ -104,7 +104,7 @@
                         </span>
                         <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight">Konfirmasi Pembayaran Rusum Tahunan</h2>
                         <p class="text-xs sm:text-sm text-emerald-100 leading-relaxed">
-                            Mendukung pembayaran **Lunas penuh (Rp 2.500.000)** maupun **Berangsur / Dicicil**. Sistem akan menghitung akumulasi total pembayaran dan sisa tagihan Anda secara otomatis.
+                            Sistem akan menghitung akumulasi total pembayaran dan sisa tagihan Anda secara otomatis.
                         </p>
                     </div>
 
@@ -146,12 +146,12 @@
 
                         <div>
                             <label for="input-nama" class="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap Mahasiswa *</label>
-                            <input type="text" id="input-nama" required placeholder="Nama sesuai KRS / KPM" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
+                            <input type="text" id="input-nama" required placeholder="Nama sesuai Ijazah" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
                         </div>
 
                         <div>
                             <label for="input-email" class="block text-xs font-bold text-slate-700 mb-1.5">Email Aktif Mahasiswa *</label>
-                            <input type="email" id="input-email" required placeholder="nama@staiis.ac.id / email aktif" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
+                            <input type="email" id="input-email" required placeholder="nama@gmail.com (email aktif)" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
                         </div>
 
                         <div>
@@ -178,7 +178,7 @@
                     <div class="border-b border-slate-100 pb-4 pt-2">
                         <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
                             <i class="fa-solid fa-receipt text-emerald-700"></i>
-                            <span>Rincian Transaksi / Angsuran Pembayaran</span>
+                            <span>Rincian Pembayaran</span>
                         </h3>
                     </div>
 
@@ -189,7 +189,7 @@
                         </div>
 
                         <div>
-                            <label for="input-bank" class="block text-xs font-bold text-slate-700 mb-1.5">Bank Pengirim / Channel *</label>
+                            <label for="input-bank" class="block text-xs font-bold text-slate-700 mb-1.5">Bank Pengirim</label>
                             <input type="text" id="input-bank" required placeholder="Contoh: BSI, BCA, Mandiri" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 text-xs outline-none transition">
                         </div>
 
@@ -200,12 +200,29 @@
                     </div>
 
                     <div>
-                        <label for="input-resi" class="block text-xs font-bold text-slate-700 mb-1.5">Unggah / Tautan Bukti Transfer (Resi) *</label>
-                        <input type="text" id="input-resi" required placeholder="Tempel URL Gambar Resi atau Link Google Drive" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 text-xs outline-none transition">
+                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Unggah Bukti Transfer (Resi) *</label>
+                        <div id="drop-zone" class="w-full relative border-2 border-dashed border-slate-300 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:bg-slate-50 transition cursor-pointer bg-white group">
+                            <!-- Input file asli yang disembunyikan di atas area -->
+                            <input type="file" id="input-file" required accept="image/*,application/pdf" onchange="handleFileSelect(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
+                            
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-emerald-600 mb-3 group-hover:scale-110 transition-transform"></i>
+                            <p class="text-xs font-bold text-slate-700 mb-1">Tarik & Lepas File di sini</p>
+                            <p class="text-[11px] text-slate-500">atau klik untuk menelusuri (PDF / Gambar, Maks 3MB)</p>
+                            
+                            <!-- Tempat preview nama file -->
+                            <div id="file-preview" class="hidden mt-4 p-2 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-800 text-[11px] font-bold flex items-center justify-center space-x-2 w-full max-w-xs z-20 relative">
+                                <i class="fa-solid fa-file-circle-check"></i>
+                                <span id="file-name" class="truncate"></span>
+                            </div>
+                        </div>
+                        
+                        <!-- Input tersembunyi untuk menyimpan data Base64 file sebelum dikirim -->
+                        <input type="hidden" id="input-resi-base64">
+                        <input type="hidden" id="input-resi-filename">
                     </div>
 
                     <div>
-                        <label for="input-catatan" class="block text-xs font-bold text-slate-700 mb-1.5">Catatan Angsuran (Opsional)</label>
+                        <label for="input-catatan" class="block text-xs font-bold text-slate-700 mb-1.5">Catatan (Opsional)</label>
                         <textarea id="input-catatan" rows="2" placeholder="Contoh: Pembayaran Angsuran ke-2 Rusum Tahunan..." class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 text-xs outline-none transition"></textarea>
                     </div>
 
