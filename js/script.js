@@ -25,13 +25,6 @@ const defaultStatusNotes = {
 async function fetchSpreadsheetData() {
     try {
         showToast("Memuat Data", "Sedang menghubungkan ke database server...");
-        
-        // Panggil fetch jika SCRIPT_URL sudah diset
-        if (SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbzyoXy7Ewl8VK3ApGnDpiinwsWiuesh0wbC6gOWEzDCQGxio7_0JCcfybd4JDjAAVeo/exec') {
-            showToast("Peringatan", "SCRIPT_URL belum diset. Aplikasi berjalan dengan data kosong.");
-            return;
-        }
-
         const response = await fetch(SCRIPT_URL + "?action=getData");
         const data = await response.json();
         
@@ -151,13 +144,6 @@ function copyRekening() {
 async function handleFormSubmit(e) {
     e.preventDefault();
     const btnSubmit = document.getElementById('btn-submit-form');
-    
-    // Validasi URL Script
-    if (SCRIPT_URL === 'PASTE_URL_WEB_APP_ANDA_DI_SINI') {
-        showToast("Error", "URL Server belum dikonfigurasi oleh Admin!");
-        return;
-    }
-
     btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>MENGIRIM KE SERVER...</span>`;
     btnSubmit.disabled = true;
 
