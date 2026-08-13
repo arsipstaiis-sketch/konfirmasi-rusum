@@ -1,0 +1,1664 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Konfirmasi Pembayaran Rusum STAIIS</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- html2pdf.js for Kwitansi PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            200: '#a7f3d0',
+                            300: '#6ee7b7',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                            950: '#022c22',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between antialiased">
+
+    <!-- Navigation Bar -->
+    <header class="bg-emerald-900 text-white shadow-md sticky top-0 z-40 border-b border-emerald-800">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Brand / Logo Title -->
+                <div class="flex items-center space-x-3.5">
+                    <div class="w-12 h-12 bg-white rounded-full p-1 flex items-center justify-center shadow-md shrink-0">
+                        <div class="w-full h-full bg-emerald-800 rounded-full flex items-center justify-center text-white font-extrabold text-xs">
+                            STAIIS
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">STAI Imam Syafi'i Cianjur</h1>
+                        <p class="text-xs text-emerald-200 font-medium">Sistem Pembayaran & Angsuran Rusum Tahunan</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Nav Buttons -->
+                <nav class="hidden md:flex items-center space-x-2">
+                    <button id="tab-btn-form" onclick="selectTab('form')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 bg-emerald-800 text-white shadow-inner">
+                        <i class="fa-solid fa-file-signature"></i>
+                        <span>Formulir Konfirmasi</span>
+                    </button>
+                    <button id="tab-btn-status" onclick="selectTab('status')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Cek Status & Angsuran</span>
+                    </button>
+                    <button id="tab-btn-admin" onclick="selectTab('admin')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60">
+                        <i class="fa-solid fa-user-shield"></i>
+                        <span>Panel Admin</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+        <!-- Mobile Bottom Nav bar -->
+        <div class="md:hidden flex border-t border-emerald-800 bg-emerald-950/90 backdrop-blur-md">
+            <button id="m-tab-form" onclick="selectTab('form')" class="flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 bg-emerald-800 text-white">
+                <i class="fa-solid fa-file-signature text-base"></i>
+                <span>Formulir</span>
+            </button>
+            <button id="m-tab-status" onclick="selectTab('status')" class="flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 hover:bg-emerald-900">
+                <i class="fa-solid fa-magnifying-glass text-base"></i>
+                <span>Cek Status</span>
+            </button>
+            <button id="m-tab-admin" onclick="selectTab('admin')" class="flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 hover:bg-emerald-900">
+                <i class="fa-solid fa-user-shield text-base"></i>
+                <span>Admin</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Body Container -->
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
+
+        <!-- TAB 1: FORMULIR KONFIRMASI -->
+        <section id="tab-content-form" class="space-y-6">
+            <!-- Information Banner & Account Info -->
+            <div class="bg-emerald-900 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl">
+                    <i class="fa-solid fa-building-columns"></i>
+                </div>
+                <div class="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 items-center">
+                    <div class="lg:col-span-2 space-y-2">
+                        <span class="inline-block px-3 py-1 bg-emerald-800 text-emerald-200 text-xs font-bold rounded-full uppercase tracking-wider">
+                            Dukungan Pelunasan & Angsuran Berangsur
+                        </span>
+                        <h2 class="text-xl sm:text-2xl font-extrabold tracking-tight">Konfirmasi Pembayaran Rusum Tahunan</h2>
+                        <p class="text-xs sm:text-sm text-emerald-100 leading-relaxed">
+                            Mendukung pembayaran **Lunas penuh (Rp 2.500.000)** maupun **Berangsur / Dicicil**. Sistem akan menghitung akumulasi total pembayaran dan sisa tagihan Anda secara otomatis.
+                        </p>
+                    </div>
+
+                    <!-- Bank Account Info Box -->
+                    <div class="bg-white/10 backdrop-blur-md rounded-xl p-4 border border-white/20 space-y-2 shrink-0">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-200 uppercase tracking-wider">Rekening Resmi</span>
+                            <span class="px-2 py-0.5 bg-emerald-700 text-white text-[10px] font-bold rounded">BSI</span>
+                        </div>
+                        <div class="space-y-0.5">
+                            <p class="text-xs text-emerald-100">Bank Syariah Indonesia (BSI)</p>
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-xl sm:text-2xl font-black tracking-wider font-mono text-white select-all">7000005009</p>
+                                <button type="button" onclick="copyRekening()" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-900 rounded-lg text-xs font-bold transition shrink-0 flex items-center space-x-1 shadow">
+                                    <i class="fa-regular fa-copy"></i>
+                                    <span>Salin</span>
+                                </button>
+                            </div>
+                            <p class="text-[11px] font-medium text-emerald-200">a.n. STAI IMAM SYAFI'I</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Card -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8">
+                <form id="form-konfirmasi" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                    <div class="border-b border-slate-100 pb-4">
+                        <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
+                            <i class="fa-solid fa-id-card text-emerald-700"></i>
+                            <span>Data Identitas Mahasiswa</span>
+                        </h3>
+                        <p class="text-xs text-slate-500">Ketik NIM Anda untuk mengecek riwayat pembayaran sebelumnya jika ingin melanjutkan cicilan.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <!-- NIM -->
+                        <div>
+                            <label for="input-nim" class="block text-xs font-bold text-slate-700 mb-1.5">Nomor Induk Mahasiswa (NIM) *</label>
+                            <input type="text" id="input-nim" oninput="checkPreviousInstallments()" required placeholder="Contoh: 20240101" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
+                            <div id="nim-installment-info" class="hidden mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1">
+                                <!-- Dynamic Info On Typing NIM -->
+                            </div>
+                        </div>
+
+                        <!-- Nama Lengkap -->
+                        <div>
+                            <label for="input-nama" class="block text-xs font-bold text-slate-700 mb-1.5">Nama Lengkap Mahasiswa *</label>
+                            <input type="text" id="input-nama" required placeholder="Nama sesuai KRS / KPM" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
+                        </div>
+
+                        <!-- Email -->
+                        <div>
+                            <label for="input-email" class="block text-xs font-bold text-slate-700 mb-1.5">Email Aktif Mahasiswa *</label>
+                            <input type="email" id="input-email" required placeholder="nama@staiis.ac.id / email aktif" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
+                        </div>
+
+                        <!-- Program Studi -->
+                        <div>
+                            <label for="input-prodi" class="block text-xs font-bold text-slate-700 mb-1.5">Program Studi *</label>
+                            <select id="input-prodi" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition bg-white">
+                                <option value="" disabled selected>-- Pilih Program Studi --</option>
+                                <option value="Pendidikan Bahasa Arab (PBA)">Pendidikan Bahasa Arab (PBA)</option>
+                                <option value="Hukum Keluarga Islam (HKI)">Hukum Keluarga Islam (HKI)</option>
+                            </select>
+                        </div>
+
+                        <!-- Tingkatan Dropdown -->
+                        <div>
+                            <label for="input-tingkatan" class="block text-xs font-bold text-slate-700 mb-1.5">Tingkatan *</label>
+                            <select id="input-tingkatan" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition bg-white">
+                                <option value="" disabled selected>-- Pilih Tingkatan --</option>
+                                <option value="Ula">Ula</option>
+                                <option value="Tsaniyah">Tsaniyah</option>
+                                <option value="Tsalisah">Tsalisah</option>
+                                <option value="Robiah">Robiah</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="border-b border-slate-100 pb-4 pt-2">
+                        <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
+                            <i class="fa-solid fa-receipt text-emerald-700"></i>
+                            <span>Rincian Transaksi / Angsuran Pembayaran</span>
+                        </h3>
+                        <p class="text-xs text-slate-500">Masukkan nominal yang Anda transfer pada transaksi kali ini.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <!-- Nominal Transfer -->
+                        <div>
+                            <label for="input-nominal" class="block text-xs font-bold text-slate-700 mb-1.5">Nominal Transfer (Rp) *</label>
+                            <input type="number" id="input-nominal" required placeholder="Contoh: 1000000 (Cicilan) atau 2500000 (Lunas)" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
+                        </div>
+
+                        <!-- Bank Pengirim -->
+                        <div>
+                            <label for="input-bank" class="block text-xs font-bold text-slate-700 mb-1.5">Bank Pengirim / Channel *</label>
+                            <input type="text" id="input-bank" required placeholder="Contoh: BSI, BCA, Mandiri, BRI" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
+                        </div>
+
+                        <!-- Tanggal Transfer -->
+                        <div>
+                            <label for="input-tanggal" class="block text-xs font-bold text-slate-700 mb-1.5">Tanggal Transfer *</label>
+                            <input type="date" id="input-tanggal" required class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition">
+                        </div>
+                    </div>
+
+                    <!-- Upload Resi File / Link -->
+                    <div>
+                        <label for="input-resi" class="block text-xs font-bold text-slate-700 mb-1.5">Unggah / Tautan Bukti Transfer (Resi) *</label>
+                        <input type="text" id="input-resi" required placeholder="Tempel URL Gambar Resi atau Link Google Drive / Image host" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition mb-1">
+                        <p class="text-[11px] text-slate-500">
+                            *Gunakan layanan seperti ImgBB / Drive public link atau placeholder gambar resi.
+                        </p>
+                    </div>
+
+                    <!-- Catatan Tambahan -->
+                    <div>
+                        <label for="input-catatan" class="block text-xs font-bold text-slate-700 mb-1.5">Catatan Angsuran (Opsional)</label>
+                        <textarea id="input-catatan" rows="2" placeholder="Contoh: Pembayaran Angsuran ke-2 Rusum Tahunan..." class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs text-slate-800 outline-none transition"></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="pt-2">
+                        <button type="submit" id="btn-submit-form" class="w-full py-3.5 px-6 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs tracking-wide shadow-lg shadow-emerald-900/20 transition flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-paper-plane"></i>
+                            <span>KIRIM KONFIRMASI PEMBAYARAN</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- TAB 2: CEK STATUS (MAHASISWA) -->
+        <section id="tab-content-status" class="space-y-6 hidden">
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
+                <div>
+                    <h2 class="text-xl font-extrabold text-slate-800">Pemeriksaan Status & Kalkulasi Angsuran</h2>
+                    <p class="text-xs text-slate-500 mt-1">Masukkan Nomor Induk Mahasiswa (NIM) Anda untuk melihat akumulasi pembayaran, sisa tagihan, dan histori seluruh angsuran.</p>
+                </div>
+
+                <!-- Search Input Bar -->
+                <div class="space-y-3">
+                    <div class="flex items-center space-x-2">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input type="text" id="search-status-input" onkeyup="if(event.key==='Enter') executeStatusSearch()" placeholder="Ketikkan NIM Anda di sini..." class="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 focus:border-emerald-600 text-xs font-medium outline-none transition">
+                        </div>
+                        <button type="button" onclick="executeStatusSearch()" class="px-5 py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition shadow-md">
+                            Cari
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search Results Output -->
+                <div id="search-status-results" class="space-y-4">
+                    <!-- Default initial state: empty prompt -->
+                    <div id="search-status-initial" class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-3 text-lg">
+                            <i class="fa-solid fa-search"></i>
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-700">Silakan Cari Berdasarkan NIM</h4>
+                        <p class="text-[11px] text-slate-500 max-w-sm mx-auto mt-1">Masukkan NIM Anda pada kolom pencarian di atas lalu tekan Cari untuk melihat ringkasan angsuran Rusum Anda.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: PANEL ADMIN -->
+        <section id="tab-content-admin" class="space-y-6 hidden">
+
+            <!-- Admin Login Card -->
+            <div id="admin-login-card" class="max-w-md mx-auto bg-white rounded-2xl shadow-md border border-slate-200 p-6 sm:p-8 space-y-5">
+                <div class="text-center space-y-1.5">
+                    <div class="w-12 h-12 bg-emerald-900 text-white rounded-2xl flex items-center justify-center mx-auto shadow-md">
+                        <i class="fa-solid fa-lock text-lg"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-slate-800">Otorisasi Pengelola Keuangan</h3>
+                    <p class="text-xs text-slate-500">Masukkan PIN Keuangan STAIIS untuk mengelola verifikasi.</p>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label for="admin-pin-input" class="block text-xs font-bold text-slate-700 mb-1">PIN Keuangan Admin *</label>
+                        <input type="password" id="admin-pin-input" placeholder="Masukkan PIN (Default Demo: 1234)" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 text-xs outline-none transition text-center tracking-widest text-lg font-mono">
+                    </div>
+                    <button type="button" onclick="loginAdmin()" class="w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl font-bold text-xs shadow-md transition">
+                        MASUK DASHBOARD ADMIN
+                    </button>
+                    <button type="button" onclick="loginAdminDemo()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-xs transition border border-slate-200">
+                        Masuk Demo Langsung (PIN: 1234)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Admin Dashboard Content (Hidden until logged in) -->
+            <div id="admin-dashboard" class="space-y-6 hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-800">Dashboard Keuangan STAIIS</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Peninjauan verifikasi transaksi dan pemantauan pembayaran per tahun akademik & tingkatan.</p>
+                    </div>
+                    <button type="button" onclick="logoutAdmin()" class="px-4 py-2 bg-slate-100 hover:bg-rose-50 text-rose-700 rounded-xl text-xs font-bold transition border border-slate-200 self-start sm:self-auto flex items-center space-x-1.5">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Keluar Admin</span>
+                    </button>
+                </div>
+
+                <!-- Admin Sub-Navigation Menu -->
+                <div class="flex bg-slate-200/70 p-1.5 rounded-2xl space-x-2 border border-slate-200/80">
+                    <button id="admin-subtab-verifikasi" onclick="switchAdminSubtab('verifikasi')" class="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 bg-white text-emerald-900 shadow-sm">
+                        <i class="fa-solid fa-receipt"></i>
+                        <span>Verifikasi Transaksi Masuk</span>
+                    </button>
+                    <button id="admin-subtab-angkatan" onclick="switchAdminSubtab('angkatan')" class="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-users"></i>
+                        <span>Pemantauan TA & Tingkatan</span>
+                    </button>
+                </div>
+
+                <!-- VIEW 1: VERIFIKASI TRANSAKSI -->
+                <div id="admin-view-verifikasi" class="space-y-6">
+                    <!-- Admin Statistics Grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Transaksi</p>
+                            <p id="admin-stat-total" class="text-2xl font-black text-slate-800">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
+                            <p class="text-[10px] font-bold text-amber-600 uppercase tracking-wider">Pending</p>
+                            <p id="admin-stat-pending" class="text-2xl font-black text-amber-600">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
+                            <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Disetujui</p>
+                            <p id="admin-stat-disetujui" class="text-2xl font-black text-emerald-600">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-1">
+                            <p class="text-[10px] font-bold text-rose-600 uppercase tracking-wider">Ditolak</p>
+                            <p id="admin-stat-ditolak" class="text-2xl font-black text-rose-600">0</p>
+                        </div>
+
+                        <!-- Total Acceptance Box -->
+                        <div class="col-span-2 sm:col-span-3 lg:col-span-2 bg-emerald-900 text-white p-5 rounded-2xl shadow-md border border-emerald-800 space-y-1 flex flex-col justify-center">
+                            <p class="text-[10px] font-bold text-emerald-200 uppercase tracking-wider flex items-center space-x-1">
+                                <i class="fa-solid fa-vault"></i>
+                                <span>Total Penerimaan Kas Rusum</span>
+                            </p>
+                            <p id="admin-stat-penerimaan" class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white whitespace-nowrap">
+                                Rp 0
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Admin Table Card -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3">
+                            <div class="flex items-center space-x-2 w-full sm:w-auto">
+                                <input type="text" id="admin-filter-search" onkeyup="filterAdminTable()" placeholder="Cari Nama / NIM..." class="px-3.5 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:ring-2 focus:ring-emerald-600 w-full sm:w-60">
+                                <select id="admin-filter-status" onchange="filterAdminTable()" class="px-3 py-2 rounded-xl border border-slate-300 text-xs outline-none focus:ring-2 focus:ring-emerald-600 bg-white">
+                                    <option value="ALL">Semua Status</option>
+                                    <option value="Pending">Pending</option>
+                                    <option value="Disetujui">Disetujui</option>
+                                    <option value="Ditolak">Ditolak</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Responsive Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider">
+                                        <th class="p-3.5">Identitas Mahasiswa</th>
+                                        <th class="p-3.5">Prodi</th>
+                                        <th class="p-3.5">Nominal Transfer</th>
+                                        <th class="p-3.5">Tanggal & Bank</th>
+                                        <th class="p-3.5 text-center">Status</th>
+                                        <th class="p-3.5 text-center">Tindakan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-table-body" class="divide-y divide-slate-100 text-slate-700">
+                                    <!-- Dynamic JS Injection -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VIEW 2: PEMANTAUAN TAHUN AKADEMIK & TINGKATAN -->
+                <div id="admin-view-angkatan" class="space-y-6 hidden">
+                    <!-- Academic Year & Tingkatan Selection Controls -->
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div class="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                            <!-- Dropdown Tahun Akademik -->
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-emerald-100 text-emerald-800 rounded-xl flex items-center justify-center shrink-0">
+                                    <i class="fa-solid fa-calendar-days text-lg"></i>
+                                </div>
+                                <div>
+                                    <label for="ta-select" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Tahun Akademik</label>
+                                    <select id="ta-select" onchange="renderAngkatanMonitoring()" class="font-bold text-slate-800 text-xs bg-transparent outline-none cursor-pointer border-b border-slate-200 pb-0.5">
+                                        <option value="ALL">Semua TA</option>
+                                        <option value="2026/2027">2026/2027</option>
+                                        <option value="2025/2026" selected>2025/2026</option>
+                                        <option value="2024/2025">2024/2025</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Dropdown Tingkatan -->
+                            <div class="flex items-center space-x-3 border-l border-slate-200 pl-4">
+                                <div class="w-10 h-10 bg-emerald-100 text-emerald-800 rounded-xl flex items-center justify-center shrink-0">
+                                    <i class="fa-solid fa-layer-group text-lg"></i>
+                                </div>
+                                <div>
+                                    <label for="tingkatan-select" class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Tingkatan</label>
+                                    <select id="tingkatan-select" onchange="renderAngkatanMonitoring()" class="font-bold text-slate-800 text-xs bg-transparent outline-none cursor-pointer border-b border-slate-200 pb-0.5">
+                                        <option value="ALL" selected>Semua Tingkatan</option>
+                                        <option value="Ula">Ula</option>
+                                        <option value="Tsaniyah">Tsaniyah</option>
+                                        <option value="Tsalisah">Tsalisah</option>
+                                        <option value="Robiah">Robiah</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Filter Tabs -->
+                        <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold w-full md:w-auto">
+                            <button id="angkatan-filter-all" onclick="filterAngkatanStatus('ALL')" class="flex-1 md:flex-none px-3.5 py-1.5 rounded-lg bg-white text-emerald-900 shadow-sm">Semua</button>
+                            <button id="angkatan-filter-unpaid" onclick="filterAngkatanStatus('UNPAID')" class="flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-rose-700">Belum Bayar</button>
+                            <button id="angkatan-filter-partial" onclick="filterAngkatanStatus('PARTIAL')" class="flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-amber-700">Dicicil</button>
+                            <button id="angkatan-filter-paid" onclick="filterAngkatanStatus('PAID')" class="flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-emerald-700">Lunas</button>
+                        </div>
+                    </div>
+
+                    <!-- Statistics Cards Per Tahun Akademik & Tingkatan -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-1">
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Mahasiswa</span>
+                            <p id="cohort-stat-total" class="text-2xl font-black text-slate-800">0 Mhs</p>
+                            <p class="text-[11px] text-slate-500">Terdaftar di Kriteria</p>
+                        </div>
+
+                        <div class="bg-emerald-50 p-5 rounded-2xl border border-emerald-200/80 shadow-sm space-y-1">
+                            <span class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Total Penerimaan Lunas / Cicilan</span>
+                            <p id="cohort-stat-paid-nominal" class="text-2xl font-black text-emerald-700">Rp 0</p>
+                            <p id="cohort-stat-paid" class="text-[11px] font-bold text-emerald-800">0 Mhs Lunas, 0 Dicicil</p>
+                        </div>
+
+                        <div class="bg-rose-50 p-5 rounded-2xl border border-rose-200/80 shadow-sm space-y-1">
+                            <span class="text-[10px] font-bold text-rose-700 uppercase tracking-wider">Total Sisa Tunggakan</span>
+                            <p id="cohort-stat-unpaid-nominal" class="text-2xl font-black text-rose-700">Rp 0</p>
+                            <p id="cohort-stat-unpaid" class="text-[11px] font-bold text-rose-800">Dari Mahasiswa Belum Lunas</p>
+                        </div>
+
+                        <!-- Progress Bar Card -->
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2 flex flex-col justify-center">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="font-bold text-slate-700">Persentase Pelunasan Total</span>
+                                <span id="cohort-progress-text" class="font-extrabold text-emerald-800">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
+                                <div id="cohort-progress-bar" class="bg-emerald-700 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+                            </div>
+                            <p id="cohort-progress-sub" class="text-[10px] text-slate-500 font-medium">0 dari 0 Mahasiswa Lunas Penuh</p>
+                        </div>
+                    </div>
+
+                    <!-- Mahasiswa List Table Per Academic Year & Tingkatan -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                            <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center space-x-1.5">
+                                <i class="fa-solid fa-list-check text-emerald-700"></i>
+                                <span>Daftar Akumulasi Pembayaran Mahasiswa</span>
+                            </h3>
+                            <span id="cohort-table-count" class="px-2.5 py-0.5 bg-slate-200 text-slate-700 rounded-full text-[10px] font-bold">0 Data</span>
+                        </div>
+
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-700 font-bold border-b border-slate-200 uppercase text-[10px] tracking-wider">
+                                        <th class="p-3.5">NIM & Nama Mahasiswa</th>
+                                        <th class="p-3.5">Prodi & Tingkatan</th>
+                                        <th class="p-3.5">Total Dibayar / Tagihan</th>
+                                        <th class="p-3.5">Sisa Tagihan</th>
+                                        <th class="p-3.5 text-center">Status Overall</th>
+                                        <th class="p-3.5 text-center">Tindakan / Reminder</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="cohort-table-body" class="divide-y divide-slate-100 text-slate-700">
+                                    <!-- Dynamic JS Injection -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL REVIEW ADMIN -->
+    <div id="modal-review" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
+            <div class="p-5 bg-emerald-900 text-white flex items-center justify-between sticky top-0 z-10">
+                <h3 class="text-base font-bold flex items-center space-x-2">
+                    <i class="fa-solid fa-file-circle-check"></i>
+                    <span>Tinjauan Transaksi & Status Angsuran</span>
+                </h3>
+                <button type="button" onclick="closeModalReview()" class="w-8 h-8 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-emerald-100 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Resi Image View -->
+                    <div class="space-y-2">
+                        <p class="text-xs font-bold text-slate-700 flex items-center justify-between">
+                            <span>BUKTI TRANSFER / RESI</span>
+                            <span class="text-[10px] text-emerald-800 font-medium">KLIK GAMBAR UNTUK PERBESAR</span>
+                        </p>
+                        <div class="bg-slate-100 rounded-xl p-2 border border-slate-200 flex items-center justify-center min-h-[220px]">
+                            <a id="modal-resi-link" href="#" target="_blank" class="block w-full text-center">
+                                <img id="modal-resi-img" src="" alt="Bukti Transfer" class="max-h-60 mx-auto rounded-lg object-contain shadow-sm hover:scale-105 transition duration-200">
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Details Table -->
+                    <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+                        <div>
+                            <span class="text-slate-500 text-[10px] uppercase font-bold block">NIM & Nama:</span>
+                            <p id="modal-mhs-nama" class="font-bold text-slate-800 text-sm"></p>
+                            <p id="modal-mhs-nim" class="text-slate-600 font-mono text-[11px]"></p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <div>
+                                <span class="text-slate-500 text-[10px] uppercase font-bold block">Email Mahasiswa:</span>
+                                <p id="modal-mhs-email" class="font-semibold text-slate-700"></p>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 text-[10px] uppercase font-bold block">Tingkatan:</span>
+                                <p id="modal-mhs-tingkatan" class="font-semibold text-slate-700"></p>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 text-[10px] uppercase font-bold block">Program Studi:</span>
+                            <p id="modal-mhs-prodi" class="font-semibold text-slate-700"></p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1">
+                            <div>
+                                <span class="text-slate-500 text-[10px] uppercase font-bold block">Nominal Setoran Ini:</span>
+                                <p id="modal-mhs-nominal" class="font-black text-emerald-700 text-sm"></p>
+                            </div>
+                            <div>
+                                <span class="text-slate-500 text-[10px] uppercase font-bold block">Bank & Tanggal:</span>
+                                <p id="modal-mhs-bank" class="font-semibold text-slate-700"></p>
+                            </div>
+                        </div>
+                        <div class="border-t border-slate-200 pt-2 bg-emerald-100/50 p-2.5 rounded-lg">
+                            <span class="text-emerald-900 text-[10px] uppercase font-bold block">Kalkulasi Angsuran Mahasiswa:</span>
+                            <p id="modal-mhs-kalkulasi" class="font-bold text-emerald-800 text-[11px]"></p>
+                        </div>
+                        <div>
+                            <span class="text-slate-500 text-[10px] uppercase font-bold block">Catatan Mahasiswa:</span>
+                            <p id="modal-mhs-catatan" class="italic text-slate-600 text-[11px]"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verification Form inside Modal -->
+                <div class="space-y-4 border-t border-slate-100 pt-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-2">Keputusan Status Transaksi Ini *</label>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" id="btn-status-pending" onclick="selectModalStatus('Pending')" class="py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-clock"></i>
+                                <span>Pending</span>
+                            </button>
+                            <button type="button" id="btn-status-disetujui" onclick="selectModalStatus('Disetujui')" class="py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Setujui Setoran</span>
+                            </button>
+                            <button type="button" id="btn-status-ditolak" onclick="selectModalStatus('Ditolak')" class="py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5">
+                                <i class="fa-solid fa-circle-xmark"></i>
+                                <span>Ditolak</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="modal-admin-note" class="block text-xs font-bold text-slate-700 mb-1">Catatan / Alasan Admin</label>
+                        <textarea id="modal-admin-note" rows="3" placeholder="Alasan terisi otomatis..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-600 text-xs outline-none transition"></textarea>
+                    </div>
+
+                    <!-- Icon-Only Action Buttons -->
+                    <div class="pt-2 flex items-center justify-end space-x-3">
+                        <button type="button" onclick="closeModalReview()" class="w-11 h-11 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl transition flex items-center justify-center border border-slate-300 shadow-sm" title="Batal">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
+                        <button type="button" onclick="previewKwitansiFromAdminModal()" class="w-11 h-11 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 rounded-xl transition flex items-center justify-center border border-emerald-300 shadow-sm" title="Preview Kwitansi">
+                            <i class="fa-solid fa-receipt text-lg"></i>
+                        </button>
+                        <button type="button" onclick="sendEmailNotificationFromModal()" class="w-11 h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition flex items-center justify-center shadow-md hover:shadow-blue-600/30" title="Kirim Email">
+                            <i class="fa-solid fa-paper-plane text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PREVIEW KWITANSI -->
+    <div id="modal-kwitansi" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-slate-200">
+            <div class="p-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
+                <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                    <i class="fa-solid fa-receipt text-emerald-700"></i>
+                    <span>Preview Kwitansi Pembayaran Resmi</span>
+                </h3>
+                <div class="flex items-center space-x-2">
+                    <button type="button" onclick="downloadKwitansiFromModal()" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1 shadow-sm">
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>Unduh PDF</span>
+                    </button>
+                    <button type="button" onclick="closeKwitansiModal()" class="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 flex items-center justify-center transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Kwitansi Printable Document Area -->
+            <div id="kwitansi-print-area" class="p-8 bg-white text-slate-800 space-y-6">
+                <!-- Kop Surat Header -->
+                <div class="border-b-2 border-emerald-900 pb-4 flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-emerald-900 text-white rounded-full flex items-center justify-center font-bold text-xs shrink-0">
+                            STAIIS
+                        </div>
+                        <div>
+                            <h2 class="font-extrabold text-sm sm:text-base text-slate-900 uppercase">Sekolah Tinggi Agama Islam Imam Syafi'i</h2>
+                            <p class="text-[10px] text-slate-500">Jl. Raya Cianjur - Bandung, Cianjur, Jawa Barat | Keuangan Rusum Tahunan</p>
+                        </div>
+                    </div>
+                    <div class="text-right border-l border-slate-200 pl-4">
+                        <span id="kwitansi-badge-status" class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-md text-[10px] font-extrabold uppercase tracking-wider">SAH</span>
+                        <p id="kwitansi-no" class="text-[10px] font-mono text-slate-500 mt-1">KW-STAIIS-2026</p>
+                    </div>
+                </div>
+
+                <!-- Kwitansi Content -->
+                <div class="space-y-4 text-xs">
+                    <div class="text-center">
+                        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-800 underline decoration-emerald-800 decoration-2">BUKTI KWITANSI ANGSURAN / PELUNASAN RUSUM</h3>
+                        <p id="kwitansi-tgl" class="text-[11px] text-slate-500 mt-0.5"></p>
+                    </div>
+
+                    <table class="w-full border-collapse">
+                        <tbody>
+                            <tr class="border-b border-slate-100">
+                                <td class="py-2 text-slate-500 font-medium w-40">Telah Diterima Dari</td>
+                                <td class="py-2 text-slate-800 font-bold">: <span id="kwitansi-nama"></span></td>
+                            </tr>
+                            <tr class="border-b border-slate-100">
+                                <td class="py-2 text-slate-500 font-medium">NIM / Tingkatan</td>
+                                <td class="py-2 text-slate-800 font-bold">: <span id="kwitansi-nim"></span> - <span id="kwitansi-tingkatan"></span></td>
+                            </tr>
+                            <tr class="border-b border-slate-100">
+                                <td class="py-2 text-slate-500 font-medium">Program Studi</td>
+                                <td class="py-2 text-slate-800 font-bold">: <span id="kwitansi-prodi"></span></td>
+                            </tr>
+                            <tr class="border-b border-slate-100">
+                                <td class="py-2 text-slate-500 font-medium">Setoran Setoran Ini</td>
+                                <td class="py-2 text-emerald-900 font-extrabold text-sm">: <span id="kwitansi-nominal"></span></td>
+                            </tr>
+                            <tr class="border-b border-slate-100">
+                                <td class="py-2 text-slate-500 font-medium">Terbilang</td>
+                                <td class="py-2 text-slate-700 italic font-semibold capitalize bg-slate-50 px-2 rounded">: "<span id="kwitansi-terbilang"></span>"</td>
+                            </tr>
+                            <tr class="border-b border-slate-100">
+                                <td class="py-2 text-slate-500 font-medium">Akumulasi Terbayar</td>
+                                <td class="py-2 text-slate-800 font-bold">: <span id="kwitansi-total-terbayar"></span> dari Total Rp 2.500.000</td>
+                            </tr>
+                            <tr class="border-b border-slate-100">
+                                <td class="py-2 text-slate-500 font-medium">Sisa Tagihan Rusum</td>
+                                <td class="py-2 text-rose-700 font-bold">: <span id="kwitansi-sisa"></span></td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 text-slate-500 font-medium">Untuk Pembayaran</td>
+                                <td class="py-2 text-slate-800 font-semibold">: Pembayaran / Cicilan Biaya Kuliah Rusum Tahunan STAIIS Cianjur</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Signature Box -->
+                    <div class="pt-8 flex justify-between items-end">
+                        <div class="text-[10px] text-slate-400">
+                            <p>Dicetak otomatis melalui Sistem Online STAIIS</p>
+                            <p>Validasi Digital Keuangan Kampus</p>
+                        </div>
+                        <div class="text-center space-y-12">
+                            <p class="text-slate-600 font-medium text-[11px]">Bagian Keuangan STAIIS,</p>
+                            <div class="font-bold text-slate-800 underline">Staf Keuangan STAIIS</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Box -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+        <div class="max-w-6xl mx-auto px-4">
+            <p class="font-medium text-slate-700">&copy; 2026 STAI Imam Syafi'i Cianjur. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Application Logic Script -->
+    <script>
+        // Standard Biaya Rusum Tahunan
+        const BIAYA_RUSUM_STANDAR = 2500000;
+
+        // Global Data Mock Transaksi (Bisa Ada Multi Transaksi untuk 1 NIM)
+        let mockData = [
+            {
+                id: "REQ-1001",
+                nim: "20240101",
+                nama: "Ahmad Fauzi",
+                email: "fauzi@staiis.ac.id",
+                prodi: "Pendidikan Bahasa Arab (PBA)",
+                tingkatan: "Tsalisah",
+                nominal: 1500000,
+                bank: "BSI",
+                tanggal: "2026-07-15",
+                resiUrl: "https://placehold.co/600x800/059669/ffffff?text=Resi+Cicilan+1+Ahmad+Fauzi",
+                catatan: "Setoran Cicilan Ke-1 Rusum",
+                status: "Disetujui",
+                adminNote: "Setoran cicilan ke-1 diverifikasi sah."
+            },
+            {
+                id: "REQ-1002",
+                nim: "20240101",
+                nama: "Ahmad Fauzi",
+                email: "fauzi@staiis.ac.id",
+                prodi: "Pendidikan Bahasa Arab (PBA)",
+                tingkatan: "Tsalisah",
+                nominal: 1000000,
+                bank: "BSI",
+                tanggal: "2026-08-01",
+                resiUrl: "https://placehold.co/600x800/059669/ffffff?text=Resi+Cicilan+2+Ahmad+Fauzi",
+                catatan: "Pelunasan Cicilan Ke-2 Rusum",
+                status: "Pending",
+                adminNote: "Pembayaran sedang dalam proses verifikasi data dan mutasi rekening."
+            },
+            {
+                id: "REQ-1003",
+                nim: "20240102",
+                nama: "Muhammad Rizky",
+                email: "rizky@staiis.ac.id",
+                prodi: "Hukum Keluarga Islam (HKI)",
+                tingkatan: "Tsalisah",
+                nominal: 2500000,
+                bank: "BCA",
+                tanggal: "2026-08-02",
+                resiUrl: "https://placehold.co/600x800/0284c7/ffffff?text=Resi+Lunas+M+Rizky",
+                catatan: "Pembayaran Lunas Penuh Rusum 2026",
+                status: "Disetujui",
+                adminNote: "Pembayaran telah diverifikasi LUNAS penuh."
+            },
+            {
+                id: "REQ-1004",
+                nim: "20240103",
+                nama: "Fatimah Az-Zahra",
+                email: "fatimah@staiis.ac.id",
+                prodi: "Pendidikan Bahasa Arab (PBA)",
+                tingkatan: "Tsalisah",
+                nominal: 1000000,
+                bank: "Mandiri",
+                tanggal: "2026-08-03",
+                resiUrl: "https://placehold.co/600x800/e11d48/ffffff?text=Resi+Cicilan+Fatimah",
+                catatan: "Cicilan awal Rp 1.000.000",
+                status: "Disetujui",
+                adminNote: "Cicilan awal disetujui. Sisa tagihan Rp 1.500.000."
+            }
+        ];
+
+        // Master Database Mahasiswa Per Tahun Akademik & Tingkatan
+        let mockMahasiswaMaster = [
+            // TA 2025/2026 - Ula
+            { nim: "20260101", nama: "Abdullah Hasibuan", prodi: "Pendidikan Bahasa Arab (PBA)", tahunAkademik: "2025/2026", tingkatan: "Ula", phone: "081234567890", email: "abdullah@staiis.ac.id" },
+            { nim: "20260102", nama: "Siti Maryam", prodi: "Hukum Keluarga Islam (HKI)", tahunAkademik: "2025/2026", tingkatan: "Ula", phone: "082198765432", email: "maryam@staiis.ac.id" },
+            { nim: "20260103", nama: "Zaid Ibn Thabit", prodi: "Pendidikan Bahasa Arab (PBA)", tahunAkademik: "2025/2026", tingkatan: "Ula", phone: "085711223344", email: "zaid@staiis.ac.id" },
+            { nim: "20260104", nama: "Aisyah Raihana", prodi: "Hukum Keluarga Islam (HKI)", tahunAkademik: "2025/2026", tingkatan: "Ula", phone: "081900112233", email: "aisyah@staiis.ac.id" },
+            { nim: "20260105", nama: "Umar Al-Faruq", prodi: "Pendidikan Bahasa Arab (PBA)", tahunAkademik: "2025/2026", tingkatan: "Ula", phone: "083899887766", email: "umar@staiis.ac.id" },
+
+            // TA 2025/2026 - Tsaniyah
+            { nim: "20250101", nama: "Bilal Rabah", prodi: "Hukum Keluarga Islam (HKI)", tahunAkademik: "2025/2026", tingkatan: "Tsaniyah", phone: "081344556677", email: "bilal@staiis.ac.id" },
+            { nim: "20250102", nama: "Khadijah Al-Kubra", prodi: "Pendidikan Bahasa Arab (PBA)", tahunAkademik: "2025/2026", tingkatan: "Tsaniyah", phone: "085212345678", email: "khadijah@staiis.ac.id" },
+            { nim: "20250103", nama: "Usman Bin Affan", prodi: "Pendidikan Bahasa Arab (PBA)", tahunAkademik: "2025/2026", tingkatan: "Tsaniyah", phone: "087788990011", email: "usman@staiis.ac.id" },
+
+            // TA 2024/2025 - Tsalisah
+            { nim: "20240101", nama: "Ahmad Fauzi", prodi: "Pendidikan Bahasa Arab (PBA)", tahunAkademik: "2024/2025", tingkatan: "Tsalisah", phone: "081299887711", email: "fauzi@staiis.ac.id" },
+            { nim: "20240102", nama: "Muhammad Rizky", prodi: "Hukum Keluarga Islam (HKI)", tahunAkademik: "2024/2025", tingkatan: "Tsalisah", phone: "082377665544", email: "rizky@staiis.ac.id" },
+            { nim: "20240103", nama: "Fatimah Az-Zahra", prodi: "Pendidikan Bahasa Arab (PBA)", tahunAkademik: "2024/2025", tingkatan: "Tsalisah", phone: "085611224455", email: "fatimah@staiis.ac.id" },
+
+            // TA 2024/2025 - Robiah
+            { nim: "20230101", nama: "Ali Bin Abi Thalib", prodi: "Hukum Keluarga Islam (HKI)", tahunAkademik: "2024/2025", tingkatan: "Robiah", phone: "081122334455", email: "ali@staiis.ac.id" },
+            { nim: "20230102", nama: "Hafsah Binti Umar", prodi: "Pendidikan Bahasa Arab (PBA)", tahunAkademik: "2024/2025", tingkatan: "Robiah", phone: "089988776655", email: "hafsah@staiis.ac.id" }
+        ];
+
+        let activeTab = 'form';
+        let activeAdminSubtab = 'verifikasi';
+        let activeAngkatanStatusFilter = 'ALL';
+        let activeReviewItem = null;
+        let activeKwitansiItem = null;
+        let isAdminLoggedIn = false;
+        let selectedModalStatus = 'Pending';
+
+        const defaultStatusNotes = {
+            'Pending': 'Pembayaran sedang dalam proses verifikasi data dan mutasi rekening.',
+            'Disetujui': 'Pembayaran setoran angsuran telah diverifikasi sah.',
+            'Ditolak': 'Bukti transfer tidak valid atau nominal tidak sesuai ketentuan. Silakan perbaiki dan unggah ulang.'
+        };
+
+        // Helper: Calculate total approved amount & status for a given NIM
+        function getStudentPaymentSummary(nim) {
+            const approvedTx = mockData.filter(d => d.nim === nim && d.status === 'Disetujui');
+            const totalDibayar = approvedTx.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
+            const sisaTagihan = Math.max(0, BIAYA_RUSUM_STANDAR - totalDibayar);
+            const percentPaid = Math.min(100, Math.round((totalDibayar / BIAYA_RUSUM_STANDAR) * 100));
+
+            let statusOverall = 'BELUM_BAYAR';
+            if (totalDibayar >= BIAYA_RUSUM_STANDAR) {
+                statusOverall = 'LUNAS';
+            } else if (totalDibayar > 0) {
+                statusOverall = 'DICICIL';
+            }
+
+            return {
+                totalDibayar,
+                sisaTagihan,
+                percentPaid,
+                statusOverall,
+                approvedCount: approvedTx.length
+            };
+        }
+
+        // Check Previous Installments dynamically when user inputs NIM in Form
+        function checkPreviousInstallments() {
+            const nim = document.getElementById('input-nim').value.trim();
+            const infoDiv = document.getElementById('nim-installment-info');
+
+            if (!nim) {
+                infoDiv.classList.add('hidden');
+                return;
+            }
+
+            const summary = getStudentPaymentSummary(nim);
+            const mhs = mockMahasiswaMaster.find(m => m.nim === nim);
+
+            if (mhs) {
+                document.getElementById('input-nama').value = mhs.nama;
+                document.getElementById('input-email').value = mhs.email;
+                document.getElementById('input-prodi').value = mhs.prodi;
+                document.getElementById('input-tingkatan').value = mhs.tingkatan;
+            }
+
+            if (summary.totalDibayar > 0) {
+                infoDiv.classList.remove('hidden');
+                const formattedDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
+                const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+
+                if (summary.statusOverall === 'LUNAS') {
+                    infoDiv.innerHTML = `
+                        <p class="font-bold text-emerald-800"><i class="fa-solid fa-circle-check"></i> Mahasiswa Ini Sudah Lunas Penuh (${formattedDibayar})</p>
+                    `;
+                } else {
+                    infoDiv.innerHTML = `
+                        <p class="font-bold text-amber-800"><i class="fa-solid fa-calculator"></i> Riwayat Angsuran Terdeteksi:</p>
+                        <p class="text-slate-700">Telah dibayar: <b>${formattedDibayar}</b> (${summary.percentPaid}%) &bull; Sisa Tagihan: <b class="text-rose-700">${formattedSisa}</b></p>
+                    `;
+                }
+            } else {
+                infoDiv.classList.add('hidden');
+            }
+        }
+
+        // Switch Subtab inside Admin Dashboard
+        function switchAdminSubtab(subtab) {
+            activeAdminSubtab = subtab;
+            const btnVerifikasi = document.getElementById('admin-subtab-verifikasi');
+            const btnAngkatan = document.getElementById('admin-subtab-angkatan');
+            const viewVerifikasi = document.getElementById('admin-view-verifikasi');
+            const viewAngkatan = document.getElementById('admin-view-angkatan');
+
+            if (subtab === 'verifikasi') {
+                btnVerifikasi.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 bg-white text-emerald-900 shadow-sm";
+                btnAngkatan.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 text-slate-600 hover:text-slate-900";
+                viewVerifikasi.classList.remove('hidden');
+                viewAngkatan.classList.add('hidden');
+            } else {
+                btnAngkatan.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 bg-white text-emerald-900 shadow-sm";
+                btnVerifikasi.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 text-slate-600 hover:text-slate-900";
+                viewAngkatan.classList.remove('hidden');
+                viewVerifikasi.classList.add('hidden');
+                renderAngkatanMonitoring();
+            }
+        }
+
+        // Render Academic Year & Tingkatan Monitoring Data
+        function renderAngkatanMonitoring() {
+            const selectedTA = document.getElementById('ta-select').value;
+            const selectedTingkatan = document.getElementById('tingkatan-select').value;
+
+            // Filter Master Mahasiswa by Selected TA and Tingkatan
+            let cohortStudents = mockMahasiswaMaster;
+            if (selectedTA !== 'ALL') {
+                cohortStudents = cohortStudents.filter(m => m.tahunAkademik === selectedTA);
+            }
+            if (selectedTingkatan !== 'ALL') {
+                cohortStudents = cohortStudents.filter(m => m.tingkatan === selectedTingkatan);
+            }
+
+            // Map payment summary per student
+            const mappedStudents = cohortStudents.map(mhs => {
+                const summary = getStudentPaymentSummary(mhs.nim);
+                const allTx = mockData.filter(d => d.nim === mhs.nim);
+                return {
+                    ...mhs,
+                    summary,
+                    txCount: allTx.length
+                };
+            });
+
+            // Calculate Overall Statistics
+            const totalMhs = mappedStudents.length;
+            const paidMhs = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS').length;
+            const partialMhs = mappedStudents.filter(m => m.summary.statusOverall === 'DICICIL').length;
+            const unpaidMhs = mappedStudents.filter(m => m.summary.statusOverall === 'BELUM_BAYAR').length;
+
+            const totalTerbayarCohort = mappedStudents.reduce((acc, curr) => acc + curr.summary.totalDibayar, 0);
+            const totalTunggakanCohort = mappedStudents.reduce((acc, curr) => acc + curr.summary.sisaTagihan, 0);
+            const totalTargetCohort = totalMhs * BIAYA_RUSUM_STANDAR;
+
+            const overallPercentage = totalTargetCohort > 0 ? Math.round((totalTerbayarCohort / totalTargetCohort) * 100) : 0;
+
+            // Update Statistics Card UI
+            document.getElementById('cohort-stat-total').innerText = `${totalMhs} Mhs`;
+            document.getElementById('cohort-stat-paid').innerText = `${paidMhs} Mhs Lunas, ${partialMhs} Dicicil`;
+            document.getElementById('cohort-stat-paid-nominal').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalTerbayarCohort);
+
+            document.getElementById('cohort-stat-unpaid').innerText = `Belum Penuh: ${unpaidMhs + partialMhs} Mhs`;
+            document.getElementById('cohort-stat-unpaid-nominal').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalTunggakanCohort);
+
+            document.getElementById('cohort-progress-text').innerText = `${overallPercentage}%`;
+            document.getElementById('cohort-progress-bar').style.width = `${overallPercentage}%`;
+            document.getElementById('cohort-progress-sub').innerText = `${paidMhs} dari ${totalMhs} Mahasiswa telah LUNAS Penuh`;
+
+            // Filter table display according to status tab
+            let displayStudents = mappedStudents;
+            if (activeAngkatanStatusFilter === 'PAID') {
+                displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS');
+            } else if (activeAngkatanStatusFilter === 'PARTIAL') {
+                displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'DICICIL');
+            } else if (activeAngkatanStatusFilter === 'UNPAID') {
+                displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'BELUM_BAYAR');
+            }
+
+            document.getElementById('cohort-table-count').innerText = `${displayStudents.length} Mahasiswa`;
+
+            const tbody = document.getElementById('cohort-table-body');
+            if (displayStudents.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Tidak ada mahasiswa yang sesuai kriteria filter.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = displayStudents.map(mhs => {
+                let statusBadge = '';
+                let actionBtn = '';
+
+                const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.totalDibayar);
+                const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.sisaTagihan);
+
+                if (mhs.summary.statusOverall === 'LUNAS') {
+                    statusBadge = `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-extrabold inline-flex items-center space-x-1"><i class="fa-solid fa-circle-check"></i> <span>LUNAS</span></span>`;
+                    actionBtn = `
+                        <button onclick="executeStatusSearchAndOpen('${mhs.nim}')" class="px-2.5 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold transition border border-emerald-200 shadow-sm" title="Lihat Detail">
+                            <i class="fa-solid fa-receipt mr-1"></i> Rincian
+                        </button>
+                    `;
+                } else if (mhs.summary.statusOverall === 'DICICIL') {
+                    statusBadge = `<span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-[10px] font-extrabold inline-flex items-center space-x-1"><i class="fa-solid fa-calculator"></i> <span>DICICIL (${mhs.summary.percentPaid}%)</span></span>`;
+                    actionBtn = `
+                        <div class="flex items-center justify-center space-x-1.5">
+                            <button onclick="sendReminderWAInstallment('${mhs.phone}', '${mhs.nama}', '${mhs.nim}', '${formattedSisa}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-sm" title="Ingatkan Sisa Cicilan via WA">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                            </button>
+                            <button onclick="executeStatusSearchAndOpen('${mhs.nim}')" class="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition border border-slate-300" title="Rincian">
+                                <i class="fa-solid fa-eye text-xs"></i>
+                            </button>
+                        </div>
+                    `;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-[10px] font-extrabold inline-flex items-center space-x-1"><i class="fa-solid fa-circle-exclamation"></i> <span>BELUM BAYAR</span></span>`;
+                    actionBtn = `
+                        <div class="flex items-center justify-center space-x-1.5">
+                            <button onclick="sendReminderWA('${mhs.phone}', '${mhs.nama}', '${mhs.nim}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-sm" title="Ingatkan via WA">
+                                <i class="fa-brands fa-whatsapp text-sm"></i>
+                            </button>
+                            <button onclick="sendReminderEmail('${mhs.email}', '${mhs.nama}', '${mhs.nim}')" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm" title="Ingatkan via Email">
+                                <i class="fa-solid fa-envelope text-xs"></i>
+                            </button>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3.5 font-medium">
+                            <div class="font-bold text-slate-800">${mhs.nama}</div>
+                            <div class="text-[11px] text-slate-500 font-mono">NIM: ${mhs.nim}</div>
+                        </td>
+                        <td class="p-3.5">
+                            <div class="font-semibold text-slate-700">${mhs.prodi}</div>
+                            <div class="text-[11px] text-slate-400">TA ${mhs.tahunAkademik} &bull; Tingkatan ${mhs.tingkatan}</div>
+                        </td>
+                        <td class="p-3.5">
+                            <div class="font-extrabold text-slate-800">${formattedTotal}</div>
+                            <div class="text-[10px] text-slate-400">Target: Rp 2.500.000</div>
+                        </td>
+                        <td class="p-3.5">
+                            <div class="font-bold text-rose-700">${formattedSisa}</div>
+                        </td>
+                        <td class="p-3.5 text-center">${statusBadge}</td>
+                        <td class="p-3.5 text-center">${actionBtn}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Filter Angkatan Status Tabs
+        function filterAngkatanStatus(status) {
+            activeAngkatanStatusFilter = status;
+            const btnAll = document.getElementById('angkatan-filter-all');
+            const btnUnpaid = document.getElementById('angkatan-filter-unpaid');
+            const btnPartial = document.getElementById('angkatan-filter-partial');
+            const btnPaid = document.getElementById('angkatan-filter-paid');
+
+            btnAll.className = "flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-emerald-700";
+            btnUnpaid.className = "flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-rose-700";
+            btnPartial.className = "flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-amber-700";
+            btnPaid.className = "flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-slate-600 hover:text-emerald-700";
+
+            if (status === 'ALL') {
+                btnAll.className = "flex-1 md:flex-none px-3.5 py-1.5 rounded-lg bg-white text-emerald-900 shadow-sm font-bold";
+            } else if (status === 'UNPAID') {
+                btnUnpaid.className = "flex-1 md:flex-none px-3.5 py-1.5 rounded-lg bg-rose-600 text-white shadow-sm font-bold";
+            } else if (status === 'PARTIAL') {
+                btnPartial.className = "flex-1 md:flex-none px-3.5 py-1.5 rounded-lg bg-amber-500 text-white shadow-sm font-bold";
+            } else if (status === 'PAID') {
+                btnPaid.className = "flex-1 md:flex-none px-3.5 py-1.5 rounded-lg bg-emerald-700 text-white shadow-sm font-bold";
+            }
+
+            renderAngkatanMonitoring();
+        }
+
+        // Send WhatsApp Reminder for Remaining Installment
+        function sendReminderWAInstallment(phone, nama, nim, sisaFormatted) {
+            let cleanPhone = phone.replace(/[^0-9]/g, '');
+            if (cleanPhone.startsWith('0')) {
+                cleanPhone = '62' + cleanPhone.substring(1);
+            }
+            const message = encodeURIComponent(`Assalamu'alaikum Wr. Wb. Sdr/i ${nama} (${nim}), mengingatkan bahwa Anda telah memulai pembayaran angsuran Rusum Tahunan STAI Imam Syafi'i Cianjur. Sisa tagihan Anda saat ini adalah ${sisaFormatted}. Mohon dapat dilunasi/diangsur kembali ke rekening resmi BSI 7000005009 a.n STAI IMAM SYAFI'I. Terima kasih.`);
+            window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+            showToast("WhatsApp Terbuka", `Pesan ingatan sisa cicilan dikirim ke ${nama}`);
+        }
+
+        // Send WhatsApp Reminder
+        function sendReminderWA(phone, nama, nim) {
+            let cleanPhone = phone.replace(/[^0-9]/g, '');
+            if (cleanPhone.startsWith('0')) {
+                cleanPhone = '62' + cleanPhone.substring(1);
+            }
+            const message = encodeURIComponent(`Assalamu'alaikum Wr. Wb. Sdr/i ${nama} (${nim}), mengingatkan kembali untuk pembayaran kewajiban Rusum Tahunan STAI Imam Syafi'i Cianjur. Mohon segera melakukan transfer (Lunas / Angsuran) ke rekening resmi BSI 7000005009 a.n STAI IMAM SYAFI'I dan melakukan konfirmasi melalui sistem. Terima kasih.`);
+            window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+            showToast("WhatsApp Terbuka", `Pesan pengingat dikirim ke ${nama}`);
+        }
+
+        // Send Email Reminder
+        function sendReminderEmail(email, nama, nim) {
+            const subject = encodeURIComponent(`[PENGINGAT STAIIS] Pelunasan Biaya Kuliah Rusum Tahunan - ${nim}`);
+            const body = encodeURIComponent(`Assalamu'alaikum Wr. Wb.,\n\nYth. Sdr/i ${nama} (${nim}),\n\nMelalui email ini, Bagian Keuangan STAI Imam Syafi'i Cianjur mengingatkan mengenai pembayaran kewajiban Rusum Tahunan.\n\nTotal Tagihan: Rp 2.500.000,-\n*Mendukung sistem pembayaran berangsur/dicicil.\n\nRekening Tujuan: Bank Syariah Indonesia (BSI) 7000005009 a.n. STAI IMAM SYAFI'I.\n\nSetelah melakukan transfer, silakan konfirmasi melalui portal sistem konfirmasi online STAIIS.\n\nTerima Kasih.\nBagian Keuangan STAIIS Cianjur`);
+            window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
+            showToast("Email Pengingat", `Email disiapkan untuk ${nama}`);
+        }
+
+        // Helper to jump to Cek Status search
+        function executeStatusSearchAndOpen(nim) {
+            selectTab('status');
+            document.getElementById('search-status-input').value = nim;
+            executeStatusSearch();
+        }
+
+        // Navigation Tab Selection
+        function selectTab(tab) {
+            activeTab = tab;
+
+            document.getElementById('tab-content-form').classList.add('hidden');
+            document.getElementById('tab-content-status').classList.add('hidden');
+            document.getElementById('tab-content-admin').classList.add('hidden');
+
+            // Reset Desktop Tab Styles
+            document.getElementById('tab-btn-form').className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60";
+            document.getElementById('tab-btn-status').className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60";
+            document.getElementById('tab-btn-admin').className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60";
+
+            // Reset Mobile Tab Styles
+            document.getElementById('m-tab-form').className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 hover:bg-emerald-900";
+            document.getElementById('m-tab-status').className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 hover:bg-emerald-900";
+            document.getElementById('m-tab-admin').className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 hover:bg-emerald-900";
+
+            if (tab === 'form') {
+                document.getElementById('tab-content-form').classList.remove('hidden');
+                document.getElementById('tab-btn-form').className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 bg-emerald-800 text-white shadow-inner";
+                document.getElementById('m-tab-form').className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 bg-emerald-800 text-white";
+            } else if (tab === 'status') {
+                document.getElementById('tab-content-status').classList.remove('hidden');
+                document.getElementById('tab-btn-status').className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 bg-emerald-800 text-white shadow-inner";
+                document.getElementById('m-tab-status').className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 bg-emerald-800 text-white";
+            } else if (tab === 'admin') {
+                document.getElementById('tab-content-admin').classList.remove('hidden');
+                document.getElementById('tab-btn-admin').className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 bg-emerald-800 text-white shadow-inner";
+                document.getElementById('m-tab-admin').className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 bg-emerald-800 text-white";
+                if (isAdminLoggedIn) {
+                    renderAdminDashboard();
+                }
+            }
+        }
+
+        // Copy Account Number
+        function copyRekening() {
+            const temp = document.createElement('textarea');
+            temp.value = '7000005009';
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast("Tersalin!", "Nomor rekening 7000005009 disalin ke clipboard.");
+        }
+
+        // Handle Form Submit
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const nim = document.getElementById('input-nim').value.trim();
+            const nama = document.getElementById('input-nama').value.trim();
+            const email = document.getElementById('input-email').value.trim();
+            const prodi = document.getElementById('input-prodi').value;
+            const tingkatan = document.getElementById('input-tingkatan').value;
+            const nominal = parseInt(document.getElementById('input-nominal').value) || 0;
+            const bank = document.getElementById('input-bank').value.trim();
+            const tanggal = document.getElementById('input-tanggal').value;
+            const resi = document.getElementById('input-resi').value.trim();
+            const catatan = document.getElementById('input-catatan').value.trim();
+
+            const newItem = {
+                id: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
+                nim,
+                nama,
+                email,
+                prodi,
+                tingkatan,
+                nominal,
+                bank,
+                tanggal,
+                resiUrl: resi,
+                catatan: catatan || '-',
+                status: 'Pending',
+                adminNote: 'Setoran angsuran sedang dalam proses verifikasi mutasi rekening.'
+            };
+
+            mockData.unshift(newItem);
+            document.getElementById('form-konfirmasi').reset();
+            document.getElementById('nim-installment-info').classList.add('hidden');
+
+            showToast("Pengajuan Terkirim", `Konfirmasi pembayaran angsuran untuk ${nama} berhasil disimpan.`);
+            selectTab('status');
+            document.getElementById('search-status-input').value = nim;
+            executeStatusSearch();
+        }
+
+        // Search Status Logic with Multi-Installment Calculation
+        function executeStatusSearch() {
+            const query = document.getElementById('search-status-input').value.trim().toLowerCase();
+            const resultsContainer = document.getElementById('search-status-results');
+
+            if (!query) {
+                resultsContainer.innerHTML = `
+                    <div id="search-status-initial" class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
+                        <div class="w-12 h-12 bg-emerald-50 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-3 text-lg">
+                            <i class="fa-solid fa-search"></i>
+                        </div>
+                        <h4 class="text-xs font-bold text-slate-700">Silakan Cari Berdasarkan NIM</h4>
+                        <p class="text-[11px] text-slate-500 max-w-sm mx-auto mt-1">Masukkan NIM Anda pada kolom pencarian di atas lalu tekan Cari untuk melihat kalkulasi angsuran Rusum Anda.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const filtered = mockData.filter(d => 
+                (d.nim && d.nim.toLowerCase().includes(query)) || 
+                (d.nama && d.nama.toLowerCase().includes(query))
+            );
+
+            if (filtered.length === 0) {
+                resultsContainer.innerHTML = `
+                    <div class="text-center py-12 border border-slate-200 rounded-2xl bg-slate-50">
+                        <p class="text-xs font-bold text-slate-700">Data Tidak Ditemukan</p>
+                        <p class="text-[11px] text-slate-500 mt-1">Tidak ada data konfirmasi pembayaran dengan NIM/Nama "${query}".</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Get target NIM from first match
+            const targetNim = filtered[0].nim;
+            const summary = getStudentPaymentSummary(targetNim);
+
+            const formattedTotalDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
+            const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+
+            let overallBadge = '';
+            if (summary.statusOverall === 'LUNAS') {
+                overallBadge = `<span class="px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-extrabold"><i class="fa-solid fa-circle-check mr-1"></i> STATUS OVERALL: LUNAS PENUH</span>`;
+            } else if (summary.statusOverall === 'DICICIL') {
+                overallBadge = `<span class="px-3 py-1 bg-amber-500 text-white rounded-lg text-xs font-extrabold"><i class="fa-solid fa-calculator mr-1"></i> STATUS OVERALL: DICICIL (${summary.percentPaid}%)</span>`;
+            } else {
+                overallBadge = `<span class="px-3 py-1 bg-rose-600 text-white rounded-lg text-xs font-extrabold"><i class="fa-solid fa-clock mr-1"></i> STATUS OVERALL: BELUM BAYAR</span>`;
+            }
+
+            let html = `
+                <!-- Summary Card for Mahasiswa -->
+                <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-emerald-800 pb-4">
+                        <div>
+                            <h3 class="text-lg font-extrabold">${filtered[0].nama} (${filtered[0].nim})</h3>
+                            <p class="text-xs text-emerald-200">${filtered[0].prodi} &bull; Tingkatan ${filtered[0].tingkatan}</p>
+                        </div>
+                        <div>${overallBadge}</div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                        <div class="bg-white/10 p-3 rounded-xl border border-white/10">
+                            <span class="text-emerald-200 text-[10px] font-bold uppercase block">Total Disetujui</span>
+                            <span class="text-lg font-black text-white">${formattedTotalDibayar}</span>
+                        </div>
+                        <div class="bg-white/10 p-3 rounded-xl border border-white/10">
+                            <span class="text-emerald-200 text-[10px] font-bold uppercase block">Sisa Tagihan Rusum</span>
+                            <span class="text-lg font-black text-emerald-300">${formattedSisa}</span>
+                        </div>
+                        <div class="bg-white/10 p-3 rounded-xl border border-white/10 flex flex-col justify-center">
+                            <div class="flex justify-between items-center text-[10px] font-bold mb-1">
+                                <span class="text-emerald-200">PROGRESS LUNAS</span>
+                                <span>${summary.percentPaid}%</span>
+                            </div>
+                            <div class="w-full bg-emerald-950 rounded-full h-2.5 overflow-hidden">
+                                <div class="bg-emerald-400 h-full rounded-full" style="width: ${summary.percentPaid}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider pt-2 flex items-center space-x-1.5">
+                    <i class="fa-solid fa-list-numeric text-emerald-800"></i>
+                    <span>Riwayat Rincian Setoran / Angsuran (${filtered.length} Transaksi)</span>
+                </h4>
+            `;
+
+            // Render List of Individual Transactions
+            html += filtered.map((item, index) => {
+                let statusBadge = '';
+                if (item.status === 'Disetujui') {
+                    statusBadge = `<span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold inline-flex items-center space-x-1"><i class="fa-solid fa-circle-check"></i> <span>Disetujui (Sah)</span></span>`;
+                } else if (item.status === 'Ditolak') {
+                    statusBadge = `<span class="px-2.5 py-1 bg-rose-100 text-rose-800 rounded-lg text-xs font-bold inline-flex items-center space-x-1"><i class="fa-solid fa-circle-xmark"></i> <span>Ditolak</span></span>`;
+                } else {
+                    statusBadge = `<span class="px-2.5 py-1 bg-amber-100 text-amber-800 rounded-lg text-xs font-bold inline-flex items-center space-x-1"><i class="fa-solid fa-clock"></i> <span>Pending Verifikasi</span></span>`;
+                }
+
+                const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
+
+                let kwitansiBtn = '';
+                if (item.status === 'Disetujui') {
+                    kwitansiBtn = `
+                        <button onclick="openKwitansiPreview('${item.id}')" class="mt-2 px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                            <i class="fa-solid fa-receipt"></i>
+                            <span>Cetak Kwitansi Setoran Ini</span>
+                        </button>
+                    `;
+                }
+
+                return `
+                    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:border-emerald-300 transition space-y-3">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                            <div>
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Setoran #${filtered.length - index} (ID: ${item.id})</span>
+                                <h5 class="font-bold text-slate-800 text-xs">${item.catatan || 'Pembayaran Rusum'}</h5>
+                            </div>
+                            <div>${statusBadge}</div>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                            <div>
+                                <span class="text-slate-400 text-[10px] uppercase font-bold block">Nominal Setoran:</span>
+                                <span class="font-extrabold text-slate-800">${formattedNominal}</span>
+                            </div>
+                            <div>
+                                <span class="text-slate-400 text-[10px] uppercase font-bold block">Bank & Tanggal:</span>
+                                <span class="font-medium text-slate-700">${item.bank || '-'} (${item.tanggal || '-'})</span>
+                            </div>
+                            <div class="col-span-2 sm:col-span-1">
+                                <span class="text-slate-400 text-[10px] uppercase font-bold block">Catatan Admin:</span>
+                                <span class="font-medium text-slate-700">${item.adminNote || '-'}</span>
+                            </div>
+                        </div>
+                        ${kwitansiBtn}
+                    </div>
+                `;
+            }).join('');
+
+            resultsContainer.innerHTML = html;
+        }
+
+        // Admin Login
+        function loginAdmin() {
+            const pin = document.getElementById('admin-pin-input').value.trim();
+            if (pin === '1234') {
+                isAdminLoggedIn = true;
+                renderAdminDashboard();
+                showToast("Login Berhasil", "Selamat datang di Panel Admin Keuangan.");
+            } else {
+                showToast("PIN Salah", "Gunakan PIN 1234 untuk login demo admin.");
+            }
+        }
+
+        function loginAdminDemo() {
+            document.getElementById('admin-pin-input').value = '1234';
+            loginAdmin();
+        }
+
+        function logoutAdmin() {
+            isAdminLoggedIn = false;
+            document.getElementById('admin-login-card').classList.remove('hidden');
+            document.getElementById('admin-dashboard').classList.add('hidden');
+            showToast("Logout", "Anda telah keluar dari Panel Admin.");
+        }
+
+        function renderAdminDashboard() {
+            document.getElementById('admin-login-card').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.remove('hidden');
+            updateAdminStats();
+            filterAdminTable();
+        }
+
+        function updateAdminStats() {
+            const total = mockData.length;
+            const pending = mockData.filter(d => d.status === 'Pending').length;
+            const disetujui = mockData.filter(d => d.status === 'Disetujui').length;
+            const ditolak = mockData.filter(d => d.status === 'Ditolak').length;
+
+            const totalPenerimaan = mockData
+                .filter(d => d.status === 'Disetujui')
+                .reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
+
+            document.getElementById('admin-stat-total').innerText = total;
+            document.getElementById('admin-stat-pending').innerText = pending;
+            document.getElementById('admin-stat-disetujui').innerText = disetujui;
+            document.getElementById('admin-stat-ditolak').innerText = ditolak;
+
+            const formattedPenerimaan = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalPenerimaan);
+            document.getElementById('admin-stat-penerimaan').innerText = formattedPenerimaan;
+        }
+
+        function filterAdminTable() {
+            const search = document.getElementById('admin-filter-search').value.toLowerCase();
+            const statusFilter = document.getElementById('admin-filter-status').value;
+
+            const filtered = mockData.filter(d => {
+                const matchSearch = (d.nama && d.nama.toLowerCase().includes(search)) || (d.nim && d.nim.toLowerCase().includes(search));
+                const matchStatus = statusFilter === 'ALL' || d.status === statusFilter;
+                return matchSearch && matchStatus;
+            });
+
+            const tbody = document.getElementById('admin-table-body');
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Tidak ada data yang sesuai.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(item => {
+                let badge = '';
+                if (item.status === 'Disetujui') {
+                    badge = `<span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold text-[10px]">Disetujui</span>`;
+                } else if (item.status === 'Ditolak') {
+                    badge = `<span class="px-2 py-0.5 bg-rose-100 text-rose-800 rounded font-bold text-[10px]">Ditolak</span>`;
+                } else {
+                    badge = `<span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold text-[10px]">Pending</span>`;
+                }
+
+                const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
+
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3.5 font-medium">
+                            <div class="font-bold text-slate-800">${item.nama || '-'}</div>
+                            <div class="text-[11px] text-slate-500 font-mono">${item.nim || '-'} - ${item.tingkatan || '-'}</div>
+                            <div class="text-[11px] text-slate-400">${item.email || '-'}</div>
+                        </td>
+                        <td class="p-3.5">${item.prodi || '-'}</td>
+                        <td class="p-3.5 font-bold text-emerald-800">${formattedNominal}</td>
+                        <td class="p-3.5 font-medium text-slate-700">${item.bank || '-'}<br><span class="text-[10px] font-normal text-slate-400">${item.tanggal || '-'}</span></td>
+                        <td class="p-3.5 text-center">${badge}</td>
+                        <td class="p-3.5 text-center">
+                            <button onclick="openAdminDetailModal('${item.id}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-semibold transition shadow-sm" title="Tinjau Konfirmasi">
+                                <i class="fa-solid fa-pen-to-square mr-1"></i> Tinjau
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Selection of Status inside Modal Review
+        function selectModalStatus(status) {
+            selectedModalStatus = status;
+
+            const btnPending = document.getElementById('btn-status-pending');
+            const btnDisetujui = document.getElementById('btn-status-disetujui');
+            const btnDitolak = document.getElementById('btn-status-ditolak');
+
+            // Reset classes
+            btnPending.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5 bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100";
+            btnDisetujui.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5 bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100";
+            btnDitolak.className = "py-2.5 px-3 rounded-xl border text-xs font-bold transition flex items-center justify-center space-x-1.5 bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100";
+
+            if (status === 'Pending') {
+                btnPending.className = "py-2.5 px-3 rounded-xl border-2 text-xs font-bold transition flex items-center justify-center space-x-1.5 bg-amber-500 text-white border-amber-600 shadow-sm";
+            } else if (status === 'Disetujui') {
+                btnDisetujui.className = "py-2.5 px-3 rounded-xl border-2 text-xs font-bold transition flex items-center justify-center space-x-1.5 bg-emerald-600 text-white border-emerald-700 shadow-sm";
+            } else if (status === 'Ditolak') {
+                btnDitolak.className = "py-2.5 px-3 rounded-xl border-2 text-xs font-bold transition flex items-center justify-center space-x-1.5 bg-rose-600 text-white border-rose-700 shadow-sm";
+            }
+
+            // Fill reason textarea automatically
+            document.getElementById('modal-admin-note').value = defaultStatusNotes[status] || '';
+        }
+
+        // Open Admin Review Modal
+        function openAdminDetailModal(id) {
+            const item = mockData.find(d => d.id === id);
+            if (!item) return;
+
+            activeReviewItem = item;
+
+            document.getElementById('modal-mhs-nama').innerText = item.nama || '-';
+            document.getElementById('modal-mhs-nim').innerText = `NIM: ${item.nim || '-'}`;
+            document.getElementById('modal-mhs-email').innerText = item.email || '-';
+            document.getElementById('modal-mhs-prodi').innerText = item.prodi || '-';
+            document.getElementById('modal-mhs-tingkatan').innerText = item.tingkatan || '-';
+
+            const summary = getStudentPaymentSummary(item.nim);
+            const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
+            const formattedTotalDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
+            const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+
+            document.getElementById('modal-mhs-nominal').innerText = formattedNominal;
+            document.getElementById('modal-mhs-bank').innerText = `${item.bank || '-'} (${item.tanggal || '-'})`;
+            document.getElementById('modal-mhs-kalkulasi').innerText = `Total Sah Sebelumnya: ${formattedTotalDibayar} | Sisa Tagihan saat ini: ${formattedSisa}`;
+
+            document.getElementById('modal-mhs-catatan').innerText = `"${item.catatan || '-'}"`;
+            document.getElementById('modal-resi-img').src = item.resiUrl || '';
+            document.getElementById('modal-resi-link').href = item.resiUrl || '#';
+
+            const initialStatus = item.status || 'Pending';
+            selectModalStatus(initialStatus);
+
+            document.getElementById('modal-review').classList.remove('hidden');
+        }
+
+        function closeModalReview() {
+            document.getElementById('modal-review').classList.add('hidden');
+            activeReviewItem = null;
+        }
+
+        function previewKwitansiFromAdminModal() {
+            if (!activeReviewItem) return;
+            openKwitansiPreview(activeReviewItem.id);
+        }
+
+        // Send Email Notification based on selected status
+        function sendEmailNotificationFromModal() {
+            if (!activeReviewItem) return;
+
+            const item = activeReviewItem;
+            const newStatus = selectedModalStatus;
+            const newNote = document.getElementById('modal-admin-note').value.trim();
+
+            item.status = newStatus;
+            item.adminNote = newNote;
+
+            updateAdminStats();
+            filterAdminTable();
+
+            const summary = getStudentPaymentSummary(item.nim);
+            const formattedTotalDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
+            const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+
+            let subject = "";
+            let bodyText = "";
+
+            if (newStatus === 'Disetujui') {
+                subject = encodeURIComponent(`[STAIIS] Verifikasi Setoran Rusum Tahunan - ${item.nim}`);
+                bodyText = `Assalamu'alaikum Wr. Wb.,\n\nYth. ${item.nama} (${item.nim}),\n\nSetoran pembayaran Rusum Tahunan STAI Imam Syafi'i Cianjur sebesar Rp ${(item.nominal || 0).toLocaleString('id-ID')} telah VERIFIKASI SAH.\n\nKalkulasi Angsuran:\n- Setoran Ini: Rp ${(item.nominal || 0).toLocaleString('id-ID')}\n- Akumulasi Terbayar Sah: ${formattedTotalDibayar}\n- Sisa Tagihan Rusum: ${formattedSisa}\n- Status Overall: ${summary.statusOverall}\n\nTerlampir kwitansi resmi bukti setoran Anda.\n\nTerima Kasih.\nBagian Keuangan STAIIS Cianjur`;
+                
+                openKwitansiPreview(item.id);
+            } else if (newStatus === 'Ditolak') {
+                subject = encodeURIComponent(`[STAIIS] Pemberitahuan Status Pembayaran Rusum - DITOLAK`);
+                bodyText = `Assalamu'alaikum Wr. Wb.,\n\nYth. ${item.nama} (${item.nim}),\n\nMohon maaf, pengajuan konfirmasi setoran Rusum Tahunan Anda BELUM DAPAT DISETUJUI.\n\nAlasan / Catatan Keuangan:\n"${newNote}"\n\nSilakan lakukan pemeriksaan kembali pada bukti transfer Anda dan ajukan ulang konfirmasi pembayaran melalui sistem.\n\nTerima Kasih.\nBagian Keuangan STAIIS Cianjur`;
+            } else {
+                subject = encodeURIComponent(`[STAIIS] Status Pembayaran Rusum - PENDING`);
+                bodyText = `Assalamu'alaikum Wr. Wb.,\n\nYth. ${item.nama} (${item.nim}),\n\nKonfirmasi setoran Rusum Tahunan Anda saat ini sedang dalam proses verifikasi tim keuangan.\n\nCatatan: ${newNote}\n\nTerima Kasih.\nBagian Keuangan STAIIS Cianjur`;
+            }
+
+            const mailtoUrl = `mailto:${item.email}?subject=${subject}&body=${encodeURIComponent(bodyText)}`;
+            window.open(mailtoUrl, '_blank');
+
+            showToast("Verifikasi & Email Terkirim", `Status diperbarui ke ${newStatus}. Email pemberitahuan disiapkan.`);
+            closeModalReview();
+        }
+
+        // Kwitansi Modal Functions
+        function openKwitansiPreview(id) {
+            const item = mockData.find(d => d.id === id);
+            if (!item) return;
+
+            activeKwitansiItem = item;
+            const summary = getStudentPaymentSummary(item.nim);
+
+            document.getElementById('kwitansi-no').innerText = `KW-STAIIS-${item.id}`;
+            document.getElementById('kwitansi-tgl').innerText = `Tanggal Terbit: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+            document.getElementById('kwitansi-nama').innerText = item.nama || '-';
+            document.getElementById('kwitansi-nim').innerText = item.nim || '-';
+            document.getElementById('kwitansi-tingkatan').innerText = item.tingkatan || '-';
+            document.getElementById('kwitansi-prodi').innerText = item.prodi || '-';
+
+            const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
+            const formattedTotalDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
+            const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+
+            document.getElementById('kwitansi-nominal').innerText = formattedNominal;
+            document.getElementById('kwitansi-terbilang').innerText = terbilang(item.nominal || 0) + " Rupiah";
+            document.getElementById('kwitansi-total-terbayar').innerText = formattedTotalDibayar;
+            document.getElementById('kwitansi-sisa').innerText = summary.sisaTagihan === 0 ? "Rp 0 (LUNAS PENUH)" : formattedSisa;
+
+            const badgeElem = document.getElementById('kwitansi-badge-status');
+            if (summary.statusOverall === 'LUNAS') {
+                badgeElem.className = "px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-md text-[10px] font-extrabold uppercase tracking-wider";
+                badgeElem.innerText = "LUNAS / SAH";
+            } else {
+                badgeElem.className = "px-2.5 py-1 bg-amber-100 text-amber-800 rounded-md text-[10px] font-extrabold uppercase tracking-wider";
+                badgeElem.innerText = `ANGSURAN SAH (${summary.percentPaid}%)`;
+            }
+
+            document.getElementById('modal-kwitansi').classList.remove('hidden');
+        }
+
+        function closeKwitansiModal() {
+            document.getElementById('modal-kwitansi').classList.add('hidden');
+            activeKwitansiItem = null;
+        }
+
+        function downloadKwitansiFromModal() {
+            if (!activeKwitansiItem) return;
+            const element = document.getElementById('kwitansi-print-area');
+            const opt = {
+                margin: 0.5,
+                filename: `Kwitansi_Rusum_${activeKwitansiItem.nim}_${activeKwitansiItem.id}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+            showToast("Mengunduh PDF", "File kwitansi PDF sedang diunduh.");
+        }
+
+        // Toast Helper
+        function showToast(title, message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = "bg-slate-900 text-white text-xs p-4 rounded-xl shadow-xl border border-slate-800 flex items-center space-x-3 pointer-events-auto transform transition duration-300 translate-y-2 opacity-0";
+            toast.innerHTML = `
+                <div class="w-8 h-8 bg-emerald-800 text-emerald-200 rounded-lg flex items-center justify-center shrink-0">
+                    <i class="fa-solid fa-bell text-xs"></i>
+                </div>
+                <div>
+                    <h5 class="font-bold text-white text-xs">${title}</h5>
+                    <p class="text-[11px] text-slate-300">${message}</p>
+                </div>
+            `;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+            setTimeout(() => {
+                toast.classList.add('opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // Conversion of Number to Words (Terbilang Rupiah)
+        function terbilang(angka) {
+            const bil = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+            let n = Math.floor(angka);
+            if (n < 12) return bil[n];
+            if (n < 20) return terbilang(n - 10) + " Belas";
+            if (n < 100) return terbilang(Math.floor(n / 10)) + " Puluh " + terbilang(n % 10);
+            if (n < 1000) return "Seratus " + terbilang(n - 100);
+            if (n < 1000) return terbilang(Math.floor(n / 100)) + " Ratus " + terbilang(n % 100);
+            if (n < 2000) return "Seribu " + terbilang(n - 1000);
+            if (n < 1000000) return terbilang(Math.floor(n / 1000)) + " Ribu " + terbilang(n % 1000);
+            if (n < 1000000000) return terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000);
+            return n.toString();
+        }
+
+        // On Page Load Init
+        window.onload = function() {
+            selectTab('form');
+        };
+    </script>
+</body>
+</html>
