@@ -1,0 +1,673 @@
+// Konfigurasi & Global Variabel
+const BIAYA_RUSUM_STANDAR = 2500000;
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyoXy7Ewl8VK3ApGnDpiinwsWiuesh0wbC6gOWEzDCQGxio7_0JCcfybd4JDjAAVeo/exec'; // Ganti dengan URL Google Apps Script Anda
+
+let mockData = []; // Akan diisi dari Spreadsheet (Tab: Transaksi)
+let mockMahasiswaMaster = []; // Akan diisi dari Spreadsheet (Tab: Mahasiswa)
+
+let activeTab = 'form';
+let activeAdminSubtab = 'verifikasi';
+let activeAngkatanStatusFilter = 'ALL';
+let activeReviewItem = null;
+let activeKwitansiItem = null;
+let isAdminLoggedIn = false;
+let selectedModalStatus = 'Pending';
+
+const defaultStatusNotes = {
+    'Pending': 'Pembayaran sedang dalam proses verifikasi data dan mutasi rekening.',
+    'Disetujui': 'Pembayaran setoran angsuran telah diverifikasi sah.',
+    'Ditolak': 'Bukti transfer tidak valid atau nominal tidak sesuai ketentuan. Silakan perbaiki dan unggah ulang.'
+};
+
+// ==========================================
+// FUNGSI FETCH GOOGLE SHEETS
+// ==========================================
+async function fetchSpreadsheetData() {
+    try {
+        showToast("Memuat Data", "Sedang menghubungkan ke database server...");
+        
+        // Panggil fetch jika SCRIPT_URL sudah diset
+        if (SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbzyoXy7Ewl8VK3ApGnDpiinwsWiuesh0wbC6gOWEzDCQGxio7_0JCcfybd4JDjAAVeo/exec') {
+            showToast("Peringatan", "SCRIPT_URL belum diset. Aplikasi berjalan dengan data kosong.");
+            return;
+        }
+
+        const response = await fetch(SCRIPT_URL + "?action=getData");
+        const data = await response.json();
+        
+        // Konversi nominal string dari GSheets menjadi Number
+        mockData = data.transaksi.map(tx => ({
+            ...tx,
+            nominal: Number(tx.nominal)
+        })).reverse(); // Reverse agar data terbaru tampil di atas
+        
+        mockMahasiswaMaster = data.mahasiswa;
+        
+        showToast("Berhasil", "Data berhasil dimuat dari database Google Sheets.");
+        
+        if (isAdminLoggedIn) {
+            renderAdminDashboard();
+        }
+    } catch (error) {
+        showToast("Error", "Gagal memuat data. Periksa koneksi internet.");
+        console.error("Error fetching data:", error);
+    }
+}
+
+// ==========================================
+// LOGIKA KALKULASI & CEK MAHASISWA
+// ==========================================
+function getStudentPaymentSummary(nim) {
+    const approvedTx = mockData.filter(d => d.nim === nim && d.status === 'Disetujui');
+    const totalDibayar = approvedTx.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
+    const sisaTagihan = Math.max(0, BIAYA_RUSUM_STANDAR - totalDibayar);
+    const percentPaid = Math.min(100, Math.round((totalDibayar / BIAYA_RUSUM_STANDAR) * 100));
+
+    let statusOverall = 'BELUM_BAYAR';
+    if (totalDibayar >= BIAYA_RUSUM_STANDAR) {
+        statusOverall = 'LUNAS';
+    } else if (totalDibayar > 0) {
+        statusOverall = 'DICICIL';
+    }
+
+    return { totalDibayar, sisaTagihan, percentPaid, statusOverall, approvedCount: approvedTx.length };
+}
+
+function checkPreviousInstallments() {
+    const nim = document.getElementById('input-nim').value.trim();
+    const infoDiv = document.getElementById('nim-installment-info');
+
+    if (!nim) {
+        infoDiv.classList.add('hidden');
+        return;
+    }
+
+    const summary = getStudentPaymentSummary(nim);
+    const mhs = mockMahasiswaMaster.find(m => m.nim === nim);
+
+    if (mhs) {
+        document.getElementById('input-nama').value = mhs.nama;
+        document.getElementById('input-email').value = mhs.email;
+        document.getElementById('input-prodi').value = mhs.prodi;
+        document.getElementById('input-tingkatan').value = mhs.tingkatan;
+    }
+
+    if (summary.totalDibayar > 0) {
+        infoDiv.classList.remove('hidden');
+        const formattedDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
+        const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+
+        if (summary.statusOverall === 'LUNAS') {
+            infoDiv.innerHTML = `<p class="font-bold text-emerald-800"><i class="fa-solid fa-circle-check"></i> Mahasiswa Ini Sudah Lunas Penuh (${formattedDibayar})</p>`;
+        } else {
+            infoDiv.innerHTML = `
+                <p class="font-bold text-amber-800"><i class="fa-solid fa-calculator"></i> Riwayat Angsuran Terdeteksi:</p>
+                <p class="text-slate-700">Telah dibayar: <b>${formattedDibayar}</b> (${summary.percentPaid}%) &bull; Sisa: <b class="text-rose-700">${formattedSisa}</b></p>
+            `;
+        }
+    } else {
+        infoDiv.classList.add('hidden');
+    }
+}
+
+// ==========================================
+// NAVIGASI APLIKASI
+// ==========================================
+function selectTab(tab) {
+    activeTab = tab;
+
+    ['form', 'status', 'admin'].forEach(t => {
+        document.getElementById(`tab-content-${t}`).classList.add('hidden');
+        
+        // Reset Desktop
+        document.getElementById(`tab-btn-${t}`).className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60";
+        // Reset Mobile
+        document.getElementById(`m-tab-${t}`).className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 hover:bg-emerald-900";
+    });
+
+    // Active State
+    document.getElementById(`tab-content-${tab}`).classList.remove('hidden');
+    document.getElementById(`tab-btn-${tab}`).className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 bg-emerald-800 text-white shadow-inner";
+    document.getElementById(`m-tab-${tab}`).className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 bg-emerald-800 text-white";
+
+    if (tab === 'admin' && isAdminLoggedIn) {
+        renderAdminDashboard();
+    }
+}
+
+function copyRekening() {
+    const temp = document.createElement('textarea');
+    temp.value = '7000005009';
+    document.body.appendChild(temp);
+    temp.select();
+    document.execCommand('copy');
+    document.body.removeChild(temp);
+    showToast("Tersalin!", "Nomor rekening 7000005009 disalin ke clipboard.");
+}
+
+// ==========================================
+// FORM SUBMIT (MAHASISWA) KE GOOGLE SHEETS
+// ==========================================
+async function handleFormSubmit(e) {
+    e.preventDefault();
+    const btnSubmit = document.getElementById('btn-submit-form');
+    
+    // Validasi URL Script
+    if (SCRIPT_URL === 'PASTE_URL_WEB_APP_ANDA_DI_SINI') {
+        showToast("Error", "URL Server belum dikonfigurasi oleh Admin!");
+        return;
+    }
+
+    btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>MENGIRIM KE SERVER...</span>`;
+    btnSubmit.disabled = true;
+
+    const nim = document.getElementById('input-nim').value.trim();
+    const nama = document.getElementById('input-nama').value.trim();
+    const email = document.getElementById('input-email').value.trim();
+    const prodi = document.getElementById('input-prodi').value;
+    const tingkatan = document.getElementById('input-tingkatan').value;
+    const nominal = parseInt(document.getElementById('input-nominal').value) || 0;
+    const bank = document.getElementById('input-bank').value.trim();
+    const tanggal = document.getElementById('input-tanggal').value;
+    const resi = document.getElementById('input-resi').value.trim();
+    const catatan = document.getElementById('input-catatan').value.trim();
+
+    const newItem = {
+        action: 'addTransaction',
+        id: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
+        nim, nama, email, prodi, tingkatan, nominal, bank, tanggal,
+        resiUrl: resi,
+        catatan: catatan || '-',
+        status: 'Pending',
+        adminNote: 'Setoran angsuran sedang dalam proses verifikasi mutasi rekening.'
+    };
+
+    try {
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(newItem)
+        });
+
+        // Update UI Lokal
+        mockData.unshift(newItem); // Tambahkan ke paling atas
+        document.getElementById('form-konfirmasi').reset();
+        document.getElementById('nim-installment-info').classList.add('hidden');
+
+        showToast("Pengajuan Terkirim", `Konfirmasi pembayaran untuk ${nama} berhasil disimpan.`);
+        selectTab('status');
+        document.getElementById('search-status-input').value = nim;
+        executeStatusSearch();
+        
+    } catch (error) {
+        showToast("Gagal Menyimpan", "Terjadi kesalahan koneksi server.");
+    } finally {
+        btnSubmit.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>KIRIM KONFIRMASI PEMBAYARAN</span>`;
+        btnSubmit.disabled = false;
+    }
+}
+
+// ==========================================
+// PENCARIAN STATUS
+// ==========================================
+function executeStatusSearch() {
+    const query = document.getElementById('search-status-input').value.trim().toLowerCase();
+    const resultsContainer = document.getElementById('search-status-results');
+
+    if (!query) {
+        resultsContainer.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl"><h4 class="text-xs font-bold text-slate-700">Ketik NIM Untuk Mencari</h4></div>`;
+        return;
+    }
+
+    const filtered = mockData.filter(d => 
+        (d.nim && d.nim.toLowerCase().includes(query)) || 
+        (d.nama && d.nama.toLowerCase().includes(query))
+    );
+
+    if (filtered.length === 0) {
+        resultsContainer.innerHTML = `<div class="text-center py-12 border border-slate-200 bg-slate-50 rounded-2xl"><p class="text-xs font-bold text-slate-700">Data Tidak Ditemukan</p></div>`;
+        return;
+    }
+
+    const targetNim = filtered[0].nim;
+    const summary = getStudentPaymentSummary(targetNim);
+
+    const formattedTotalDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
+    const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+
+    let html = `
+        <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-4">
+            <div class="flex justify-between border-b border-emerald-800 pb-4">
+                <div>
+                    <h3 class="text-lg font-extrabold">${filtered[0].nama} (${filtered[0].nim})</h3>
+                    <p class="text-xs text-emerald-200">${filtered[0].prodi}</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div class="bg-white/10 p-3 rounded-xl border border-white/10">
+                    <span class="text-emerald-200 text-[10px] font-bold uppercase block">Total Disetujui</span>
+                    <span class="text-lg font-black">${formattedTotalDibayar}</span>
+                </div>
+                <div class="bg-white/10 p-3 rounded-xl border border-white/10">
+                    <span class="text-emerald-200 text-[10px] font-bold uppercase block">Sisa Tagihan</span>
+                    <span class="text-lg font-black text-emerald-300">${formattedSisa}</span>
+                </div>
+            </div>
+        </div>
+        <h4 class="text-xs font-bold text-slate-700 uppercase pt-2">Riwayat Transaksi</h4>
+    `;
+
+    html += filtered.map((item, index) => {
+        const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
+        let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
+        let btn = item.status === 'Disetujui' ? `<button onclick="openKwitansiPreview('${item.id}')" class="mt-2 px-3 py-1.5 bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-sm"><i class="fa-solid fa-receipt"></i> Cetak Kwitansi</button>` : '';
+
+        return `
+            <div class="bg-white border rounded-2xl p-5 shadow-sm space-y-3">
+                <div class="flex justify-between border-b pb-3">
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-400">Setoran #${filtered.length - index} (ID: ${item.id})</span>
+                        <h5 class="font-bold text-xs">${item.catatan || 'Pembayaran'}</h5>
+                    </div>
+                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${badge}">${item.status}</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div><span class="text-slate-400 text-[10px] font-bold block">Nominal:</span><span class="font-extrabold">${formattedNominal}</span></div>
+                    <div><span class="text-slate-400 text-[10px] font-bold block">Bank & Tanggal:</span><span class="font-medium">${item.bank} (${item.tanggal})</span></div>
+                    <div class="col-span-2"><span class="text-slate-400 text-[10px] font-bold block">Catatan Admin:</span><span class="font-medium text-slate-700">${item.adminNote}</span></div>
+                </div>
+                ${btn}
+            </div>
+        `;
+    }).join('');
+
+    resultsContainer.innerHTML = html;
+}
+
+// ==========================================
+// ADMIN DASHBOARD
+// ==========================================
+function loginAdmin() {
+    const pin = document.getElementById('admin-pin-input').value.trim();
+    if (pin === '1234') {
+        isAdminLoggedIn = true;
+        renderAdminDashboard();
+        showToast("Login Berhasil", "Selamat datang di Panel Admin Keuangan.");
+    } else {
+        showToast("PIN Salah", "Gunakan PIN 1234 untuk login demo admin.");
+    }
+}
+
+function loginAdminDemo() {
+    document.getElementById('admin-pin-input').value = '1234';
+    loginAdmin();
+}
+
+function logoutAdmin() {
+    isAdminLoggedIn = false;
+    document.getElementById('admin-login-card').classList.remove('hidden');
+    document.getElementById('admin-dashboard').classList.add('hidden');
+    document.getElementById('admin-pin-input').value = '';
+    showToast("Logout", "Anda telah keluar dari Panel Admin.");
+}
+
+function switchAdminSubtab(subtab) {
+    activeAdminSubtab = subtab;
+    const btnVerifikasi = document.getElementById('admin-subtab-verifikasi');
+    const btnAngkatan = document.getElementById('admin-subtab-angkatan');
+    const viewVerifikasi = document.getElementById('admin-view-verifikasi');
+    const viewAngkatan = document.getElementById('admin-view-angkatan');
+
+    if (subtab === 'verifikasi') {
+        btnVerifikasi.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold bg-white text-emerald-900 shadow-sm flex items-center justify-center space-x-2";
+        btnAngkatan.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-center space-x-2";
+        viewVerifikasi.classList.remove('hidden');
+        viewAngkatan.classList.add('hidden');
+        filterAdminTable();
+    } else {
+        btnAngkatan.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold bg-white text-emerald-900 shadow-sm flex items-center justify-center space-x-2";
+        btnVerifikasi.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-center space-x-2";
+        viewAngkatan.classList.remove('hidden');
+        viewVerifikasi.classList.add('hidden');
+        renderAngkatanMonitoring();
+    }
+}
+
+function renderAdminDashboard() {
+    document.getElementById('admin-login-card').classList.add('hidden');
+    document.getElementById('admin-dashboard').classList.remove('hidden');
+    if (activeAdminSubtab === 'verifikasi') {
+        updateAdminStats();
+        filterAdminTable();
+    } else {
+        renderAngkatanMonitoring();
+    }
+}
+
+function updateAdminStats() {
+    const total = mockData.length;
+    const pending = mockData.filter(d => d.status === 'Pending').length;
+    const disetujui = mockData.filter(d => d.status === 'Disetujui').length;
+    const ditolak = mockData.filter(d => d.status === 'Ditolak').length;
+
+    const totalPenerimaan = mockData
+        .filter(d => d.status === 'Disetujui')
+        .reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
+
+    document.getElementById('admin-stat-total').innerText = total;
+    document.getElementById('admin-stat-pending').innerText = pending;
+    document.getElementById('admin-stat-disetujui').innerText = disetujui;
+    document.getElementById('admin-stat-ditolak').innerText = ditolak;
+
+    const formattedPenerimaan = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalPenerimaan);
+    document.getElementById('admin-stat-penerimaan').innerText = formattedPenerimaan;
+}
+
+function filterAdminTable() {
+    const search = document.getElementById('admin-filter-search').value.toLowerCase();
+    const statusFilter = document.getElementById('admin-filter-status').value;
+
+    const filtered = mockData.filter(d => {
+        const matchSearch = (d.nama && d.nama.toLowerCase().includes(search)) || (d.nim && d.nim.toLowerCase().includes(search));
+        const matchStatus = statusFilter === 'ALL' || d.status === statusFilter;
+        return matchSearch && matchStatus;
+    });
+
+    const tbody = document.getElementById('admin-table-body');
+    if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Tidak ada data yang sesuai.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(item => {
+        let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
+        const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
+
+        return `
+            <tr class="hover:bg-slate-50 transition border-b">
+                <td class="p-3.5 font-medium">
+                    <div class="font-bold text-slate-800">${item.nama}</div>
+                    <div class="text-[11px] text-slate-500 font-mono">${item.nim}</div>
+                </td>
+                <td class="p-3.5">${item.prodi}</td>
+                <td class="p-3.5 font-bold text-emerald-800">${formattedNominal}</td>
+                <td class="p-3.5">${item.bank}<br><span class="text-[10px] text-slate-400">${item.tanggal}</span></td>
+                <td class="p-3.5 text-center"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${badge}">${item.status}</span></td>
+                <td class="p-3.5 text-center">
+                    <button onclick="openAdminDetailModal('${item.id}')" class="px-3 py-1.5 bg-emerald-800 text-white rounded-lg text-xs font-semibold">Tinjau</button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ==========================================
+// PEMANTAUAN ANGKATAN
+// ==========================================
+function renderAngkatanMonitoring() {
+    const selectedTA = document.getElementById('ta-select').value;
+    const selectedTingkatan = document.getElementById('tingkatan-select').value;
+
+    let cohortStudents = mockMahasiswaMaster;
+    if (selectedTA !== 'ALL') cohortStudents = cohortStudents.filter(m => m.tahunAkademik === selectedTA);
+    if (selectedTingkatan !== 'ALL') cohortStudents = cohortStudents.filter(m => m.tingkatan === selectedTingkatan);
+
+    const mappedStudents = cohortStudents.map(mhs => {
+        return { ...mhs, summary: getStudentPaymentSummary(mhs.nim) };
+    });
+
+    const totalMhs = mappedStudents.length;
+    const paidMhs = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS').length;
+    const partialMhs = mappedStudents.filter(m => m.summary.statusOverall === 'DICICIL').length;
+    const unpaidMhs = mappedStudents.filter(m => m.summary.statusOverall === 'BELUM_BAYAR').length;
+
+    const totalTerbayarCohort = mappedStudents.reduce((acc, curr) => acc + curr.summary.totalDibayar, 0);
+    const totalTunggakanCohort = mappedStudents.reduce((acc, curr) => acc + curr.summary.sisaTagihan, 0);
+    const totalTargetCohort = totalMhs * BIAYA_RUSUM_STANDAR;
+    const overallPercentage = totalTargetCohort > 0 ? Math.round((totalTerbayarCohort / totalTargetCohort) * 100) : 0;
+
+    document.getElementById('cohort-stat-total').innerText = `${totalMhs} Mhs`;
+    document.getElementById('cohort-stat-paid').innerText = `${paidMhs} Lunas, ${partialMhs} Dicicil`;
+    document.getElementById('cohort-stat-paid-nominal').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalTerbayarCohort);
+    document.getElementById('cohort-stat-unpaid').innerText = `Belum Penuh: ${unpaidMhs + partialMhs} Mhs`;
+    document.getElementById('cohort-stat-unpaid-nominal').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalTunggakanCohort);
+    
+    document.getElementById('cohort-progress-text').innerText = `${overallPercentage}%`;
+    document.getElementById('cohort-progress-bar').style.width = `${overallPercentage}%`;
+    document.getElementById('cohort-progress-sub').innerText = `${paidMhs} dari ${totalMhs} Lunas`;
+
+    let displayStudents = mappedStudents;
+    if (activeAngkatanStatusFilter === 'PAID') displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS');
+    else if (activeAngkatanStatusFilter === 'PARTIAL') displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'DICICIL');
+    else if (activeAngkatanStatusFilter === 'UNPAID') displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'BELUM_BAYAR');
+
+    document.getElementById('cohort-table-count').innerText = `${displayStudents.length} Data`;
+
+    const tbody = document.getElementById('cohort-table-body');
+    if (displayStudents.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada data.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = displayStudents.map(mhs => {
+        const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.totalDibayar);
+        const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.sisaTagihan);
+
+        let statusBadge = mhs.summary.statusOverall === 'LUNAS' ? `<span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-[10px] font-bold">LUNAS</span>` 
+            : (mhs.summary.statusOverall === 'DICICIL' ? `<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-[10px] font-bold">DICICIL</span>` : `<span class="bg-rose-100 text-rose-800 px-2 py-1 rounded text-[10px] font-bold">BELUM BAYAR</span>`);
+        
+        let actionBtn = `<button onclick="sendReminderWA('${mhs.phone}','${mhs.nama}','${mhs.nim}')" class="bg-emerald-600 text-white px-2 py-1 rounded text-xs"><i class="fa-brands fa-whatsapp"></i></button>`;
+
+        return `
+            <tr class="hover:bg-slate-50 border-b">
+                <td class="p-3 font-medium">
+                    <div class="font-bold">${mhs.nama}</div><div class="text-[11px] text-slate-500">${mhs.nim}</div>
+                </td>
+                <td class="p-3 text-[11px]">${mhs.prodi}<br>TA ${mhs.tahunAkademik}</td>
+                <td class="p-3 font-bold">${formattedTotal}</td>
+                <td class="p-3 font-bold text-rose-700">${formattedSisa}</td>
+                <td class="p-3 text-center">${statusBadge}</td>
+                <td class="p-3 text-center">${actionBtn}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function filterAngkatanStatus(status) {
+    activeAngkatanStatusFilter = status;
+    renderAngkatanMonitoring();
+}
+
+function executeStatusSearchAndOpen(nim) {
+    selectTab('status');
+    document.getElementById('search-status-input').value = nim;
+    executeStatusSearch();
+}
+
+function sendReminderWA(phone, nama, nim) {
+    let cleanPhone = phone.replace(/[^0-9]/g, '');
+    if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.substring(1);
+    const message = encodeURIComponent(`Assalamu'alaikum Wr. Wb. Sdr/i ${nama} (${nim}), mengingatkan kembali untuk pembayaran kewajiban Rusum Tahunan STAI Imam Syafi'i Cianjur. Mohon segera melakukan konfirmasi melalui sistem.`);
+    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
+}
+
+// ==========================================
+// MODAL REVIEW & UPDATE KE GOOGLE SHEETS
+// ==========================================
+function openAdminDetailModal(id) {
+    const item = mockData.find(d => d.id === id);
+    if (!item) return;
+
+    activeReviewItem = item;
+
+    document.getElementById('modal-mhs-nama').innerText = item.nama;
+    document.getElementById('modal-mhs-nim').innerText = `NIM: ${item.nim}`;
+    document.getElementById('modal-mhs-email').innerText = item.email;
+    document.getElementById('modal-mhs-prodi').innerText = item.prodi;
+    document.getElementById('modal-mhs-tingkatan').innerText = item.tingkatan;
+    
+    document.getElementById('modal-mhs-nominal').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal);
+    document.getElementById('modal-mhs-bank').innerText = `${item.bank} (${item.tanggal})`;
+
+    const summary = getStudentPaymentSummary(item.nim);
+    document.getElementById('modal-mhs-kalkulasi').innerText = `Telah Bayar: ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(summary.totalDibayar)}`;
+
+    document.getElementById('modal-resi-img').src = item.resiUrl;
+    document.getElementById('modal-resi-link').href = item.resiUrl;
+
+    selectModalStatus(item.status || 'Pending');
+    document.getElementById('modal-review').classList.remove('hidden');
+}
+
+function selectModalStatus(status) {
+    selectedModalStatus = status;
+    const btnPending = document.getElementById('btn-status-pending');
+    const btnDisetujui = document.getElementById('btn-status-disetujui');
+    const btnDitolak = document.getElementById('btn-status-ditolak');
+
+    btnPending.className = "py-2.5 border rounded-xl text-xs font-bold bg-slate-50 text-slate-600";
+    btnDisetujui.className = "py-2.5 border rounded-xl text-xs font-bold bg-slate-50 text-slate-600";
+    btnDitolak.className = "py-2.5 border rounded-xl text-xs font-bold bg-slate-50 text-slate-600";
+
+    if (status === 'Pending') btnPending.className = "py-2.5 border-2 border-amber-600 rounded-xl text-xs font-bold bg-amber-500 text-white";
+    else if (status === 'Disetujui') btnDisetujui.className = "py-2.5 border-2 border-emerald-700 rounded-xl text-xs font-bold bg-emerald-600 text-white";
+    else if (status === 'Ditolak') btnDitolak.className = "py-2.5 border-2 border-rose-700 rounded-xl text-xs font-bold bg-rose-600 text-white";
+
+    document.getElementById('modal-admin-note').value = defaultStatusNotes[status] || '';
+}
+
+function closeModalReview() {
+    document.getElementById('modal-review').classList.add('hidden');
+    activeReviewItem = null;
+}
+
+// UPDATE STATUS KE GOOGLE SHEETS
+async function sendEmailNotificationFromModal() {
+    if (!activeReviewItem) return;
+
+    const item = activeReviewItem;
+    const newStatus = selectedModalStatus;
+    const newNote = document.getElementById('modal-admin-note').value.trim();
+
+    showToast("Menyimpan", "Menyinkronkan data verifikasi ke database server...");
+
+    try {
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'updateStatus',
+                id: item.id,
+                status: newStatus,
+                adminNote: newNote
+            })
+        });
+
+        // Update Lokal UI
+        item.status = newStatus;
+        item.adminNote = newNote;
+
+        updateAdminStats();
+        filterAdminTable();
+
+        // Siapkan pengiriman email
+        let subject = `[STAIIS] Verifikasi Setoran Rusum - ${item.nim}`;
+        let bodyText = `Status pembayaran anda saat ini adalah: ${newStatus}.\nCatatan Admin: ${newNote}`;
+        window.open(`mailto:${item.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`, '_blank');
+
+        showToast("Berhasil", `Status diperbarui ke ${newStatus}.`);
+        closeModalReview();
+        
+    } catch (error) {
+        showToast("Gagal Menyimpan", "Gagal menghubungi database server.");
+    }
+}
+
+// ==========================================
+// MODAL KWITANSI & PDF
+// ==========================================
+function openKwitansiPreview(id) {
+    const item = mockData.find(d => d.id === id);
+    if (!item) return;
+
+    activeKwitansiItem = item;
+    const summary = getStudentPaymentSummary(item.nim);
+
+    document.getElementById('kwitansi-no').innerText = `KW-STAIIS-${item.id}`;
+    document.getElementById('kwitansi-tgl').innerText = `Tanggal Cetak: ${new Date().toLocaleDateString('id-ID')}`;
+    document.getElementById('kwitansi-nama').innerText = item.nama;
+    document.getElementById('kwitansi-nim').innerText = item.nim;
+    document.getElementById('kwitansi-tingkatan').innerText = item.tingkatan;
+    document.getElementById('kwitansi-prodi').innerText = item.prodi;
+
+    const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal);
+    const formattedTotalDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
+    const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+
+    document.getElementById('kwitansi-nominal').innerText = formattedNominal;
+    document.getElementById('kwitansi-terbilang').innerText = terbilang(item.nominal) + " Rupiah";
+    document.getElementById('kwitansi-total-terbayar').innerText = formattedTotalDibayar;
+    document.getElementById('kwitansi-sisa').innerText = formattedSisa;
+
+    document.getElementById('modal-kwitansi').classList.remove('hidden');
+}
+
+function previewKwitansiFromAdminModal() {
+    if (activeReviewItem) openKwitansiPreview(activeReviewItem.id);
+}
+
+function closeKwitansiModal() {
+    document.getElementById('modal-kwitansi').classList.add('hidden');
+    activeKwitansiItem = null;
+}
+
+function downloadKwitansiFromModal() {
+    if (!activeKwitansiItem) return;
+    const element = document.getElementById('kwitansi-print-area');
+    html2pdf().set({
+        margin: 0.5,
+        filename: `Kwitansi_${activeKwitansiItem.nim}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    }).from(element).save();
+    showToast("Mengunduh", "File kwitansi PDF sedang diproses.");
+}
+
+// ==========================================
+// UTILITIES
+// ==========================================
+function showToast(title, message) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = "bg-slate-900 text-white text-xs p-4 rounded-xl shadow-xl flex items-center space-x-3 pointer-events-auto transition duration-300 transform translate-y-2 opacity-0";
+    toast.innerHTML = `
+        <div class="w-8 h-8 bg-emerald-800 rounded-lg flex justify-center items-center"><i class="fa-solid fa-bell"></i></div>
+        <div><h5 class="font-bold">${title}</h5><p class="text-[11px] text-slate-300">${message}</p></div>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+    setTimeout(() => {
+        toast.classList.add('opacity-0');
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
+function terbilang(angka) {
+    const bil = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+    let n = Math.floor(angka);
+    if (n < 12) return bil[n];
+    if (n < 20) return terbilang(n - 10) + " Belas";
+    if (n < 100) return terbilang(Math.floor(n / 10)) + " Puluh " + terbilang(n % 10);
+    if (n < 1000) return "Seratus " + terbilang(n - 100);
+    if (n < 2000) return "Seribu " + terbilang(n - 1000);
+    if (n < 1000000) return terbilang(Math.floor(n / 1000)) + " Ribu " + terbilang(n % 1000);
+    if (n < 1000000000) return terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000);
+    return n.toString();
+}
+
+// ==========================================
+// INIT APLIKASI
+// ==========================================
+window.onload = function() {
+    selectTab('form');
+    fetchSpreadsheetData(); // Memanggil data dari Google Spreadsheet saat halaman pertama kali dibuka
+};
