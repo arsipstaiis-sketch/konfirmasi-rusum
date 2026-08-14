@@ -1,5 +1,5 @@
 // Konfigurasi & Global Variabel
-const BIAYA_RUSUM_STANDAR = 2500000;
+let BIAYA_RUSUM_STANDAR = 2500000;
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxRPZLkC2VTKByXCW4CdWRqIJ6rfwWDIwFz7ewk4rrZ-EaEKign8-u6HtHZLhPth9N0/exec'; // URL Google Apps Script Anda
 
 let transaksiData = []; // Akan diisi dari Spreadsheet (Tab: Transaksi)
@@ -27,7 +27,10 @@ async function fetchSpreadsheetData() {
         showToast("Memuat Data", "Sedang menghubungkan ke database server...");
         const response = await fetch(SCRIPT_URL + "?action=getData");
         const data = await response.json();
-        
+        // --- KODE BARU: Tangkap Nominal Rusum dari Spreadsheet ---
+        if (data.biayaRusum) {
+            BIAYA_RUSUM_STANDAR = Number(data.biayaRusum);
+        }
         // Konversi nominal string dari GSheets menjadi Number
         transaksiData = data.transaksi.map(tx => ({
             ...tx,
