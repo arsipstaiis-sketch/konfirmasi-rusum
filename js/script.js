@@ -31,13 +31,16 @@ async function fetchSpreadsheetData() {
         if (data.biayaRusum) {
             BIAYA_RUSUM_STANDAR = Number(data.biayaRusum);
         }
-        // Konversi nominal string dari GSheets menjadi Number
         transaksiData = data.transaksi.map(tx => ({
             ...tx,
+            nim: String(tx.nim), // Paksa NIM menjadi teks
             nominal: Number(tx.nominal)
-        })).reverse(); // Reverse agar data terbaru tampil di atas
+        })).reverse(); 
         
-        mahasiswaMaster = data.mahasiswa;
+        mahasiswaMaster = data.mahasiswa.map(m => ({
+            ...m,
+            nim: String(m.nim) // Paksa NIM menjadi teks di master data juga
+        }));
         
         showToast("Berhasil", "Data berhasil dimuat dari database Google Sheets.");
         
