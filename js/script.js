@@ -1,6 +1,6 @@
 // Konfigurasi & Global Variabel
 const BIAYA_RUSUM_STANDAR = 2500000;
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyoXy7Ewl8VK3ApGnDpiinwsWiuesh0wbC6gOWEzDCQGxio7_0JCcfybd4JDjAAVeo/exec'; // Ganti dengan URL Google Apps Script Anda
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyoXy7Ewl8VK3ApGnDpiinwsWiuesh0wbC6gOWEzDCQGxio7_0JCcfybd4JDjAAVeo/exec'; // URL Google Apps Script Anda
 
 let transaksiData = []; // Akan diisi dari Spreadsheet (Tab: Transaksi)
 let mahasiswaMaster = []; // Akan diisi dari Spreadsheet (Tab: Mahasiswa)
@@ -104,6 +104,61 @@ function checkPreviousInstallments() {
 }
 
 // ==========================================
+// DRAG & DROP FILE HANDLER (FOTO/PDF)
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    const dropZone = document.getElementById('drop-zone');
+    if (dropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.add('border-emerald-500', 'bg-emerald-50'), false);
+        });
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-emerald-500', 'bg-emerald-50'), false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            handleFiles(dt.files);
+        }
+    }
+});
+
+function handleFileSelect(e) {
+    handleFiles(e.target.files);
+}
+
+function handleFiles(files) {
+    if (files.length === 0) return;
+    const file = files[0];
+    
+    // Validasi Ukuran (Maks 3MB)
+    if (file.size > 3 * 1024 * 1024) {
+        showToast("File Terlalu Besar", "Maksimal ukuran file adalah 3MB. Silakan kompres file Anda.");
+        document.getElementById('input-file').value = '';
+        return;
+    }
+
+    document.getElementById('file-name').innerText = file.name;
+    document.getElementById('file-preview').classList.remove('hidden');
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        document.getElementById('input-resi-base64').value = e.target.result;
+        document.getElementById('input-resi-filename').value = file.name;
+    }
+    reader.readAsDataURL(file);
+}
+
+// ==========================================
 // NAVIGASI APLIKASI
 // ==========================================
 function selectTab(tab) {
@@ -111,14 +166,10 @@ function selectTab(tab) {
 
     ['form', 'status', 'admin'].forEach(t => {
         document.getElementById(`tab-content-${t}`).classList.add('hidden');
-        
-        // Reset Desktop
         document.getElementById(`tab-btn-${t}`).className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60";
-        // Reset Mobile
         document.getElementById(`m-tab-${t}`).className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 hover:bg-emerald-900";
     });
 
-    // Active State
     document.getElementById(`tab-content-${tab}`).classList.remove('hidden');
     document.getElementById(`tab-btn-${tab}`).className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 bg-emerald-800 text-white shadow-inner";
     document.getElementById(`m-tab-${tab}`).className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 bg-emerald-800 text-white";
@@ -137,64 +188,7 @@ function copyRekening() {
     document.body.removeChild(temp);
     showToast("Tersalin!", "Nomor rekening 7000005009 disalin ke clipboard.");
 }
-// ==========================================
-// DRAG & DROP FILE HANDLER
-// ==========================================
-const dropZone = document.getElementById('drop-zone');
 
-// Cegah perilaku default browser agar file tidak terbuka di tab baru
-['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, preventDefaults, false);
-});
-function preventDefaults(e) {
-    e.preventDefault();
-    e.stopPropagation();
-}
-
-// Efek visual saat file diseret ke atas area
-['dragenter', 'dragover'].forEach(eventName => {
-    dropZone.addEventListener(eventName, () => dropZone.classList.add('border-emerald-500', 'bg-emerald-50'), false);
-});
-['dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-emerald-500', 'bg-emerald-50'), false);
-});
-
-// Tangani file yang dijatuhkan
-dropZone.addEventListener('drop', handleDrop, false);
-function handleDrop(e) {
-    const dt = e.dataTransfer;
-    handleFiles(dt.files);
-}
-
-// Tangani file yang dipilih lewat klik
-function handleFileSelect(e) {
-    handleFiles(e.target.files);
-}
-
-// Proses file ke Base64
-function handleFiles(files) {
-    if (files.length === 0) return;
-    const file = files[0];
-    
-    // Validasi Ukuran (Maks 3MB)
-    if (file.size > 3 * 1024 * 1024) {
-        showToast("File Terlalu Besar", "Maksimal ukuran file adalah 3MB. Silakan kompres file Anda.");
-        document.getElementById('input-file').value = ''; // Reset
-        return;
-    }
-
-    // Tampilkan nama file
-    document.getElementById('file-name').innerText = file.name;
-    document.getElementById('file-preview').classList.remove('hidden');
-
-    // Baca file sebagai Base64 String
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        document.getElementById('input-resi-base64').value = e.target.result;
-        document.getElementById('input-resi-filename').value = file.name;
-    }
-    reader.readAsDataURL(file);
-}
 // ==========================================
 // FORM SUBMIT (MAHASISWA) KE GOOGLE SHEETS
 // ==========================================
@@ -212,10 +206,9 @@ async function handleFormSubmit(e) {
     const nominal = parseInt(document.getElementById('input-nominal').value) || 0;
     const bank = document.getElementById('input-bank').value.trim();
     const tanggal = document.getElementById('input-tanggal').value;
-    const resi = document.getElementById('input-resi').value.trim();
     const catatan = document.getElementById('input-catatan').value.trim();
 
-    // Ambil data Base64 dari hidden input
+    // Ambil data Base64 dari file yang diupload
     const resiBase64 = document.getElementById('input-resi-base64').value;
     const resiFilename = document.getElementById('input-resi-filename').value;
 
@@ -225,12 +218,13 @@ async function handleFormSubmit(e) {
         btnSubmit.disabled = false;
         return;
     }
+
     const newItem = {
         action: 'addTransaction',
         id: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
         nim, nama, email, prodi, tingkatan, nominal, bank, tanggal,
-        resiBase64: resiBase64,     // Mengirim Base64
-        resiFilename: resiFilename, // Mengirim Nama File
+        resiBase64: resiBase64,
+        resiFilename: resiFilename,
         catatan: catatan || '-',
         status: 'Pending',
         adminNote: 'Setoran angsuran sedang dalam proses verifikasi mutasi rekening.'
@@ -243,9 +237,11 @@ async function handleFormSubmit(e) {
         });
 
         // Update UI Lokal
-        transaksiData.unshift(newItem); // Tambahkan ke paling atas
+        transaksiData.unshift(newItem); 
         document.getElementById('form-konfirmasi').reset();
         document.getElementById('nim-installment-info').classList.add('hidden');
+        document.getElementById('file-preview').classList.add('hidden');
+        document.getElementById('input-resi-base64').value = '';
 
         showToast("Pengajuan Terkirim", `Konfirmasi pembayaran untuk ${nama} berhasil disimpan.`);
         selectTab('status');
@@ -729,5 +725,5 @@ function terbilang(angka) {
 // ==========================================
 window.onload = function() {
     selectTab('form');
-    fetchSpreadsheetData(); // Memanggil data dari Google Spreadsheet saat halaman pertama kali dibuka
+    fetchSpreadsheetData(); 
 };
