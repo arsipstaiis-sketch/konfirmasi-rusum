@@ -271,6 +271,9 @@ async function handleFormSubmit(e) {
 // ==========================================
 // PENCARIAN STATUS
 // ==========================================
+// ==========================================
+// PENCARIAN STATUS
+// ==========================================
 function executeStatusSearch() {
     const query = document.getElementById('search-status-input').value.trim().toLowerCase();
     const resultsContainer = document.getElementById('search-status-results');
@@ -296,6 +299,7 @@ function executeStatusSearch() {
     const formattedTotalDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
     const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
 
+    // KARTU UTAMA DENGAN SISA TAGIHAN LEBIH MENCOLOK (KOTAK MERah/KUNING KONTRAS)
     let html = `
         <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-4">
             <div class="flex justify-between border-b border-emerald-800 pb-4">
@@ -305,39 +309,47 @@ function executeStatusSearch() {
                 </div>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div class="bg-white/10 p-3 rounded-xl border border-white/10">
+                <div class="bg-white/10 p-3.5 rounded-xl border border-white/10">
                     <span class="text-emerald-200 text-[10px] font-bold uppercase block">Total Disetujui</span>
                     <span class="text-lg font-black">${formattedTotalDibayar}</span>
                 </div>
-                <div class="bg-white/10 p-3 rounded-xl border border-white/10">
-                    <span class="text-emerald-200 text-[10px] font-bold uppercase block">Sisa Tagihan</span>
-                    <span class="text-lg font-black text-emerald-300">${formattedSisa}</span>
+                <div class="bg-rose-950 p-3.5 rounded-xl border-2 border-rose-500 shadow-inner">
+                    <span class="text-rose-300 text-[10px] font-extrabold uppercase block tracking-wider"><i class="fa-solid fa-triangle-exclamation"></i> Sisa Tagihan Rusum</span>
+                    <span class="text-xl font-black text-white">${formattedSisa}</span>
                 </div>
             </div>
         </div>
         <h4 class="text-xs font-bold text-slate-700 uppercase pt-2">Riwayat Transaksi</h4>
     `;
 
+    // DAFTAR RIWAYAT TRANSAKSI YANG LEBIH SIMPEL, RINGKAS, & RAPI
     html += filtered.map((item, index) => {
         const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
         let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
-        let btn = item.status === 'Disetujui' ? `<button onclick="openKwitansiPreview('${item.id}')" class="mt-2 px-3 py-1.5 bg-emerald-800 text-white rounded-xl text-xs font-bold shadow-sm"><i class="fa-solid fa-receipt"></i> Cetak Kwitansi</button>` : '';
+        
+        // Format tanggal agar lebih pendek & bersih (ambil YYYY-MM-DD saja jika format ISO)
+        let cleanDate = item.tanggal ? item.tanggal.split('T')[0] : '-';
+        let btn = item.status === 'Disetujui' ? `<button onclick="openKwitansiPreview('${item.id}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow-sm flex items-center space-x-1.5"><i class="fa-solid fa-receipt"></i><span>Cetak Kwitansi</span></button>` : '';
 
         return `
-            <div class="bg-white border rounded-2xl p-5 shadow-sm space-y-3">
-                <div class="flex justify-between border-b pb-3">
-                    <div>
-                        <span class="text-[10px] font-bold text-slate-400">Setoran #${filtered.length - index} (ID: ${item.id})</span>
-                        <h5 class="font-bold text-xs">${item.catatan || 'Pembayaran'}</h5>
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3 text-xs">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+                    <div class="flex items-center space-x-2">
+                        <span class="font-mono text-[11px] font-bold text-slate-400">#${filtered.length - index}</span>
+                        <span class="font-extrabold text-slate-800">${item.id}</span>
+                        <span class="text-slate-300">|</span>
+                        <span class="text-slate-600 font-medium">${formattedNominal}</span>
                     </div>
-                    <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${badge}">${item.status}</span>
+                    <span class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${badge}">${item.status}</span>
                 </div>
-                <div class="grid grid-cols-2 gap-3 text-xs">
-                    <div><span class="text-slate-400 text-[10px] font-bold block">Nominal:</span><span class="font-extrabold">${formattedNominal}</span></div>
-                    <div><span class="text-slate-400 text-[10px] font-bold block">Bank & Tanggal:</span><span class="font-medium">${item.bank} (${item.tanggal})</span></div>
-                    <div class="col-span-2"><span class="text-slate-400 text-[10px] font-bold block">Catatan Admin:</span><span class="font-medium text-slate-700">${item.adminNote}</span></div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 text-[11px]">
+                    <div><b class="text-slate-400">Bank & Tgl:</b> ${item.bank || '-'} (${cleanDate})</div>
+                    <div><b class="text-slate-400">Catatan:</b> ${item.catatan || '-'}</div>
+                    <div class="sm:col-span-2"><b class="text-slate-400">Admin Note:</b> <span class="italic text-slate-700">${item.adminNote || '-'}</span></div>
                 </div>
-                ${btn}
+
+                ${btn ? `<div class="pt-1 flex justify-end">${btn}</div>` : ''}
             </div>
         `;
     }).join('');
