@@ -1,6 +1,6 @@
 // Konfigurasi & Global Variabel
 const BIAYA_RUSUM_STANDAR = 2500000;
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyoXy7Ewl8VK3ApGnDpiinwsWiuesh0wbC6gOWEzDCQGxio7_0JCcfybd4JDjAAVeo/exec'; // URL Google Apps Script Anda
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxRPZLkC2VTKByXCW4CdWRqIJ6rfwWDIwFz7ewk4rrZ-EaEKign8-u6HtHZLhPth9N0/exec'; // URL Google Apps Script Anda
 
 let transaksiData = []; // Akan diisi dari Spreadsheet (Tab: Transaksi)
 let mahasiswaMaster = []; // Akan diisi dari Spreadsheet (Tab: Mahasiswa)
