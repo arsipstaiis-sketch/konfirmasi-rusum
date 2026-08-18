@@ -1,9 +1,9 @@
 // Konfigurasi & Global Variabel
-let BIAYA_RUSUM_STANDAR = 2500000;
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxRPZLkC2VTKByXCW4CdWRqIJ6rfwWDIwFz7ewk4rrZ-EaEKign8-u6HtHZLhPth9N0/exec'; // URL Google Apps Script Anda
+let BIAYA_RUSUM_STANDAR = 6000000;
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzyoXy7Ewl8VK3ApGnDpiinwsWiuesh0wbC6gOWEzDCQGxio7_0JCcfybd4JDjAAVeo/exec'; // URL Google Apps Script Anda
 
-let transaksiData = []; // Akan diisi dari Spreadsheet (Tab: Transaksi)
-let mahasiswaMaster = []; // Akan diisi dari Spreadsheet (Tab: Mahasiswa)
+let transaksiData = []; 
+let mahasiswaMaster = []; 
 
 let activeTab = 'form';
 let activeAdminSubtab = 'verifikasi';
@@ -27,19 +27,20 @@ async function fetchSpreadsheetData() {
         showToast("Memuat Data", "Sedang menghubungkan ke database server...");
         const response = await fetch(SCRIPT_URL + "?action=getData");
         const data = await response.json();
-        // --- KODE BARU: Tangkap Nominal Rusum dari Spreadsheet ---
+        
         if (data.biayaRusum) {
             BIAYA_RUSUM_STANDAR = Number(data.biayaRusum);
         }
+        
         transaksiData = data.transaksi.map(tx => ({
             ...tx,
-            nim: String(tx.nim), // Paksa NIM menjadi teks
+            nim: String(tx.nim), 
             nominal: Number(tx.nominal)
         })).reverse(); 
         
         mahasiswaMaster = data.mahasiswa.map(m => ({
             ...m,
-            nim: String(m.nim) // Paksa NIM menjadi teks di master data juga
+            nim: String(m.nim)
         }));
         
         showToast("Berhasil", "Data berhasil dimuat dari database Google Sheets.");
@@ -85,10 +86,13 @@ function checkPreviousInstallments() {
     const mhs = mahasiswaMaster.find(m => m.nim === nim);
 
     if (mhs) {
-        document.getElementById('input-nama').value = mhs.nama;
-        document.getElementById('input-email').value = mhs.email;
-        document.getElementById('input-prodi').value = mhs.prodi;
-        document.getElementById('input-tingkatan').value = mhs.tingkatan;
+        document.getElementById('input-nama').value = mhs.nama || '';
+        // Input email TIDAK diisi otomatis agar mahasiswa mengetik sendiri
+        document.getElementById('input-prodi').value = mhs.prodi || '';
+        document.getElementById('input-tingkatan').value = mhs.tingkatan || '';
+        if (mhs.tahunAkademik) {
+            document.getElementById('input-ta').value = mhs.tahunAkademik;
+        }
     }
 
     if (summary.totalDibayar > 0) {
@@ -146,7 +150,6 @@ function handleFiles(files) {
     if (files.length === 0) return;
     const file = files[0];
     
-    // Validasi Ukuran (Maks 3MB)
     if (file.size > 3 * 1024 * 1024) {
         showToast("File Terlalu Besar", "Maksimal ukuran file adalah 3MB. Silakan kompres file Anda.");
         document.getElementById('input-file').value = '';
@@ -205,24 +208,27 @@ async function handleFormSubmit(e) {
     btnSubmit.disabled = true;
 
     const nim = document.getElementById('input-nim').value.trim();
+    
     if (nim.length !== 10) {
         showToast("NIM Tidak Valid", "NIM harus berisi tepat 10 digit angka.");
         btnSubmit.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>KIRIM KONFIRMASI PEMBAYARAN</span>`;
         btnSubmit.disabled = false;
         return;
     }
+
     const nama = document.getElementById('input-nama').value.trim();
     const email = document.getElementById('input-email').value.trim();
     const prodi = document.getElementById('input-prodi').value;
     const tingkatan = document.getElementById('input-tingkatan').value;
     const tahunAkademik = document.getElementById('input-ta').value;
+    
     const nominalRaw = document.getElementById('input-nominal').value.replace(/\./g, '');
     const nominal = parseInt(nominalRaw) || 0;
+    
     const bank = document.getElementById('input-bank').value.trim();
     const tanggal = document.getElementById('input-tanggal').value;
     const catatan = document.getElementById('input-catatan').value.trim();
 
-    // Ambil data Base64 dari file yang diupload
     const resiBase64 = document.getElementById('input-resi-base64').value;
     const resiFilename = document.getElementById('input-resi-filename').value;
 
@@ -236,7 +242,7 @@ async function handleFormSubmit(e) {
     const newItem = {
         action: 'addTransaction',
         id: `REQ-${Math.floor(1000 + Math.random() * 9000)}`,
-        nim, nama, email, prodi, tingkatan, nominal, bank, tanggal,
+        nim, nama, email, prodi, tingkatan, tahunAkademik, nominal, bank, tanggal,
         resiBase64: resiBase64,
         resiFilename: resiFilename,
         catatan: catatan || '-',
@@ -250,7 +256,6 @@ async function handleFormSubmit(e) {
             body: JSON.stringify(newItem)
         });
 
-        // Update UI Lokal
         transaksiData.unshift(newItem); 
         document.getElementById('form-konfirmasi').reset();
         document.getElementById('nim-installment-info').classList.add('hidden');
@@ -260,14 +265,7 @@ async function handleFormSubmit(e) {
         showToast("Pengajuan Terkirim", `Konfirmasi pembayaran untuk ${nama} berhasil disimpan.`);
         selectTab('status');
         document.getElementById('search-status-input').value = '';
-        document.getElementById('search-status-results').innerHTML = `
-            <div id="search-status-initial" class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl">
-                <div class="w-12 h-12 bg-emerald-50 text-emerald-800 rounded-full flex items-center justify-center mx-auto mb-3 text-lg">
-                    <i class="fa-solid fa-search"></i>
-                </div>
-                <h4 class="text-xs font-bold text-slate-700">Silakan Cari Berdasarkan NIM</h4>
-            </div>
-        `;
+        executeStatusSearch(); 
     } catch (error) {
         showToast("Gagal Menyimpan", "Terjadi kesalahan koneksi server.");
     } finally {
@@ -304,7 +302,6 @@ function executeStatusSearch() {
     const formattedTotalDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
     const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
 
-    // KARTU UTAMA DENGAN SISA TAGIHAN LEBIH MENCOLOK (KOTAK MERah/KUNING KONTRAS)
     let html = `
         <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-4">
             <div class="flex justify-between border-b border-emerald-800 pb-4">
@@ -327,12 +324,9 @@ function executeStatusSearch() {
         <h4 class="text-xs font-bold text-slate-700 uppercase pt-2">Riwayat Transaksi</h4>
     `;
 
-    // DAFTAR RIWAYAT TRANSAKSI YANG LEBIH SIMPEL, RINGKAS, & RAPI
     html += filtered.map((item, index) => {
         const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
         let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
-        
-        // Format tanggal agar lebih pendek & bersih (ambil YYYY-MM-DD saja jika format ISO)
         let cleanDate = item.tanggal ? item.tanggal.split('T')[0] : '-';
         let btn = item.status === 'Disetujui' ? `<button onclick="openKwitansiPreview('${item.id}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow-sm flex items-center space-x-1.5"><i class="fa-solid fa-receipt"></i><span>Cetak Kwitansi</span></button>` : '';
 
@@ -523,7 +517,7 @@ function renderAngkatanMonitoring() {
 
     const tbody = document.getElementById('cohort-table-body');
     if (displayStudents.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada data.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-400">Tidak ada data.</td></tr>`;
         return;
     }
 
@@ -534,8 +528,7 @@ function renderAngkatanMonitoring() {
         let statusBadge = mhs.summary.statusOverall === 'LUNAS' ? `<span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-[10px] font-bold">LUNAS</span>` 
             : (mhs.summary.statusOverall === 'DICICIL' ? `<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-[10px] font-bold">DICICIL</span>` : `<span class="bg-rose-100 text-rose-800 px-2 py-1 rounded text-[10px] font-bold">BELUM BAYAR</span>`);
         
-        let actionBtn = `<button onclick="sendReminderWA('${mhs.phone}','${mhs.nama}','${mhs.nim}')" class="bg-emerald-600 text-white px-2 py-1 rounded text-xs"><i class="fa-brands fa-whatsapp"></i></button>`;
-
+        // Kolom Aksi WhatsApp dihilangkan pada tampilan ini
         return `
             <tr class="hover:bg-slate-50 border-b">
                 <td class="p-3 font-medium">
@@ -545,7 +538,6 @@ function renderAngkatanMonitoring() {
                 <td class="p-3 font-bold">${formattedTotal}</td>
                 <td class="p-3 font-bold text-rose-700">${formattedSisa}</td>
                 <td class="p-3 text-center">${statusBadge}</td>
-                <td class="p-3 text-center">${actionBtn}</td>
             </tr>
         `;
     }).join('');
@@ -554,19 +546,6 @@ function renderAngkatanMonitoring() {
 function filterAngkatanStatus(status) {
     activeAngkatanStatusFilter = status;
     renderAngkatanMonitoring();
-}
-
-function executeStatusSearchAndOpen(nim) {
-    selectTab('status');
-    document.getElementById('search-status-input').value = nim;
-    executeStatusSearch();
-}
-
-function sendReminderWA(phone, nama, nim) {
-    let cleanPhone = phone.replace(/[^0-9]/g, '');
-    if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.substring(1);
-    const message = encodeURIComponent(`Assalamu'alaikum Wr. Wb. Sdr/i ${nama} (${nim}), mengingatkan kembali untuk pembayaran kewajiban Rusum Tahunan STAI Imam Syafi'i Cianjur. Mohon segera melakukan konfirmasi melalui sistem.`);
-    window.open(`https://wa.me/${cleanPhone}?text=${message}`, '_blank');
 }
 
 // ==========================================
@@ -580,6 +559,7 @@ function openAdminDetailModal(id) {
 
     document.getElementById('modal-mhs-nama').innerText = item.nama;
     document.getElementById('modal-mhs-nim').innerText = `NIM: ${item.nim}`;
+    // Data Email diambil langsung dari yang diketik mahasiswa di formulir
     document.getElementById('modal-mhs-email').innerText = item.email;
     document.getElementById('modal-mhs-prodi').innerText = item.prodi;
     document.getElementById('modal-mhs-tingkatan').innerText = item.tingkatan;
@@ -647,7 +627,7 @@ async function sendEmailNotificationFromModal() {
         updateAdminStats();
         filterAdminTable();
 
-        // Siapkan pengiriman email
+        // Siapkan pengiriman email (Tetap berfungsi karena membaca dari transaksiData)
         let subject = `[STAIIS] Verifikasi Setoran Rusum - ${item.nim}`;
         let bodyText = `Status pembayaran anda saat ini adalah: ${newStatus}.\nCatatan Admin: ${newNote}`;
         window.open(`mailto:${item.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`, '_blank');
@@ -730,6 +710,21 @@ function showToast(title, message) {
     }, 3500);
 }
 
+function toProperCase(str) {
+    return str.toLowerCase().replace(/(?:^|\s)\w/g, function(match) {
+        return match.toUpperCase();
+    });
+}
+
+function formatInputRupiah(input) {
+    let value = input.value.replace(/[^0-9]/g, '');
+    if (value) {
+        input.value = new Intl.NumberFormat('id-ID').format(value);
+    } else {
+        input.value = '';
+    }
+}
+
 function terbilang(angka) {
     const bil = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
     let n = Math.floor(angka);
@@ -750,20 +745,3 @@ window.onload = function() {
     selectTab('form');
     fetchSpreadsheetData(); 
 };
-// Mengubah setiap awal kata menjadi huruf kapital (Proper Case)
-function toProperCase(str) {
-    return str.toLowerCase().replace(/(?:^|\s)\w/g, function(match) {
-        return match.toUpperCase();
-    });
-}
-
-// Menambahkan titik pemisah ribuan secara otomatis
-function formatInputRupiah(input) {
-    // Hapus semua karakter selain angka
-    let value = input.value.replace(/[^0-9]/g, '');
-    if (value) {
-        input.value = new Intl.NumberFormat('id-ID').format(value);
-    } else {
-        input.value = '';
-    }
-}
