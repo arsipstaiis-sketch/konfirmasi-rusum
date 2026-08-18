@@ -205,11 +205,19 @@ async function handleFormSubmit(e) {
     btnSubmit.disabled = true;
 
     const nim = document.getElementById('input-nim').value.trim();
+    if (nim.length !== 10) {
+        showToast("NIM Tidak Valid", "NIM harus berisi tepat 10 digit angka.");
+        btnSubmit.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>KIRIM KONFIRMASI PEMBAYARAN</span>`;
+        btnSubmit.disabled = false;
+        return;
+    }
     const nama = document.getElementById('input-nama').value.trim();
     const email = document.getElementById('input-email').value.trim();
     const prodi = document.getElementById('input-prodi').value;
     const tingkatan = document.getElementById('input-tingkatan').value;
-    const nominal = parseInt(document.getElementById('input-nominal').value) || 0;
+    const tahunAkademik = document.getElementById('input-ta').value;
+    const nominalRaw = document.getElementById('input-nominal').value.replace(/\./g, '');
+    const nominal = parseInt(nominalRaw) || 0;
     const bank = document.getElementById('input-bank').value.trim();
     const tanggal = document.getElementById('input-tanggal').value;
     const catatan = document.getElementById('input-catatan').value.trim();
