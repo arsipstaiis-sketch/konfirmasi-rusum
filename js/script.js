@@ -216,8 +216,8 @@ async function handleFormSubmit(e) {
 
     const nim = document.getElementById('input-nim').value.trim();
     
-    if (nim.length !== 10) {
-        showToast("NIM Tidak Valid", "NIM harus berisi tepat 10 digit angka.");
+    if (nim.length !== 8) {
+        showToast("NIM Tidak Valid", "NIM harus berisi tepat 8 digit angka.");
         btnSubmit.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>KIRIM KONFIRMASI PEMBAYARAN</span>`;
         btnSubmit.disabled = false;
         return;
