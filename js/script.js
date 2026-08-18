@@ -742,3 +742,20 @@ window.onload = function() {
     selectTab('form');
     fetchSpreadsheetData(); 
 };
+// Mengubah setiap awal kata menjadi huruf kapital (Proper Case)
+function toProperCase(str) {
+    return str.toLowerCase().replace(/(?:^|\s)\w/g, function(match) {
+        return match.toUpperCase();
+    });
+}
+
+// Menambahkan titik pemisah ribuan secara otomatis
+function formatInputRupiah(input) {
+    // Hapus semua karakter selain angka
+    let value = input.value.replace(/[^0-9]/g, '');
+    if (value) {
+        input.value = new Intl.NumberFormat('id-ID').format(value);
+    } else {
+        input.value = '';
+    }
+}
