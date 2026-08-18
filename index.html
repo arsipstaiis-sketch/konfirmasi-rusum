@@ -131,26 +131,24 @@
                         <p class="text-desc mt-1">Ketik NIM Anda untuk mengecek riwayat pembayaran sebelumnya.</p>
                     </div>
 
-                    <!-- URUTAN KOLOM ISIAN YANG SUDAH DISESUAIKAN -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <!-- Baris 1 Kiri: Nama Lengkap -->
+                    <div class="space-y-4">
                         <div>
                             <label for="input-nama" class="form-label">Nama Lengkap Mahasiswa *</label>
-                            <input type="text" id="input-nama" required placeholder="Nama sesuai KRS / KPM" class="form-input">
-                        </div>
-                        <!-- Baris 1 Kanan: Email Aktif -->
-                        <div>
-                            <label for="input-email" class="form-label">Email Aktif Mahasiswa *</label>
-                            <input type="email" id="input-email" required placeholder="nama@staiis.ac.id" class="form-input">
+                            <input type="text" id="input-nama" oninput="this.value = toProperCase(this.value)" required placeholder="Nama sesuai KRS / KPM" class="form-input">
                         </div>
 
-                        <!-- Baris 2 Kiri: NIM (dengan fungsi cek otomatis) -->
-                        <div>
-                            <label for="input-nim" class="form-label">Nomor Induk Mahasiswa (NIM) *</label>
-                            <input type="text" id="input-nim" oninput="checkPreviousInstallments()" required placeholder="Contoh: 20240101" class="form-input">
-                            <div id="nim-installment-info" class="hidden mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1"></div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="input-nim" class="form-label">Nomor Induk Mahasiswa (NIM) *</label>
+                                <input type="text" id="input-nim" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, ''); checkPreviousInstallments()" required placeholder="Contoh: 2024010101" class="form-input">
+                                <div id="nim-installment-info" class="hidden mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1"></div>
+                            </div>
+                            <div>
+                                <label for="input-email" class="form-label">Email Aktif Mahasiswa *</label>
+                                <input type="email" id="input-email" required placeholder="nama@staiis.ac.id" class="form-input">
+                            </div>
                         </div>
-                        <!-- Baris 2 Kanan: Program Studi -->
+
                         <div>
                             <label for="input-prodi" class="form-label">Program Studi *</label>
                             <select id="input-prodi" required class="form-input">
@@ -160,16 +158,26 @@
                             </select>
                         </div>
 
-                        <!-- Baris 3 Kiri: Tingkatan -->
-                        <div>
-                            <label for="input-tingkatan" class="form-label">Tingkatan *</label>
-                            <select id="input-tingkatan" required class="form-input">
-                                <option value="" disabled selected>-- Pilih Tingkatan --</option>
-                                <option value="Ula">Ula</option>
-                                <option value="Tsaniyah">Tsaniyah</option>
-                                <option value="Tsalisah">Tsalisah</option>
-                                <option value="Robiah">Robiah</option>
-                            </select>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="input-tingkatan" class="form-label">Tingkatan *</label>
+                                <select id="input-tingkatan" required class="form-input">
+                                    <option value="" disabled selected>-- Pilih Tingkatan --</option>
+                                    <option value="Ula">Ula</option>
+                                    <option value="Tsaniyah">Tsaniyah</option>
+                                    <option value="Tsalisah">Tsalisah</option>
+                                    <option value="Robiah">Robiah</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="input-ta" class="form-label">Tahun Akademik *</label>
+                                <select id="input-ta" required class="form-input">
+                                    <option value="" disabled selected>-- Pilih Tahun Akademik --</option>
+                                    <option value="2025/2026">2025/2026</option>
+                                    <option value="2026/2027">2026/2027</option>
+                                    <option value="2024/2025">2024/2025</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -180,18 +188,17 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                         <div>
                             <label for="input-nominal" class="form-label">Nominal Transfer (Rp) *</label>
-                            <input type="number" id="input-nominal" required placeholder="Contoh: 1000000" class="form-input">
+                            <input type="text" id="input-nominal" oninput="formatInputRupiah(this)" required placeholder="Contoh: 1.000.000" class="form-input">
                         </div>
                         <div>
                             <label for="input-bank" class="form-label">Bank Pengirim / Channel *</label>
-                            <input type="text" id="input-bank" required placeholder="Contoh: BSI, BCA, Mandiri" class="form-input">
+                            <input type="text" id="input-bank" oninput="this.value = this.value.toUpperCase()" required placeholder="Contoh: BSI, BCA, MANDIRI" class="form-input">
                         </div>
                         <div>
                             <label for="input-tanggal" class="form-label">Tanggal Transfer *</label>
                             <input type="date" id="input-tanggal" required class="form-input">
                         </div>
                     </div>
-
                     <!-- Upload Resi Drag & Drop -->
                     <div>
                         <label class="form-label">Unggah Bukti Transfer (Resi) *</label>
