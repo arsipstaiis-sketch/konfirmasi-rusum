@@ -170,7 +170,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label for="input-ta" class="form-label">Tahun Akademik *</label>
+                                <label for="input-ta" class="form-label">Pembayaran Untuk TA *</label>
                                 <select id="input-ta" required class="form-input">
                                     <option value="" disabled selected>-- Pilih Tahun Akademik --</option>
                                     <option value="2025/2026">2025/2026</option>
@@ -199,6 +199,7 @@
                             <input type="date" id="input-tanggal" required class="form-input">
                         </div>
                     </div>
+                    
                     <!-- Upload Resi Drag & Drop -->
                     <div>
                         <label class="form-label">Unggah Bukti Transfer (Resi) *</label>
@@ -321,28 +322,42 @@
                     </div>
                 </div>
 
-                <!-- VIEW 2: PEMANTAUAN -->
+                <!-- VIEW 2: PEMANTAUAN DENGAN 3 FILTER -->
                 <div id="admin-view-angkatan" class="space-y-6 hidden">
-                    <div class="card-main flex flex-col md:flex-row justify-between gap-4 p-5">
-                        <div class="flex items-center gap-4 w-full md:w-auto">
-                            <div class="flex items-center space-x-3">
-                                <label class="text-[10px] font-bold uppercase text-slate-400">TA</label>
-                                <select id="ta-select" onchange="renderAngkatanMonitoring()" class="font-bold text-xs outline-none bg-transparent">
-                                    <option value="ALL">Semua</option><option value="2026/2027">2026/2027</option><option value="2025/2026" selected>2025/2026</option><option value="2024/2025">2024/2025</option>
+                    <div class="card-main p-5">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <!-- Kumpulan 3 Filter Canggih -->
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full md:w-auto">
+                                <select id="angkatan-select" onchange="renderAngkatanMonitoring()" class="form-input text-[11px] font-bold text-slate-700 bg-white shadow-sm border-slate-200">
+                                    <option value="ALL">Semua Angkatan</option>
+                                    <option value="2023">Angkatan 2023</option>
+                                    <option value="2024">Angkatan 2024</option>
+                                    <option value="2025">Angkatan 2025</option>
+                                    <option value="2026">Angkatan 2026</option>
+                                </select>
+                                
+                                <select id="tingkatan-select" onchange="renderAngkatanMonitoring()" class="form-input text-[11px] font-bold text-slate-700 bg-white shadow-sm border-slate-200">
+                                    <option value="ALL">Semua Tingkat</option>
+                                    <option value="Ula">Ula</option>
+                                    <option value="Tsaniyah">Tsaniyah</option>
+                                    <option value="Tsalisah">Tsalisah</option>
+                                    <option value="Robiah">Robiah</option>
+                                </select>
+                                
+                                <select id="ta-select" onchange="renderAngkatanMonitoring()" class="form-input text-[11px] font-bold text-emerald-800 bg-emerald-50 border-emerald-200 shadow-sm">
+                                    <option value="2026/2027">Tagihan TA 2026/2027</option>
+                                    <option value="2025/2026" selected>Tagihan TA 2025/2026</option>
+                                    <option value="2024/2025">Tagihan TA 2024/2025</option>
                                 </select>
                             </div>
-                            <div class="flex items-center space-x-3 border-l border-slate-200 pl-4">
-                                <label class="text-[10px] font-bold uppercase text-slate-400">Tingkat</label>
-                                <select id="tingkatan-select" onchange="renderAngkatanMonitoring()" class="font-bold text-xs outline-none bg-transparent">
-                                    <option value="ALL">Semua</option><option value="Ula">Ula</option><option value="Tsaniyah">Tsaniyah</option><option value="Tsalisah">Tsalisah</option><option value="Robiah">Robiah</option>
-                                </select>
+                            
+                            <!-- Filter Lunas / Belum -->
+                            <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold shrink-0">
+                                <button id="angkatan-filter-all" onclick="filterAngkatanStatus('ALL')" class="px-3 py-1.5 rounded-lg bg-white shadow">Semua</button>
+                                <button id="angkatan-filter-unpaid" onclick="filterAngkatanStatus('UNPAID')" class="px-3 py-1.5 rounded-lg text-slate-600">Belum</button>
+                                <button id="angkatan-filter-partial" onclick="filterAngkatanStatus('PARTIAL')" class="px-3 py-1.5 rounded-lg text-slate-600">Dicicil</button>
+                                <button id="angkatan-filter-paid" onclick="filterAngkatanStatus('PAID')" class="px-3 py-1.5 rounded-lg text-slate-600">Lunas</button>
                             </div>
-                        </div>
-                        <div class="flex bg-slate-100 p-1 rounded-xl text-xs font-semibold">
-                            <button id="angkatan-filter-all" onclick="filterAngkatanStatus('ALL')" class="px-3 py-1 rounded-lg bg-white shadow">Semua</button>
-                            <button id="angkatan-filter-unpaid" onclick="filterAngkatanStatus('UNPAID')" class="px-3 py-1 rounded-lg text-slate-600">Belum</button>
-                            <button id="angkatan-filter-partial" onclick="filterAngkatanStatus('PARTIAL')" class="px-3 py-1 rounded-lg text-slate-600">Dicicil</button>
-                            <button id="angkatan-filter-paid" onclick="filterAngkatanStatus('PAID')" class="px-3 py-1 rounded-lg text-slate-600">Lunas</button>
                         </div>
                     </div>
                     
