@@ -271,9 +271,6 @@ async function handleFormSubmit(e) {
 // ==========================================
 // PENCARIAN STATUS
 // ==========================================
-// ==========================================
-// PENCARIAN STATUS
-// ==========================================
 function executeStatusSearch() {
     const query = document.getElementById('search-status-input').value.trim().toLowerCase();
     const resultsContainer = document.getElementById('search-status-results');
