@@ -262,6 +262,7 @@ async function handleFormSubmit(e) {
         nim, nama, email, prodi, tingkatan, tahunAkademik, nominal, bank, tanggal,
         resiBase64: resiBase64,
         resiFilename: resiFilename,
+        resiUrl: resiBase64,
         catatan: catatan || '-',
         status: 'Pending',
         adminNote: 'Setoran angsuran sedang dalam proses verifikasi mutasi rekening.'
@@ -617,8 +618,20 @@ function openAdminDetailModal(id) {
     const summary = getStudentPaymentSummary(item.nim, item.tahunAkademik);
     document.getElementById('modal-mhs-kalkulasi').innerText = `Telah Bayar (TA ${item.tahunAkademik}): ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(summary.totalDibayar)}`;
 
-    document.getElementById('modal-resi-img').src = item.resiUrl;
-    document.getElementById('modal-resi-link').href = item.resiUrl;
+    let displayUrl = item.resiUrl || '';
+    let realLink = item.resiUrl || '#';
+    
+    // Jika linknya dari Google Drive, kita ekstrak ID-nya agar bisa ditampilkan sebagai gambar
+    if (displayUrl.includes('drive.google.com/file/d/')) {
+        const match = displayUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (match) {
+            displayUrl = `https://drive.google.com/uc?export=view&id=${match[1]}`;
+        }
+    }
+
+    // Menampilkan gambar dan memastikan link saat diklik terbuka dengan benar
+    document.getElementById('modal-resi-img').src = displayUrl;
+    document.getElementById('modal-resi-link').href = realLink;
 
     selectModalStatus(item.status || 'Pending');
     document.getElementById('modal-review').classList.remove('hidden');
