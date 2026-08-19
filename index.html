@@ -449,8 +449,17 @@
             <div class="p-4 bg-slate-100 border-b flex justify-between items-center">
                 <h3 class="text-xs font-bold uppercase"><i class="fa-solid fa-receipt"></i> Preview Kwitansi</h3>
                 <div class="flex space-x-2">
-                    <button onclick="downloadKwitansiFromModal()" class="btn-action"><i class="fa-solid fa-file-pdf"></i><span>Unduh</span></button>
-                    <button onclick="closeKwitansiModal()" class="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
+                    <!-- Tombol Baru: Kirim Rincian ke Email -->
+                    <button onclick="sendKwitansiToEmail()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                        <i class="fa-solid fa-envelope"></i><span>Kirim ke Email</span>
+                    </button>
+
+                    <button onclick="downloadKwitansiFromModal()" class="btn-action">
+                        <i class="fa-solid fa-file-pdf"></i><span>Unduh PDF</span>
+                    </button>
+                    <button onclick="closeKwitansiModal()" class="w-8 h-8 rounded-lg bg-slate-200 hover:bg-slate-300 flex items-center justify-center">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
                 </div>
             </div>
             <div id="kwitansi-print-area" class="p-8 bg-white text-slate-800 space-y-6">
