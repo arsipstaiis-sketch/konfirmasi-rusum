@@ -659,7 +659,7 @@ function closeModalReview() {
     activeReviewItem = null;
 }
 
-// UPDATE STATUS KE GOOGLE SHEETS
+// UPDATE STATUS KE GOOGLE SHEETS & EMAIL
 async function sendEmailNotificationFromModal() {
     if (!activeReviewItem) return;
 
@@ -690,18 +690,21 @@ async function sendEmailNotificationFromModal() {
         showToast("Berhasil", `Status diperbarui ke ${newStatus}.`);
         closeModalReview();
 
-        // LOGIKA PENGIRIMAN EMAIL (DIPERBARUI)
+        // LOGIKA PENGIRIMAN EMAIL YANG LEBIH AMAN (Mencegah Tab Kosong/Undefined)
         const targetEmail = item.email;
         
-        // Cek apakah email valid dan tidak undefined
         if (targetEmail && targetEmail !== 'undefined' && targetEmail.trim() !== '') {
             let subject = `[STAIIS] Verifikasi Setoran Rusum - ${item.nim}`;
             let bodyText = `Status pembayaran anda (Untuk Tagihan TA ${item.tahunAkademik}) saat ini adalah: ${newStatus}.\n\nCatatan Admin: ${newNote}`;
             
-            // Gunakan location.href agar tidak membuka tab browser kosong baru
-            window.location.href = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+            // Membuat elemen link tak terlihat untuk memicu aplikasi email bawaan
+            const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+            const linkElement = document.createElement('a');
+            linkElement.href = mailtoLink;
+            document.body.appendChild(linkElement); // Tempelkan ke HTML
+            linkElement.click(); // Klik otomatis
+            document.body.removeChild(linkElement); // Bersihkan kembali
         } else {
-            // Jika email tidak ada (misal data transaksi lama), tampilkan info ini
             showToast("Info", "Tersimpan, namun alamat email mahasiswa tidak ditemukan.");
         }
         
