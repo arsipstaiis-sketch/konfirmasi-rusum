@@ -93,9 +93,16 @@ function checkPreviousInstallments() {
     const mhs = mahasiswaMaster.find(m => m.nim === nim);
 
     if (mhs) {
+        // Hanya isi otomatis jika nilainya benar-benar ada di master data 
+        // dan hindari mereset pilihan yang sudah dipilih user jika tidak diperlukan
         document.getElementById('input-nama').value = mhs.nama || '';
-        document.getElementById('input-prodi').value = mhs.prodi || '';
-        document.getElementById('input-tingkatan').value = mhs.tingkatan || '';
+        
+        if (mhs.prodi) {
+            document.getElementById('input-prodi').value = mhs.prodi;
+        }
+        if (mhs.tingkatan) {
+            document.getElementById('input-tingkatan').value = mhs.tingkatan;
+        }
     }
 
     if (!ta) return; // Hanya jalankan kalkulasi jika mahasiswa sudah memilih opsi Tagihan TA
