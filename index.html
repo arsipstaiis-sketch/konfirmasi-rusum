@@ -402,14 +402,16 @@
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2">
                     <p class="text-xs font-bold uppercase">BUKTI RESI</p>
-                    <!-- Tambahkan overflow-hidden dan group -->
-                    <div class="bg-slate-100 p-2 border border-slate-200 min-h-[220px] flex items-center justify-center overflow-hidden group">
-                        <a id="modal-resi-link" href="#" target="_blank" class="w-full text-center relative">
-                            <!-- Tambahkan efek transition dan scale saat hover -->
-                            <img id="modal-resi-img" src="" class="max-h-60 mx-auto rounded transition-transform duration-300 origin-center group-hover:scale-[1.8] cursor-zoom-in">
+                    
+                    <!-- Tambahkan ID, onmousemove, dan onmouseleave -->
+                    <div id="resi-zoom-container" class="bg-slate-100 p-2 border border-slate-200 min-h-[220px] flex items-center justify-center overflow-hidden relative cursor-zoom-in" onmousemove="zoomImage(event)" onmouseleave="resetZoom()">
+                        <a id="modal-resi-link" href="#" target="_blank" class="w-full text-center relative block">
+                            <!-- Hapus class group-hover, kita gunakan JS murni -->
+                            <img id="modal-resi-img" src="" class="max-h-60 mx-auto rounded transition-transform duration-100 ease-out">
                         </a>
                     </div>
-                    <p class="text-[9px] text-slate-400 text-center italic mt-1"><i class="fa-solid fa-magnifying-glass-plus"></i> Arahkan kursor untuk zoom, klik untuk layar penuh</p>
+                    
+                    <p class="text-[9px] text-slate-400 text-center italic mt-1"><i class="fa-solid fa-magnifying-glass-plus"></i> Arahkan & geser kursor untuk melihat detail, klik untuk layar penuh</p>
                 </div>
                 <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
                     <div><span class="text-slate-500 text-[10px] uppercase font-bold">NIM & Nama:</span>
