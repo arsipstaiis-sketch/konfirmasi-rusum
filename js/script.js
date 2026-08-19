@@ -659,7 +659,7 @@ function closeModalReview() {
     activeReviewItem = null;
 }
 
-// UPDATE STATUS KE GOOGLE SHEETS & EMAIL
+// UPDATE STATUS KE GOOGLE SHEETS & KIRIM EMAIL OTOMATIS
 async function sendEmailNotificationFromModal() {
     if (!activeReviewItem) return;
 
@@ -667,49 +667,36 @@ async function sendEmailNotificationFromModal() {
     const newStatus = selectedModalStatus;
     const newNote = document.getElementById('modal-admin-note').value.trim();
 
-    showToast("Menyimpan", "Menyinkronkan data verifikasi ke database server...");
+    showToast("Memproses", "Menyimpan data dan mengirim email otomatis ke mahasiswa...");
 
     try {
-        await fetch(SCRIPT_URL, {
+        const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify({
-                action: 'updateStatus',
+                action: 'updateStatusAndEmail', // <-- Perubahan Nama Action ke Backend
                 id: item.id,
                 status: newStatus,
                 adminNote: newNote
             })
         });
 
-        // Update Lokal UI
-        item.status = newStatus;
-        item.adminNote = newNote;
+        const result = await response.json();
 
-        updateAdminStats();
-        filterAdminTable();
+        if (result.success) {
+            // Update Lokal UI
+            item.status = newStatus;
+            item.adminNote = newNote;
 
-        showToast("Berhasil", `Status diperbarui ke ${newStatus}.`);
-        closeModalReview();
+            updateAdminStats();
+            filterAdminTable();
 
-        // LOGIKA PENGIRIMAN EMAIL YANG LEBIH AMAN (Mencegah Tab Kosong/Undefined)
-        const targetEmail = item.email;
-        
-        if (targetEmail && targetEmail !== 'undefined' && targetEmail.trim() !== '') {
-            let subject = `[STAIIS] Verifikasi Setoran Rusum - ${item.nim}`;
-            let bodyText = `Status pembayaran anda (Untuk Tagihan TA ${item.tahunAkademik}) saat ini adalah: ${newStatus}.\n\nCatatan Admin: ${newNote}`;
-            
-            // Membuat elemen link tak terlihat untuk memicu aplikasi email bawaan
-            const mailtoLink = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
-            const linkElement = document.createElement('a');
-            linkElement.href = mailtoLink;
-            document.body.appendChild(linkElement); // Tempelkan ke HTML
-            linkElement.click(); // Klik otomatis
-            document.body.removeChild(linkElement); // Bersihkan kembali
+            showToast("Berhasil Selesai!", `Status ${newStatus} disimpan & email pemberitahuan telah dikirim.`);
+            closeModalReview();
         } else {
-            showToast("Info", "Tersimpan, namun alamat email mahasiswa tidak ditemukan.");
+            showToast("Gagal Menyimpan", result.message || "Data tidak ditemukan di server.");
         }
-        
     } catch (error) {
-        showToast("Gagal Menyimpan", "Gagal menghubungi database server.");
+        showToast("Error Koneksi", "Gagal menghubungi database server.");
     }
 }
 
@@ -826,35 +813,3 @@ window.onload = function() {
         inputTA.addEventListener('change', checkPreviousInstallments);
     }
 };
-// Tambahkan fungsi ini di script.js
-async function sendKwitansiToEmail() {
-    if (!activeKwitansiItem) {
-        showToast("Error", "Pilih data kwitansi terlebih dahulu.");
-        return;
-    }
-
-    const item = activeKwitansiItem;
-    
-    // Ganti teks tombol atau tampilkan loading jika perlu
-    showToast("Memproses", "Sedang mengirim rincian kwitansi ke email...");
-
-    try {
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'sendKwitansiEmail',
-                id: item.id
-            })
-        });
-
-        const result = await response.json();
-        
-        if (result.success) {
-            showToast("Berhasil", "Email kwitansi telah terkirim ke mahasiswa!");
-        } else {
-            showToast("Gagal", result.message);
-        }
-    } catch (error) {
-        showToast("Error Koneksi", "Gagal terhubung ke server untuk mengirim email.");
-    }
-}
