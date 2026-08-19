@@ -436,9 +436,18 @@
                         <button id="btn-status-ditolak" onclick="selectModalStatus('Ditolak')" class="py-2.5 border rounded-xl text-xs font-bold"><i class="fa-solid fa-xmark"></i> Tolak</button>
                     </div>
                     <textarea id="modal-admin-note" rows="3" class="form-input"></textarea>
-                    <div class="flex justify-end space-x-3">
-                        <button onclick="previewKwitansiFromAdminModal()" class="w-11 h-11 bg-emerald-100 text-emerald-800 rounded-xl"><i class="fa-solid fa-receipt"></i></button>
-                        <button onclick="sendEmailNotificationFromModal()" class="btn-primary !w-auto"><i class="fa-solid fa-save"></i><span>SIMPAN & EMAIL</span></button>
+                    <div class="flex justify-end space-x-2">
+                        <button onclick="previewKwitansiFromAdminModal()" class="w-11 h-11 bg-emerald-100 text-emerald-800 rounded-xl shrink-0"><i class="fa-solid fa-receipt"></i></button>
+                        
+                        <!-- Tombol untuk data lama (Tanpa Email) -->
+                        <button onclick="prosesVerifikasi(false)" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 shadow-sm">
+                            <i class="fa-solid fa-floppy-disk"></i><span>SIMPAN SAJA</span>
+                        </button>
+                        
+                        <!-- Tombol normal (Dengan Email) -->
+                        <button onclick="prosesVerifikasi(true)" class="btn-primary !w-auto">
+                            <i class="fa-solid fa-envelope"></i><span>SIMPAN & EMAIL</span>
+                        </button>
                     </div>
                 </div>
             </div>
