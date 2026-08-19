@@ -659,38 +659,47 @@ function closeModalReview() {
     activeReviewItem = null;
 }
 
-// UPDATE STATUS KE GOOGLE SHEETS & KIRIM EMAIL OTOMATIS
-async function sendEmailNotificationFromModal() {
+// UPDATE STATUS KE GOOGLE SHEETS (DENGAN/TANPA EMAIL)
+async function prosesVerifikasi(kirimEmail) {
     if (!activeReviewItem) return;
 
     const item = activeReviewItem;
     const newStatus = selectedModalStatus;
     const newNote = document.getElementById('modal-admin-note').value.trim();
 
-    showToast("Memproses", "Menyimpan data dan mengirim email otomatis ke mahasiswa...");
+    if (kirimEmail) {
+        showToast("Memproses", "Menyimpan data dan mengirim email ke mahasiswa...");
+    } else {
+        showToast("Memproses", "Menyimpan status data lama (Tanpa Email)...");
+    }
 
     try {
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify({
-                action: 'updateStatusAndEmail', // <-- Perubahan Nama Action ke Backend
+                action: 'updateStatusAndEmail', 
                 id: item.id,
                 status: newStatus,
-                adminNote: newNote
+                adminNote: newNote,
+                sendEmail: kirimEmail // <-- Mengirim instruksi ke server apakah harus kirim email atau tidak
             })
         });
 
         const result = await response.json();
 
         if (result.success) {
-            // Update Lokal UI
             item.status = newStatus;
             item.adminNote = newNote;
 
             updateAdminStats();
             filterAdminTable();
 
-            showToast("Berhasil Selesai!", `Status ${newStatus} disimpan & email pemberitahuan telah dikirim.`);
+            if (kirimEmail) {
+                showToast("Berhasil Selesai!", `Status ${newStatus} disimpan & email telah dikirim.`);
+            } else {
+                showToast("Berhasil Disimpan!", `Status ${newStatus} berhasil disimpan tanpa email.`);
+            }
+            
             closeModalReview();
         } else {
             showToast("Gagal Menyimpan", result.message || "Data tidak ditemukan di server.");
