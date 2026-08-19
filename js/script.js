@@ -687,13 +687,23 @@ async function sendEmailNotificationFromModal() {
         updateAdminStats();
         filterAdminTable();
 
-        // Siapkan pengiriman email
-        let subject = `[STAIIS] Verifikasi Setoran Rusum - ${item.nim}`;
-        let bodyText = `Status pembayaran anda (Untuk Tagihan TA ${item.tahunAkademik}) saat ini adalah: ${newStatus}.\nCatatan Admin: ${newNote}`;
-        window.open(`mailto:${item.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`, '_blank');
-
         showToast("Berhasil", `Status diperbarui ke ${newStatus}.`);
         closeModalReview();
+
+        // LOGIKA PENGIRIMAN EMAIL (DIPERBARUI)
+        const targetEmail = item.email;
+        
+        // Cek apakah email valid dan tidak undefined
+        if (targetEmail && targetEmail !== 'undefined' && targetEmail.trim() !== '') {
+            let subject = `[STAIIS] Verifikasi Setoran Rusum - ${item.nim}`;
+            let bodyText = `Status pembayaran anda (Untuk Tagihan TA ${item.tahunAkademik}) saat ini adalah: ${newStatus}.\n\nCatatan Admin: ${newNote}`;
+            
+            // Gunakan location.href agar tidak membuka tab browser kosong baru
+            window.location.href = `mailto:${targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+        } else {
+            // Jika email tidak ada (misal data transaksi lama), tampilkan info ini
+            showToast("Info", "Tersimpan, namun alamat email mahasiswa tidak ditemukan.");
+        }
         
     } catch (error) {
         showToast("Gagal Menyimpan", "Gagal menghubungi database server.");
