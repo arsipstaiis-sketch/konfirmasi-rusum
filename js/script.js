@@ -813,3 +813,33 @@ window.onload = function() {
         inputTA.addEventListener('change', checkPreviousInstallments);
     }
 };
+// ==========================================
+// FITUR ZOOM FLEKSIBEL (PANNING GAMBAR)
+// ==========================================
+function zoomImage(event) {
+    const container = document.getElementById('resi-zoom-container');
+    const img = document.getElementById('modal-resi-img');
+    
+    // 1. Dapatkan dimensi kotak pembungkus
+    const rect = container.getBoundingClientRect();
+    
+    // 2. Hitung posisi koordinat X dan Y kursor di dalam kotak
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    // 3. Konversi menjadi persentase (0% - 100%)
+    const xPercent = (x / rect.width) * 100;
+    const yPercent = (y / rect.height) * 100;
+    
+    // 4. Ubah titik fokus zoom agar mengikuti kursor dan perbesar gambar (misal 2.5x)
+    img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
+    img.style.transform = 'scale(2.5)';
+}
+
+function resetZoom() {
+    const img = document.getElementById('modal-resi-img');
+    
+    // Kembalikan ke posisi tengah dan ukuran semula saat kursor keluar
+    img.style.transformOrigin = 'center center';
+    img.style.transform = 'scale(1)';
+}
