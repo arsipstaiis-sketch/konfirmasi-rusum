@@ -826,3 +826,35 @@ window.onload = function() {
         inputTA.addEventListener('change', checkPreviousInstallments);
     }
 };
+// Tambahkan fungsi ini di script.js
+async function sendKwitansiToEmail() {
+    if (!activeKwitansiItem) {
+        showToast("Error", "Pilih data kwitansi terlebih dahulu.");
+        return;
+    }
+
+    const item = activeKwitansiItem;
+    
+    // Ganti teks tombol atau tampilkan loading jika perlu
+    showToast("Memproses", "Sedang mengirim rincian kwitansi ke email...");
+
+    try {
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'sendKwitansiEmail',
+                id: item.id
+            })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showToast("Berhasil", "Email kwitansi telah terkirim ke mahasiswa!");
+        } else {
+            showToast("Gagal", result.message);
+        }
+    } catch (error) {
+        showToast("Error Koneksi", "Gagal terhubung ke server untuk mengirim email.");
+    }
+}
