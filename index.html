@@ -140,7 +140,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="input-nim" class="form-label">Nomor Induk Mahasiswa (NIM) *</label>
-                                <input type="text" id="input-nim" maxlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, ''); checkPreviousInstallments()" required placeholder="Contoh: 2024010101" class="form-input">
+                                <input type="text" id="input-nim" maxlength="11" oninput="this.value = this.value.replace(/[^0-9.]/g, ''); checkPreviousInstallments()" required placeholder="Contoh: 24110412 atau 21.1.1.0412 (sesuai KTM)" class="form-input">
                                 <div id="nim-installment-info" class="hidden mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1"></div>
                             </div>
                             <div>
