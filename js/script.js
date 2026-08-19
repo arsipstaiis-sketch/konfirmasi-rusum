@@ -216,8 +216,11 @@ async function handleFormSubmit(e) {
 
     const nim = document.getElementById('input-nim').value.trim();
     
-    if (nim.length !== 8) {
-        showToast("NIM Tidak Valid", "NIM harus berisi tepat 8 digit angka.");
+    // Validasi: Harus 8 angka (24110412) ATAU format 11 karakter dengan titik (21.1.1.0412)
+    const isValidNIM = /^\d{8}$/.test(nim) || /^\d{2}\.\d{1}\.\d{1}\.\d{4}$/.test(nim);
+    
+    if (!isValidNIM) {
+        showToast("NIM Tidak Valid", "NIM harus 8 digit angka (contoh: 24110412) atau format titik (contoh: 21.1.1.0412).");
         btnSubmit.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>KIRIM KONFIRMASI PEMBAYARAN</span>`;
         btnSubmit.disabled = false;
         return;
