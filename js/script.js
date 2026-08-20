@@ -446,7 +446,7 @@ function updateAdminStats() {
     // Ambil parameter TA dari dropdown
     const selectedTA = document.getElementById('filter-stats-ta').value;
 
-    transactionsData.forEach(item => {
+    transaksiData.forEach(item => {
         // FILTER UTAMA: Jika TA tidak cocok, lewati data ini
         if (selectedTA !== 'Semua' && item.tahunAkademik !== selectedTA) return;
 
@@ -500,7 +500,7 @@ function filterAdminTable() {
     // Ambil nilai dari dropdown TA
     const taFilter = document.getElementById('filter-stats-ta').value;
 
-    const filtered = transactionsData.filter(item => {
+    const filtered = transaksiData.filter(item => {
         // 1. Cek Pencarian (Nama / NIM)
         const matchQuery = item.nim.toLowerCase().includes(query) || 
                            item.nama.toLowerCase().includes(query);
