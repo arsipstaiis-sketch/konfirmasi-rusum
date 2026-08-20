@@ -920,3 +920,51 @@ function resetZoom() {
     img.style.transformOrigin = 'center center';
     img.style.transform = 'scale(1)';
 }
+// ==========================================
+// RENDER TABEL ADMIN
+// ==========================================
+function renderAdminTable(data) {
+    const tbody = document.getElementById('admin-table-body');
+    
+    if (!tbody) return;
+
+    if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 text-xs">Tidak ada data transaksi yang sesuai filter.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = data.map(item => {
+        const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
+        
+        let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : 
+                   (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
+        
+        let cleanDate = formatTanggalWaktu(item.tanggal);
+
+        return `
+            <tr class="hover:bg-slate-50 border-b border-slate-100 transition-colors">
+                <td class="p-3.5">
+                    <div class="text-xs font-bold text-slate-800">${item.nama}</div>
+                    <div class="text-[11px] text-slate-500 font-mono mt-0.5">${item.nim}</div>
+                </td>
+                <td class="p-3.5 text-xs text-slate-600">${item.prodi}</td>
+                <td class="p-3.5">
+                    <div class="text-xs font-bold text-slate-700">${formattedNominal}</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">TA ${item.tahunAkademik}</div>
+                </td>
+                <td class="p-3.5 text-xs">
+                    <div class="text-slate-700">${item.bank || '-'}</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">${cleanDate}</div>
+                </td>
+                <td class="p-3.5 text-center">
+                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold ${badge}">${item.status}</span>
+                </td>
+                <td class="p-3.5 text-center">
+                    <button onclick="openAdminDetailModal('${item.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shadow-sm inline-flex items-center space-x-1.5 mx-auto">
+                        <i class="fa-solid fa-eye"></i><span>Tinjau</span>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
