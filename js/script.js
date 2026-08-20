@@ -350,7 +350,7 @@ function executeStatusSearch() {
     html += filtered.map((item, index) => {
         const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
         let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
-        let cleanDate = item.tanggal ? item.tanggal.split('T')[0] : '-';
+        let cleanDate = formatTanggalWaktu(item.tanggal);
         let btn = item.status === 'Disetujui' ? `<button onclick="openKwitansiPreview('${item.id}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow-sm flex items-center space-x-1.5"><i class="fa-solid fa-receipt"></i><span>Cetak Kwitansi</span></button>` : '';
 
         return `
@@ -486,7 +486,7 @@ function filterAdminTable() {
                 </td>
                 <td class="p-3.5">${item.prodi}<br><span class="text-[10px] text-emerald-700 font-bold">${item.tingkatan}</span></td>
                 <td class="p-3.5 font-bold text-emerald-800">${formattedNominal}<br><span class="text-[10px] text-slate-500 font-normal">TA ${item.tahunAkademik}</span></td>
-                <td class="p-3.5">${item.bank}<br><span class="text-[10px] text-slate-400">${item.tanggal}</span></td>
+                <td class="p-3.5">${item.bank}<br><span class="text-[10px] text-slate-400">${formatTanggalWaktu(item.tanggal)}</span></td>
                 <td class="p-3.5 text-center"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${badge}">${item.status}</span></td>
                 <td class="p-3.5 text-center">
                     <button onclick="openAdminDetailModal('${item.id}')" class="px-3 py-1.5 bg-emerald-800 text-white rounded-lg text-xs font-semibold">Tinjau</button>
@@ -612,7 +612,7 @@ function openAdminDetailModal(id) {
     document.getElementById('modal-mhs-tingkatan').innerText = item.tingkatan;
     
     document.getElementById('modal-mhs-nominal').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal);
-    document.getElementById('modal-mhs-bank').innerText = `${item.bank} (${item.tanggal})`;
+    document.getElementById('modal-mhs-bank').innerText = `${item.bank} (${formatTanggalWaktu(item.tanggal)})`;
 
     // Kalkulasi Khusus sesuai TA pada form
     const summary = getStudentPaymentSummary(item.nim, item.tahunAkademik);
@@ -807,6 +807,20 @@ function terbilang(angka) {
     if (n < 1000000) return terbilang(Math.floor(n / 1000)) + " Ribu " + terbilang(n % 1000);
     if (n < 1000000000) return terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000);
     return n.toString();
+}
+function formatTanggalWaktu(dateString) {
+    if (!dateString || dateString === '-') return '-';
+    
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return dateString; // Kembalikan string asli jika gagal diparse
+
+    // Pastikan tanggal dan bulan selalu 2 digit (contoh: 07, 08)
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+
+    // Mengembalikan format DD-MM-YYYY
+    return `${day}-${month}-${year}`;
 }
 
 // ==========================================
