@@ -516,32 +516,27 @@ function renderAngkatanMonitoring() {
         cohortStudents = cohortStudents.filter(m => m.tingkatan === selectedTingkatan);
     }
 
-    // 3. Kalkulasi berdasarkan TA Tagihan & Filter Parameter Tahun Keluar
+    // 3. Kalkulasi berdasarkan TA Tagihan & Filter Cuti / Lulus
     const mappedStudents = cohortStudents.map(mhs => {
         return { ...mhs, summary: getStudentPaymentSummary(mhs.nim, selectedTA) };
     }).filter(mhs => {
-        const statusMhs = String(mhs.status || '').toUpperCase();
-        
-        // Mahasiswa dianggap tidak aktif jika Lulus atau Keluar
-        const tidakAktif = (statusMhs === 'LULUS' || statusMhs === 'KELUAR');
-        
-        // Ambil angka tahun dari TA yang sedang dipantau Admin (Misal "2024/2025" -> angka 2024)
+        // Ambil angka tahun dari TA yang sedang dipantau (Misal "2024/2025" -> 2024)
         const tahunMulaiTA = parseInt(selectedTA.split('/')[0]);
         
-        // Ambil parameter tahunKeluar dari database. 
-        // Jika kosong (mahasiswa masih aktif), kita beri batas tahun yang sangat besar (misal 2099) agar selalu dianggap wajib bayar.
+        // Ambil parameter tahun keluar (Jika masih aktif, beri batas 2099)
         const batasTahunWajib = parseInt(mhs.tahunKeluar) || 2099;
         
-        // Cek apakah TA yang dipantau ini terjadi SEBELUM atau PADA TAHUN dia keluar
-        const wajibBayarDiTAIni = tahunMulaiTA <= batasTahunWajib;
+        // Cek apakah TA yang dipantau ini adalah TA saat dia mengambil cuti
+        const taCuti = String(mhs.taCuti || '').trim();
+        const sedangCuti = (taCuti === selectedTA);
         
-        // TAMPILKAN MAHASISWA JIKA:
-        // 1. Dia masih Aktif (tidakAktif = false)
-        // 2. ATAU dia sudah Lulus/Keluar, TAPI TA yang sedang dicek adalah masa di mana dia masih berstatus mahasiswa (wajibBayarDiTAIni = true)
-        // 3. ATAU dia punya riwayat pembayaran yang valid di TA tersebut (sebagai bukti historis)
-        return !tidakAktif || (tidakAktif && wajibBayarDiTAIni) || mhs.summary.totalDibayar > 0;
+        // MAHASISWA WAJIB BAYAR JIKA:
+        // TA ini terjadi sebelum/pada tahun dia keluar, DAN dia tidak sedang cuti di TA ini.
+        const wajibBayar = (tahunMulaiTA <= batasTahunWajib) && !sedangCuti;
+        
+        // TAMPILKAN JIKA: Dia wajib bayar, ATAU dia sudah terlanjur menyetor uang di TA tersebut
+        return wajibBayar || mhs.summary.totalDibayar > 0;
     });
-
     const totalMhs = mappedStudents.length;
     // ... (sisa kode di bawahnya tetap sama)
 
