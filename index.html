@@ -149,16 +149,17 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label for="input-prodi" class="form-label">Program Studi *</label>
-                            <select id="input-prodi" required class="form-input">
-                                <option value="" disabled selected>-- Pilih Program Studi --</option>
-                                <option value="Pendidikan Bahasa Arab (PBA)">Pendidikan Bahasa Arab (PBA)</option>
-                                <option value="Hukum Keluarga Islam (HKI)">Hukum Keluarga Islam (HKI)</option>
-                            </select>
-                        </div>
-
+                        <!-- Baris 1: Tahun Akademik (Kiri) & Tingkatan (Kanan) -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="input-ta" class="form-label">Pembayaran Untuk TA *</label>
+                                <select id="input-ta" required class="form-input">
+                                    <option value="" disabled selected>-- Pilih Tahun Akademik --</option>
+                                    <option value="2026/2027">2026/2027</option>
+                                    <option value="2025/2026">2025/2026</option>
+                                    <option value="2024/2025">2024/2025</option>
+                                </select>
+                            </div>
                             <div>
                                 <label for="input-tingkatan" class="form-label">Tingkatan *</label>
                                 <select id="input-tingkatan" required class="form-input">
@@ -169,15 +170,16 @@
                                     <option value="Robiah">Robiah</option>
                                 </select>
                             </div>
-                            <div>
-                                <label for="input-ta" class="form-label">Pembayaran Untuk TA *</label>
-                                <select id="input-ta" required class="form-input">
-                                    <option value="" disabled selected>-- Pilih Tahun Akademik --</option>
-                                    <option value="2025/2026">2025/2026</option>
-                                    <option value="2026/2027">2026/2027</option>
-                                    <option value="2024/2025">2024/2025</option>
-                                </select>
-                            </div>
+                        </div>
+
+                        <!-- Baris 2: Program Studi (Pindah ke bawah, lebar penuh) -->
+                        <div>
+                            <label for="input-prodi" class="form-label">Program Studi *</label>
+                            <select id="input-prodi" required class="form-input">
+                                <option value="" disabled selected>-- Pilih Program Studi --</option>
+                                <option value="Pendidikan Bahasa Arab (PBA)">Pendidikan Bahasa Arab (PBA)</option>
+                                <option value="Hukum Keluarga Islam (HKI)">Hukum Keluarga Islam (HKI)</option>
+                            </select>
                         </div>
                     </div>
 
