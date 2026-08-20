@@ -1,6 +1,6 @@
 // Konfigurasi & Global Variabel
 let BIAYA_RUSUM_STANDAR = 6000000;
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzEl2wqSb6u878aHA1Unn-589TjzvOTC1dBb-Yjm4mHStY1BPPS5rE1SxtkZZ7w8l2Y/exec'; // URL Google Apps Script Anda
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzEl2wqSb6u878aHA1Unn-589TjzvOTC1dBb-Yjm4mHStY1BPPS5rE1SxtkZZ7w8l2Y/exec'; // Pastikan URL ini adalah versi terbaru dari Apps Script Anda
 
 let transaksiData = []; 
 let mahasiswaMaster = []; 
@@ -12,6 +12,7 @@ let activeReviewItem = null;
 let activeKwitansiItem = null;
 let isAdminLoggedIn = false;
 let selectedModalStatus = 'Pending';
+let currentAdminFilter = 'Semua';
 
 const defaultStatusNotes = {
     'Pending': 'Pembayaran sedang dalam proses verifikasi data dan mutasi rekening.',
@@ -60,7 +61,6 @@ async function fetchSpreadsheetData() {
 function getStudentPaymentSummary(nim, targetTA = null) {
     let approvedTx = transaksiData.filter(d => d.nim === nim && d.status === 'Disetujui');
     
-    // Filter berdasarkan Tahun Akademik Tagihan (Jika ada parameter TA)
     if (targetTA && targetTA !== 'ALL') {
         approvedTx = approvedTx.filter(d => d.tahunAkademik === targetTA);
     }
@@ -93,19 +93,12 @@ function checkPreviousInstallments() {
     const mhs = mahasiswaMaster.find(m => m.nim === nim);
 
     if (mhs) {
-        // Hanya isi otomatis jika nilainya benar-benar ada di master data 
-        // dan hindari mereset pilihan yang sudah dipilih user jika tidak diperlukan
         document.getElementById('input-nama').value = mhs.nama || '';
-        
-        if (mhs.prodi) {
-            document.getElementById('input-prodi').value = mhs.prodi;
-        }
-        if (mhs.tingkatan) {
-            document.getElementById('input-tingkatan').value = mhs.tingkatan;
-        }
+        if (mhs.prodi) document.getElementById('input-prodi').value = mhs.prodi;
+        if (mhs.tingkatan) document.getElementById('input-tingkatan').value = mhs.tingkatan;
     }
 
-    if (!ta) return; // Hanya jalankan kalkulasi jika mahasiswa sudah memilih opsi Tagihan TA
+    if (!ta) return; 
 
     const summary = getStudentPaymentSummary(nim, ta);
 
@@ -223,7 +216,7 @@ async function handleFormSubmit(e) {
 
     const nim = document.getElementById('input-nim').value.trim();
     
-    // Validasi: Harus 8 angka (24110412) ATAU format 11 karakter dengan titik (21.1.1.0412)
+    // Validasi format NIM
     const isValidNIM = /^\d{8}$/.test(nim) || /^\d{2}\.\d{1}\.\d{1}\.\d{4}$/.test(nim);
     
     if (!isValidNIM) {
@@ -315,8 +308,6 @@ function executeStatusSearch() {
     }
 
     const targetNim = filtered[0].nim;
-    
-    // Cari transaksi terakhir yang disetujui untuk mengetahui TA tagihan yang aktif
     const lastApproved = filtered.find(d => d.status === 'Disetujui');
     const targetTA = lastApproved ? lastApproved.tahunAkademik : filtered[0].tahunAkademik;
     
@@ -443,7 +434,6 @@ function updateAdminStats() {
     let total = 0, pending = 0, disetujui = 0, ditolak = 0;
     let totalUang = 0;
     
-    // Ambil parameter TA dari dropdown
     const selectedTA = document.getElementById('filter-stats-ta').value;
 
     transaksiData.forEach(item => {
@@ -465,14 +455,9 @@ function updateAdminStats() {
     document.getElementById('admin-stat-ditolak').innerText = ditolak;
     document.getElementById('admin-total-uang').innerText = 'Rp ' + totalUang.toLocaleString('id-ID');
 }
-// Variabel global penyimpan status filter saat ini
-let currentAdminFilter = 'Semua';
 
-// Fungsi merubah tampilan tombol filter dan memicu pencarian
 function setFilterStatus(status) {
     currentAdminFilter = status;
-    
-    // Daftar semua status
     const statuses = ['Semua', 'Pending', 'Disetujui', 'Ditolak'];
     
     statuses.forEach(s => {
@@ -480,45 +465,87 @@ function setFilterStatus(status) {
         if (!btn) return;
         
         if (s === status) {
-            // Aktif: Putih & Berbayang
             btn.classList.add('bg-white', 'shadow-sm', 'text-slate-800');
             btn.classList.remove('text-slate-500', 'hover:text-slate-700');
         } else {
-            // Tidak Aktif: Abu-abu menyatu dengan background
             btn.classList.remove('bg-white', 'shadow-sm', 'text-slate-800');
             btn.classList.add('text-slate-500', 'hover:text-slate-700');
         }
     });
     
-    // Segarkan tabel sesuai status yang diklik
     filterAdminTable();
 }
+
 function filterAdminTable() {
     const query = document.getElementById('admin-search').value.toLowerCase();
     const statusFilter = currentAdminFilter; 
-    
-    // Ambil nilai dari dropdown TA
     const taFilter = document.getElementById('filter-stats-ta').value;
 
     const filtered = transaksiData.filter(item => {
-        // 1. Cek Pencarian (Nama / NIM)
         const matchQuery = item.nim.toLowerCase().includes(query) || 
                            item.nama.toLowerCase().includes(query);
-        
-        // 2. Cek Status (Segmented Button)
         const matchStatus = (statusFilter === 'Semua') || (item.status === statusFilter);
-        
-        // 3. Cek Tahun Akademik (Dropdown Master)
         const matchTA = (taFilter === 'Semua') || (item.tahunAkademik === taFilter);
 
-        // Data hanya tampil jika lolos ketiga syarat di atas
         return matchQuery && matchStatus && matchTA;
     });
 
     renderAdminTable(filtered);
 }
+
 // ==========================================
-// PEMANTAUAN ANGKATAN (3 FILTER PINTAR)
+// RENDER TABEL ADMIN
+// ==========================================
+function renderAdminTable(data) {
+    const tbody = document.getElementById('admin-table-body');
+    const countEl = document.getElementById('admin-table-count');
+    
+    if (!tbody) return;
+
+    if (data.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 text-xs">Tidak ada data transaksi yang sesuai filter.</td></tr>`;
+        if (countEl) countEl.innerText = "0 Data";
+        return;
+    }
+
+    if (countEl) countEl.innerText = `${data.length} Data`;
+
+    tbody.innerHTML = data.map(item => {
+        const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
+        let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : 
+                   (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
+        let cleanDate = formatTanggalWaktu(item.tanggal);
+
+        return `
+            <tr class="hover:bg-slate-50 border-b border-slate-100 transition-colors">
+                <td class="p-3.5 text-xs text-slate-400 font-mono font-medium">${item.id}</td>
+                <td class="p-3.5">
+                    <div class="text-xs font-bold text-slate-800">${item.nama}</div>
+                    <div class="text-[11px] text-slate-500 font-mono mt-0.5">${item.nim}</div>
+                </td>
+                <td class="p-3.5">
+                    <div class="text-xs font-bold text-slate-700">${formattedNominal}</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">TA ${item.tahunAkademik}</div>
+                </td>
+                <td class="p-3.5 text-xs">
+                    <div class="text-slate-700">${item.bank || '-'}</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">${cleanDate}</div>
+                </td>
+                <td class="p-3.5 text-center">
+                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold ${badge}">${item.status}</span>
+                </td>
+                <td class="p-3.5 text-center">
+                    <button onclick="openAdminDetailModal('${item.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shadow-sm flex items-center justify-center space-x-1.5 mx-auto">
+                        <i class="fa-solid fa-eye"></i><span>Tinjau</span>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ==========================================
+// PEMANTAUAN ANGKATAN (FILTER PINTAR)
 // ==========================================
 function renderAngkatanMonitoring() {
     const selectedAngkatan = document.getElementById('angkatan-select').value;
@@ -527,35 +554,22 @@ function renderAngkatanMonitoring() {
 
     let cohortStudents = mahasiswaMaster;
     
-    // 1. Filter Angkatan (Tahun Masuk)
     if (selectedAngkatan !== 'ALL') {
         cohortStudents = cohortStudents.filter(m => String(m.angkatan) === selectedAngkatan);
     }
-    
-    // 2. Filter Tingkatan (Ula, Tsaniyah, dll)
     if (selectedTingkatan !== 'ALL') {
         cohortStudents = cohortStudents.filter(m => m.tingkatan === selectedTingkatan);
     }
 
-    // 3. Kalkulasi berdasarkan TA Tagihan & Filter Cuti / Lulus (Versi Tahun Akhir)
     const mappedStudents = cohortStudents.map(mhs => {
         return { ...mhs, summary: getStudentPaymentSummary(mhs.nim, selectedTA) };
     }).filter(mhs => {
-        // AMBIL TAHUN AKHIR DARI TA YANG DIPILIH (Misal "2025/2026" -> split menghasilkan angka 2026)
         const tahunAkhirTA = parseInt(selectedTA.split('/')[1]);
-        
-        // Ambil parameter tahun keluar (Jika masih aktif, beri batas 2099)
         const batasTahunWajib = parseInt(mhs.tahunKeluar) || 2099;
-        
-        // Cek apakah TA yang dipantau ini adalah TA saat dia mengambil cuti
         const taCuti = String(mhs.taCuti || '').trim();
         const sedangCuti = (taCuti === selectedTA);
         
-        // MAHASISWA WAJIB BAYAR JIKA:
-        // Tahun akhir TA ini terjadi sebelum/pada tahun dia keluar, DAN dia tidak sedang cuti
         const wajibBayar = (tahunAkhirTA <= batasTahunWajib) && !sedangCuti;
-        
-        // TAMPILKAN JIKA: Dia wajib bayar, ATAU dia sudah terlanjur menyetor uang di TA tersebut
         return wajibBayar || mhs.summary.totalDibayar > 0;
     });
 
@@ -616,7 +630,6 @@ function renderAngkatanMonitoring() {
 function filterAngkatanStatus(status) {
     activeAngkatanStatusFilter = status;
     
-    // Perbarui visual tombol status
     const btnAll = document.getElementById('angkatan-filter-all');
     const btnUnpaid = document.getElementById('angkatan-filter-unpaid');
     const btnPartial = document.getElementById('angkatan-filter-partial');
@@ -650,16 +663,14 @@ function openAdminDetailModal(id) {
     document.getElementById('modal-mhs-tingkatan').innerText = item.tingkatan;
     
     document.getElementById('modal-mhs-nominal').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal);
-    document.getElementById('modal-mhs-bank').innerText = `${item.bank} (${formatTanggalWaktu(item.tanggal)})`;
+    document.getElementById('modal-mhs-bank').innerText = `${item.bank} - ${formatTanggalWaktu(item.tanggal)}`;
 
-    // Kalkulasi Khusus sesuai TA pada form
     const summary = getStudentPaymentSummary(item.nim, item.tahunAkademik);
     document.getElementById('modal-mhs-kalkulasi').innerText = `Telah Bayar (TA ${item.tahunAkademik}): ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(summary.totalDibayar)}`;
 
     let displayUrl = item.resiUrl || '';
     let realLink = item.resiUrl || '#';
     
-    // Jika linknya dari Google Drive, kita ekstrak ID-nya agar bisa ditampilkan sebagai gambar
     if (displayUrl.includes('drive.google.com/file/d/')) {
         const match = displayUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
         if (match) {
@@ -667,7 +678,6 @@ function openAdminDetailModal(id) {
         }
     }
 
-    // Menampilkan gambar dan memastikan link saat diklik terbuka dengan benar
     document.getElementById('modal-resi-img').src = displayUrl;
     document.getElementById('modal-resi-link').href = realLink;
 
@@ -697,7 +707,6 @@ function closeModalReview() {
     activeReviewItem = null;
 }
 
-// UPDATE STATUS KE GOOGLE SHEETS (DENGAN/TANPA EMAIL)
 async function prosesVerifikasi(kirimEmail) {
     if (!activeReviewItem) return;
 
@@ -719,7 +728,7 @@ async function prosesVerifikasi(kirimEmail) {
                 id: item.id,
                 status: newStatus,
                 adminNote: newNote,
-                sendEmail: kirimEmail // <-- Mengirim instruksi ke server apakah harus kirim email atau tidak
+                sendEmail: kirimEmail
             })
         });
 
@@ -756,7 +765,6 @@ function openKwitansiPreview(id) {
 
     activeKwitansiItem = item;
     
-    // Kalkulasi Spesifik untuk TA dari Transaksi Tersebut
     const summary = getStudentPaymentSummary(item.nim, item.tahunAkademik);
 
     document.getElementById('kwitansi-no').innerText = `KW-STAIIS-${item.id}`;
@@ -846,18 +854,17 @@ function terbilang(angka) {
     if (n < 1000000000) return terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000);
     return n.toString();
 }
+
 function formatTanggalWaktu(dateString) {
     if (!dateString || dateString === '-') return '-';
     
     const d = new Date(dateString);
-    if (isNaN(d.getTime())) return dateString; // Kembalikan string asli jika gagal diparse
+    if (isNaN(d.getTime())) return dateString; 
 
-    // Pastikan tanggal dan bulan selalu 2 digit (contoh: 07, 08)
     const day = String(d.getDate()).padStart(2, '0');
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const year = d.getFullYear();
 
-    // Mengembalikan format DD-MM-YYYY
     return `${day}-${month}-${year}`;
 }
 
@@ -868,12 +875,12 @@ window.onload = function() {
     selectTab('form');
     fetchSpreadsheetData(); 
     
-    // Memicu pengecekan ulang histori saat mahasiswa memilih opsi Tagihan TA
     const inputTA = document.getElementById('input-ta');
     if (inputTA) {
         inputTA.addEventListener('change', checkPreviousInstallments);
     }
 };
+
 // ==========================================
 // FITUR ZOOM FLEKSIBEL (PANNING GAMBAR)
 // ==========================================
@@ -881,18 +888,13 @@ function zoomImage(event) {
     const container = document.getElementById('resi-zoom-container');
     const img = document.getElementById('modal-resi-img');
     
-    // 1. Dapatkan dimensi kotak pembungkus
     const rect = container.getBoundingClientRect();
-    
-    // 2. Hitung posisi koordinat X dan Y kursor di dalam kotak
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     
-    // 3. Konversi menjadi persentase (0% - 100%)
     const xPercent = (x / rect.width) * 100;
     const yPercent = (y / rect.height) * 100;
     
-    // 4. Ubah titik fokus zoom agar mengikuti kursor dan perbesar gambar (misal 2.5x)
     img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
     img.style.transform = 'scale(2.5)';
 }
@@ -900,7 +902,6 @@ function zoomImage(event) {
 function resetZoom() {
     const img = document.getElementById('modal-resi-img');
     
-    // Kembalikan ke posisi tengah dan ukuran semula saat kursor keluar
     img.style.transformOrigin = 'center center';
     img.style.transform = 'scale(1)';
 }
