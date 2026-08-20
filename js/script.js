@@ -530,7 +530,7 @@ function filterAdminTable() {
         return matchQuery && matchTA;
     });
 
-    filterAdminTable(filtered);
+    renderAdminTable(filtered);
 }
 
 // ==========================================
