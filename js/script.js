@@ -537,8 +537,6 @@ function renderAngkatanMonitoring() {
         // TAMPILKAN JIKA: Dia wajib bayar, ATAU dia sudah terlanjur menyetor uang di TA tersebut
         return wajibBayar || mhs.summary.totalDibayar > 0;
     });
-    const totalMhs = mappedStudents.length;
-    // ... (sisa kode di bawahnya tetap sama)
 
     const totalMhs = mappedStudents.length;
     const paidMhs = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS').length;
