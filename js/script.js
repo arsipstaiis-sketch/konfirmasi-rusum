@@ -42,7 +42,7 @@ async function fetchSpreadsheetData() {
             ...m,
             nim: String(m.nim)
         }));
-        
+        populateDynamicFilters();
         showToast("Berhasil", "Data berhasil dimuat dari database Google Sheets.");
         
         if (isAdminLoggedIn) {
@@ -53,7 +53,42 @@ async function fetchSpreadsheetData() {
         console.error("Error fetching data:", error);
     }
 }
+// ==========================================
+// PENGISI DROPDOWN DINAMIS (AUTO-POPULATE)
+// ==========================================
+function populateDynamicFilters() {
+    // 1. Ekstrak data unik dan urutkan
+    const uniqueTA = [...new Set(transaksiData.map(item => item.tahunAkademik))].filter(Boolean).sort().reverse();
+    const uniqueAngkatan = [...new Set(mahasiswaMaster.map(item => item.angkatan))].filter(Boolean).sort().reverse();
+    const uniqueTingkatan = [...new Set(mahasiswaMaster.map(item => item.tingkatan))].filter(Boolean);
 
+    // 2. Isi Dropdown Filter TA di Tab Verifikasi Transaksi
+    const filterTaAdmin = document.getElementById('filter-ta-admin');
+    if (filterTaAdmin) {
+        filterTaAdmin.innerHTML = '<option value="Semua">Semua TA</option>' + 
+            uniqueTA.map(ta => `<option value="${ta}">${ta}</option>`).join('');
+    }
+
+    // 3. Isi Dropdown Filter TA di Tab Pemantauan Angkatan
+    const selectTaPemantauan = document.getElementById('ta-select');
+    if (selectTaPemantauan) {
+        selectTaPemantauan.innerHTML = uniqueTA.map(ta => `<option value="${ta}">${ta}</option>`).join('');
+    }
+
+    // 4. Isi Dropdown Angkatan di Tab Pemantauan
+    const selectAngkatan = document.getElementById('angkatan-select');
+    if (selectAngkatan) {
+        selectAngkatan.innerHTML = '<option value="ALL">Semua Angkatan</option>' + 
+            uniqueAngkatan.map(a => `<option value="${a}">${a}</option>`).join('');
+    }
+
+    // 5. Isi Dropdown Tingkatan di Tab Pemantauan
+    const selectTingkatan = document.getElementById('tingkatan-select');
+    if (selectTingkatan) {
+        selectTingkatan.innerHTML = '<option value="ALL">Semua Tingkatan</option>' + 
+            uniqueTingkatan.map(t => `<option value="${t}">${t}</option>`).join('');
+    }
+}
 // ==========================================
 // LOGIKA KALKULASI & CEK MAHASISWA
 // ==========================================
@@ -440,60 +475,52 @@ function renderAdminDashboard() {
 }
 
 function updateAdminStats() {
-    const total = transaksiData.length;
-    const pending = transaksiData.filter(d => d.status === 'Pending').length;
-    const disetujui = transaksiData.filter(d => d.status === 'Disetujui').length;
-    const ditolak = transaksiData.filter(d => d.status === 'Ditolak').length;
+    let total = 0, pending = 0, disetujui = 0, ditolak = 0;
+    let totalUang = 0;
+    
+    // Ambil parameter TA dari dropdown baru
+    const filterTaElement = document.getElementById('filter-ta-admin');
+    const selectedTA = filterTaElement ? filterTaElement.value : 'Semua';
 
-    const totalPenerimaan = transaksiData
-        .filter(d => d.status === 'Disetujui')
-        .reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
+    transaksiData.forEach(item => {
+        // Jika filter bukan 'Semua' dan TA tidak cocok, lewati datanya
+        if (selectedTA !== 'Semua' && item.tahunAkademik !== selectedTA) return;
+
+        total++;
+        if (item.status === 'Pending') pending++;
+        else if (item.status === 'Disetujui') {
+            disetujui++;
+            totalUang += parseFloat(item.nominal) || 0; // Uang bertambah HANYA jika TA cocok
+        }
+        else if (item.status === 'Ditolak') ditolak++;
+    });
 
     document.getElementById('admin-stat-total').innerText = total;
     document.getElementById('admin-stat-pending').innerText = pending;
     document.getElementById('admin-stat-disetujui').innerText = disetujui;
     document.getElementById('admin-stat-ditolak').innerText = ditolak;
-
-    const formattedPenerimaan = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalPenerimaan);
-    document.getElementById('admin-stat-penerimaan').innerText = formattedPenerimaan;
+    document.getElementById('admin-total-uang').innerText = 'Rp ' + totalUang.toLocaleString('id-ID');
 }
 
 function filterAdminTable() {
-    const search = document.getElementById('admin-filter-search').value.toLowerCase();
-    const statusFilter = document.getElementById('admin-filter-status').value;
+    const query = document.getElementById('admin-search').value.toLowerCase();
+    
+    // Ambil parameter TA dari dropdown baru
+    const filterTaElement = document.getElementById('filter-ta-admin');
+    const taFilter = filterTaElement ? filterTaElement.value : 'Semua';
 
-    const filtered = transaksiData.filter(d => {
-        const matchSearch = (d.nama && d.nama.toLowerCase().includes(search)) || (d.nim && d.nim.toLowerCase().includes(search));
-        const matchStatus = statusFilter === 'ALL' || d.status === statusFilter;
-        return matchSearch && matchStatus;
+    const filtered = transaksiData.filter(item => {
+        // Cek pencarian nama/NIM
+        const matchQuery = item.nim.toLowerCase().includes(query) || 
+                           item.nama.toLowerCase().includes(query);
+                           
+        // Cek kesesuaian TA
+        const matchTA = (taFilter === 'Semua') || (item.tahunAkademik === taFilter);
+
+        return matchQuery && matchTA;
     });
 
-    const tbody = document.getElementById('admin-table-body');
-    if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Tidak ada data yang sesuai.</td></tr>`;
-        return;
-    }
-
-    tbody.innerHTML = filtered.map(item => {
-        let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
-        const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
-
-        return `
-            <tr class="hover:bg-slate-50 transition border-b">
-                <td class="p-3.5 font-medium">
-                    <div class="font-bold text-slate-800">${item.nama}</div>
-                    <div class="text-[11px] text-slate-500 font-mono">${item.nim}</div>
-                </td>
-                <td class="p-3.5">${item.prodi}<br><span class="text-[10px] text-emerald-700 font-bold">${item.tingkatan}</span></td>
-                <td class="p-3.5 font-bold text-emerald-800">${formattedNominal}<br><span class="text-[10px] text-slate-500 font-normal">TA ${item.tahunAkademik}</span></td>
-                <td class="p-3.5">${item.bank}<br><span class="text-[10px] text-slate-400">${formatTanggalWaktu(item.tanggal)}</span></td>
-                <td class="p-3.5 text-center"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${badge}">${item.status}</span></td>
-                <td class="p-3.5 text-center">
-                    <button onclick="openAdminDetailModal('${item.id}')" class="px-3 py-1.5 bg-emerald-800 text-white rounded-lg text-xs font-semibold">Tinjau</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
+    renderAdminTable(filtered);
 }
 
 // ==========================================
