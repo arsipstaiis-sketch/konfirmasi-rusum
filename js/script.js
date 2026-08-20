@@ -516,12 +516,12 @@ function renderAngkatanMonitoring() {
         cohortStudents = cohortStudents.filter(m => m.tingkatan === selectedTingkatan);
     }
 
-    // 3. Kalkulasi berdasarkan TA Tagihan & Filter Cuti / Lulus
+    // 3. Kalkulasi berdasarkan TA Tagihan & Filter Cuti / Lulus (Versi Tahun Akhir)
     const mappedStudents = cohortStudents.map(mhs => {
         return { ...mhs, summary: getStudentPaymentSummary(mhs.nim, selectedTA) };
     }).filter(mhs => {
-        // Ambil angka tahun dari TA yang sedang dipantau (Misal "2024/2025" -> 2024)
-        const tahunMulaiTA = parseInt(selectedTA.split('/')[0]);
+        // AMBIL TAHUN AKHIR DARI TA YANG DIPILIH (Misal "2025/2026" -> split menghasilkan angka 2026)
+        const tahunAkhirTA = parseInt(selectedTA.split('/')[1]);
         
         // Ambil parameter tahun keluar (Jika masih aktif, beri batas 2099)
         const batasTahunWajib = parseInt(mhs.tahunKeluar) || 2099;
@@ -531,8 +531,8 @@ function renderAngkatanMonitoring() {
         const sedangCuti = (taCuti === selectedTA);
         
         // MAHASISWA WAJIB BAYAR JIKA:
-        // TA ini terjadi sebelum/pada tahun dia keluar, DAN dia tidak sedang cuti di TA ini.
-        const wajibBayar = (tahunMulaiTA <= batasTahunWajib) && !sedangCuti;
+        // Tahun akhir TA ini terjadi sebelum/pada tahun dia keluar, DAN dia tidak sedang cuti
+        const wajibBayar = (tahunAkhirTA <= batasTahunWajib) && !sedangCuti;
         
         // TAMPILKAN JIKA: Dia wajib bayar, ATAU dia sudah terlanjur menyetor uang di TA tersebut
         return wajibBayar || mhs.summary.totalDibayar > 0;
