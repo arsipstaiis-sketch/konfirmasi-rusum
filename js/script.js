@@ -12,6 +12,8 @@ let activeReviewItem = null;
 let activeKwitansiItem = null;
 let isAdminLoggedIn = false;
 let selectedModalStatus = 'Pending';
+let activeMonitoringMode = 'angkatan'; // 'angkatan' atau 'ta'
+let globalTAAktif = '2025/2026'; // Default, nanti ditimpa dari Spreadsheet
 
 const defaultStatusNotes = {
     'Pending': 'Pembayaran sedang dalam proses verifikasi data dan mutasi rekening.',
@@ -31,7 +33,9 @@ async function fetchSpreadsheetData() {
         if (data.biayaRusum) {
             BIAYA_RUSUM_STANDAR = Number(data.biayaRusum);
         }
-        
+        if (data.taAktif) {
+            globalTAAktif = String(data.taAktif).trim();
+        }
         transaksiData = data.transaksi.map(tx => ({
             ...tx,
             nim: String(tx.nim), 
@@ -56,38 +60,21 @@ async function fetchSpreadsheetData() {
 // ==========================================
 // PENGISI DROPDOWN DINAMIS (AUTO-POPULATE)
 // ==========================================
+// ==========================================
+// PENGISI DROPDOWN DINAMIS (AUTO-POPULATE)
+// ==========================================
 function populateDynamicFilters() {
-    // 1. Ekstrak data unik dan urutkan
+    // 1. Isi Dropdown Filter TA di Tab Verifikasi Transaksi saja
     const uniqueTA = [...new Set(transaksiData.map(item => item.tahunAkademik))].filter(Boolean).sort().reverse();
-    const uniqueAngkatan = [...new Set(mahasiswaMaster.map(item => item.angkatan))].filter(Boolean).sort().reverse();
-    const uniqueTingkatan = [...new Set(mahasiswaMaster.map(item => item.tingkatan))].filter(Boolean);
-
-    // 2. Isi Dropdown Filter TA di Tab Verifikasi Transaksi
+    
     const filterTaAdmin = document.getElementById('filter-ta-admin');
     if (filterTaAdmin) {
         filterTaAdmin.innerHTML = '<option value="Semua">Semua TA</option>' + 
             uniqueTA.map(ta => `<option value="${ta}">${ta}</option>`).join('');
     }
 
-    // 3. Isi Dropdown Filter TA di Tab Pemantauan Angkatan
-    const selectTaPemantauan = document.getElementById('ta-select');
-    if (selectTaPemantauan) {
-        selectTaPemantauan.innerHTML = uniqueTA.map(ta => `<option value="${ta}">${ta}</option>`).join('');
-    }
-
-    // 4. Isi Dropdown Angkatan di Tab Pemantauan
-    const selectAngkatan = document.getElementById('angkatan-select');
-    if (selectAngkatan) {
-        selectAngkatan.innerHTML = '<option value="ALL">Semua Angkatan</option>' + 
-            uniqueAngkatan.map(a => `<option value="${a}">${a}</option>`).join('');
-    }
-
-    // 5. Isi Dropdown Tingkatan di Tab Pemantauan
-    const selectTingkatan = document.getElementById('tingkatan-select');
-    if (selectTingkatan) {
-        selectTingkatan.innerHTML = '<option value="ALL">Semua Tingkatan</option>' + 
-            uniqueTingkatan.map(t => `<option value="${t}">${t}</option>`).join('');
-    }
+    // 2. Render UI Dual Mode Pemantauan Angkatan
+    renderMonitoringFiltersUI();
 }
 // ==========================================
 // LOGIKA KALKULASI & CEK MAHASISWA
@@ -537,19 +524,31 @@ function filterAdminTable() {
 // PEMANTAUAN ANGKATAN (3 FILTER PINTAR)
 // ==========================================
 function renderAngkatanMonitoring() {
-    const selectedAngkatan = document.getElementById('angkatan-select').value;
-    const selectedTingkatan = document.getElementById('tingkatan-select').value;
-    const selectedTA = document.getElementById('ta-select').value;
+    let selectedAngkatan = 'ALL';
+    let selectedTA = globalTAAktif;
+    let selectedTingkatan = 'ALL';
+
+    if (activeMonitoringMode === 'angkatan') {
+        const elAngkatan = document.getElementById('filter-utama-angkatan');
+        const elTA = document.getElementById('filter-cabang-ta');
+        if (elAngkatan) selectedAngkatan = elAngkatan.value;
+        if (elTA) selectedTA = elTA.value;
+    } else {
+        const elTA = document.getElementById('filter-utama-ta');
+        const elTingkatan = document.getElementById('filter-cabang-tingkatan');
+        if (elTA) selectedTA = elTA.value;
+        if (elTingkatan) selectedTingkatan = elTingkatan.value;
+    }
 
     let cohortStudents = mahasiswaMaster;
     
-    // 1. Filter Angkatan (Tahun Masuk)
+    // 1. Filter Angkatan
     if (selectedAngkatan !== 'ALL') {
         cohortStudents = cohortStudents.filter(m => String(m.angkatan) === selectedAngkatan);
     }
     
-    // 2. Filter Tingkatan (Ula, Tsaniyah, dll)
-    if (selectedTingkatan !== 'ALL') {
+    // 2. Filter Tingkatan (Hanya aktif jika di mode TA Berjalan)
+    if (selectedTingkatan && selectedTingkatan !== 'ALL') {
         cohortStudents = cohortStudents.filter(m => m.tingkatan === selectedTingkatan);
     }
 
@@ -967,4 +966,90 @@ function renderAdminTable(data) {
             </tr>
         `;
     }).join('');
+}
+function switchMonitoringMode(mode) {
+    activeMonitoringMode = mode;
+    const btnAngkatan = document.getElementById('mode-btn-angkatan');
+    const btnTA = document.getElementById('mode-btn-ta');
+
+    if (mode === 'angkatan') {
+        btnAngkatan.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-white text-slate-800 shadow-sm transition-all";
+        btnTA.className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 transition-all";
+    } else {
+        btnTA.className = "flex-1 py-2 text-xs font-bold rounded-lg bg-white text-slate-800 shadow-sm transition-all";
+        btnAngkatan.className = "flex-1 py-2 text-xs font-bold rounded-lg text-slate-500 hover:text-slate-800 transition-all";
+    }
+
+    renderMonitoringFiltersUI();
+    renderAngkatanMonitoring();
+}
+
+function renderMonitoringFiltersUI() {
+    const container = document.getElementById('monitoring-filters-container');
+    if (!container) return;
+
+    const uniqueTA = [...new Set(transaksiData.map(item => item.tahunAkademik))].filter(Boolean).sort().reverse();
+    const uniqueAngkatan = [...new Set(mahasiswaMaster.map(item => item.angkatan))].filter(Boolean).sort().reverse();
+    const uniqueTingkatan = [...new Set(mahasiswaMaster.map(item => item.tingkatan))].filter(Boolean);
+
+    if (activeMonitoringMode === 'angkatan') {
+        container.innerHTML = `
+            <div class="flex flex-col sm:flex-row gap-3 w-full">
+                <div class="flex-1">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Filter Utama: Angkatan</label>
+                    <select id="filter-utama-angkatan" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-slate-700">
+                        <option value="ALL">Semua Angkatan</option>
+                        ${uniqueAngkatan.map(a => `<option value="${a}">Angkatan ${a}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Cabang: Pilih Tahun Akademik Riwayat</label>
+                    <select id="filter-cabang-ta" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-emerald-800 bg-emerald-50 border-emerald-200">
+                        ${uniqueTA.map(ta => `<option value="${ta}" ${ta === globalTAAktif ? 'selected' : ''}>TA ${ta}</option>`).join('')}
+                    </select>
+                </div>
+            </div>
+        `;
+    } else {
+        // Mode Berdasarkan Tahun Akademik
+        container.innerHTML = `
+            <div class="flex flex-col sm:flex-row gap-3 w-full items-center">
+                <div class="flex-1">
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Filter Utama: Tahun Akademik</label>
+                    <select id="filter-utama-ta" onchange="onMainTAChanged()" class="form-input font-bold text-emerald-800 bg-emerald-50 border-emerald-200">
+                        ${uniqueTA.map(ta => `<option value="${ta}" ${ta === globalTAAktif ? 'selected' : ''}>TA ${ta}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="flex-1" id="branch-tingkatan-wrapper">
+                    <!-- Cabang tingkatan akan muncul dinamis jika TA yang dipilih adalah TA Berjalan -->
+                </div>
+            </div>
+        `;
+        onMainTAChanged(); // Cek kemunculan cabang tingkatan
+    }
+}
+
+function onMainTAChanged() {
+    const selectedTA = document.getElementById('filter-utama-ta').value;
+    const wrapper = document.getElementById('branch-tingkatan-wrapper');
+    if (!wrapper) return;
+
+    // Cabang tingkatan HANYA MUNCUL jika TA yang dipilih adalah TA Aktif (Berjalan)
+    if (selectedTA === globalTAAktif) {
+        const uniqueTingkatan = [...new Set(mahasiswaMaster.map(item => item.tingkatan))].filter(Boolean);
+        wrapper.innerHTML = `
+            <label class="block text-[10px] font-bold text-rose-600 uppercase mb-1"><i class="fa-solid fa-filter"></i> Cabang Aktif: Filter Tingkatan (${globalTAAktif})</label>
+            <select id="filter-cabang-tingkatan" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-slate-700">
+                <option value="ALL">Semua Tingkatan</option>
+                ${uniqueTingkatan.map(t => `<option value="${t}">${t}</option>`).join('')}
+            </select>
+        `;
+    } else {
+        wrapper.innerHTML = `
+            <div class="text-[11px] text-slate-400 italic pt-4">
+                <i class="fa-solid fa-circle-info"></i> Filter tingkatan disembunyikan (hanya tersedia untuk TA Berjalan: ${globalTAAktif}).
+            </div>
+        `;
+    }
+    renderAngkatanMonitoring();
 }
