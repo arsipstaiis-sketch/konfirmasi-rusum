@@ -440,62 +440,83 @@ function renderAdminDashboard() {
 }
 
 function updateAdminStats() {
-    const total = transaksiData.length;
-    const pending = transaksiData.filter(d => d.status === 'Pending').length;
-    const disetujui = transaksiData.filter(d => d.status === 'Disetujui').length;
-    const ditolak = transaksiData.filter(d => d.status === 'Ditolak').length;
+    let total = 0, pending = 0, disetujui = 0, ditolak = 0;
+    let totalUang = 0;
+    
+    // Ambil parameter TA dari dropdown
+    const selectedTA = document.getElementById('filter-stats-ta').value;
 
-    const totalPenerimaan = transaksiData
-        .filter(d => d.status === 'Disetujui')
-        .reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
+    transactionsData.forEach(item => {
+        // FILTER UTAMA: Jika TA tidak cocok, lewati data ini
+        if (selectedTA !== 'Semua' && item.tahunAkademik !== selectedTA) return;
+
+        total++;
+        if (item.status === 'Pending') pending++;
+        else if (item.status === 'Disetujui') {
+            disetujui++;
+            totalUang += parseFloat(item.nominal) || 0;
+        }
+        else if (item.status === 'Ditolak') ditolak++;
+    });
 
     document.getElementById('admin-stat-total').innerText = total;
     document.getElementById('admin-stat-pending').innerText = pending;
     document.getElementById('admin-stat-disetujui').innerText = disetujui;
     document.getElementById('admin-stat-ditolak').innerText = ditolak;
-
-    const formattedPenerimaan = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalPenerimaan);
-    document.getElementById('admin-stat-penerimaan').innerText = formattedPenerimaan;
+    document.getElementById('admin-total-uang').innerText = 'Rp ' + totalUang.toLocaleString('id-ID');
 }
+// Variabel global penyimpan status filter saat ini
+let currentAdminFilter = 'Semua';
 
+// Fungsi merubah tampilan tombol filter dan memicu pencarian
+function setFilterStatus(status) {
+    currentAdminFilter = status;
+    
+    // Daftar semua status
+    const statuses = ['Semua', 'Pending', 'Disetujui', 'Ditolak'];
+    
+    statuses.forEach(s => {
+        const btn = document.getElementById(`btn-filter-${s}`);
+        if (!btn) return;
+        
+        if (s === status) {
+            // Aktif: Putih & Berbayang
+            btn.classList.add('bg-white', 'shadow-sm', 'text-slate-800');
+            btn.classList.remove('text-slate-500', 'hover:text-slate-700');
+        } else {
+            // Tidak Aktif: Abu-abu menyatu dengan background
+            btn.classList.remove('bg-white', 'shadow-sm', 'text-slate-800');
+            btn.classList.add('text-slate-500', 'hover:text-slate-700');
+        }
+    });
+    
+    // Segarkan tabel sesuai status yang diklik
+    filterAdminTable();
+}
 function filterAdminTable() {
-    const search = document.getElementById('admin-filter-search').value.toLowerCase();
-    const statusFilter = document.getElementById('admin-filter-status').value;
+    const query = document.getElementById('admin-search').value.toLowerCase();
+    const statusFilter = currentAdminFilter; 
+    
+    // Ambil nilai dari dropdown TA
+    const taFilter = document.getElementById('filter-stats-ta').value;
 
-    const filtered = transaksiData.filter(d => {
-        const matchSearch = (d.nama && d.nama.toLowerCase().includes(search)) || (d.nim && d.nim.toLowerCase().includes(search));
-        const matchStatus = statusFilter === 'ALL' || d.status === statusFilter;
-        return matchSearch && matchStatus;
+    const filtered = transactionsData.filter(item => {
+        // 1. Cek Pencarian (Nama / NIM)
+        const matchQuery = item.nim.toLowerCase().includes(query) || 
+                           item.nama.toLowerCase().includes(query);
+        
+        // 2. Cek Status (Segmented Button)
+        const matchStatus = (statusFilter === 'Semua') || (item.status === statusFilter);
+        
+        // 3. Cek Tahun Akademik (Dropdown Master)
+        const matchTA = (taFilter === 'Semua') || (item.tahunAkademik === taFilter);
+
+        // Data hanya tampil jika lolos ketiga syarat di atas
+        return matchQuery && matchStatus && matchTA;
     });
 
-    const tbody = document.getElementById('admin-table-body');
-    if (filtered.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400">Tidak ada data yang sesuai.</td></tr>`;
-        return;
-    }
-
-    tbody.innerHTML = filtered.map(item => {
-        let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
-        const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
-
-        return `
-            <tr class="hover:bg-slate-50 transition border-b">
-                <td class="p-3.5 font-medium">
-                    <div class="font-bold text-slate-800">${item.nama}</div>
-                    <div class="text-[11px] text-slate-500 font-mono">${item.nim}</div>
-                </td>
-                <td class="p-3.5">${item.prodi}<br><span class="text-[10px] text-emerald-700 font-bold">${item.tingkatan}</span></td>
-                <td class="p-3.5 font-bold text-emerald-800">${formattedNominal}<br><span class="text-[10px] text-slate-500 font-normal">TA ${item.tahunAkademik}</span></td>
-                <td class="p-3.5">${item.bank}<br><span class="text-[10px] text-slate-400">${formatTanggalWaktu(item.tanggal)}</span></td>
-                <td class="p-3.5 text-center"><span class="px-2 py-0.5 rounded font-bold text-[10px] ${badge}">${item.status}</span></td>
-                <td class="p-3.5 text-center">
-                    <button onclick="openAdminDetailModal('${item.id}')" class="px-3 py-1.5 bg-emerald-800 text-white rounded-lg text-xs font-semibold">Tinjau</button>
-                </td>
-            </tr>
-        `;
-    }).join('');
+    renderAdminTable(filtered);
 }
-
 // ==========================================
 // PEMANTAUAN ANGKATAN (3 FILTER PINTAR)
 // ==========================================
