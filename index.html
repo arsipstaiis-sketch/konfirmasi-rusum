@@ -132,25 +132,13 @@
                     </div>
 
                     <div class="space-y-4">
-                        <div>
-                            <label for="input-nama" class="form-label">Nama Lengkap Mahasiswa *</label>
-                            <input type="text" id="input-nama" oninput="this.value = toProperCase(this.value)" required placeholder="Nama sesuai KRS / KPM" class="form-input">
-                        </div>
-
+                        <!-- Baris 1: NIM (Kiri) & Tahun Akademik (Kanan) -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="input-nim" class="form-label">Nomor Induk Mahasiswa (NIM) *</label>
-                                <input type="text" id="input-nim" maxlength="11" oninput="this.value = this.value.replace(/[^0-9.]/g, ''); checkPreviousInstallments()" required placeholder="Contoh: 24110412 atau 21.1.1.0412 (sesuai KTM)" class="form-input">
+                                <input type="text" id="input-nim" maxlength="11" oninput="this.value = this.value.replace(/[^0-9.]/g, ''); checkPreviousInstallments()" required placeholder="Contoh: 24110412 atau 21.1.1.0412" class="form-input">
                                 <div id="nim-installment-info" class="hidden mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1"></div>
                             </div>
-                            <div>
-                                <label for="input-email" class="form-label">Email Aktif Mahasiswa *</label>
-                                <input type="email" id="input-email" required placeholder="nama@staiis.ac.id" class="form-input">
-                            </div>
-                        </div>
-
-                        <!-- Baris 1: Tahun Akademik (Kiri) & Tingkatan (Kanan) -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="input-ta" class="form-label">Pembayaran Untuk TA *</label>
                                 <select id="input-ta" required class="form-input">
@@ -160,6 +148,16 @@
                                     <option value="2024/2025">2024/2025</option>
                                 </select>
                             </div>
+                        </div>
+
+                        <!-- Baris 2: Nama (Lebar Penuh) -->
+                        <div>
+                            <label for="input-nama" class="form-label">Nama Lengkap Mahasiswa *</label>
+                            <input type="text" id="input-nama" oninput="this.value = toProperCase(this.value)" required placeholder="Nama sesuai KRS / KPM" class="form-input">
+                        </div>
+
+                        <!-- Baris 3: Tingkatan (Kiri) & Email (Kanan) -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="input-tingkatan" class="form-label">Tingkatan *</label>
                                 <select id="input-tingkatan" required class="form-input">
@@ -170,9 +168,13 @@
                                     <option value="Robiah">Robiah</option>
                                 </select>
                             </div>
+                            <div>
+                                <label for="input-email" class="form-label">Email Aktif Mahasiswa *</label>
+                                <input type="email" id="input-email" required placeholder="nama@staiis.ac.id" class="form-input">
+                            </div>
                         </div>
 
-                        <!-- Baris 2: Program Studi (Pindah ke bawah, lebar penuh) -->
+                        <!-- Baris 4: Program Studi (Lebar Penuh) -->
                         <div>
                             <label for="input-prodi" class="form-label">Program Studi *</label>
                             <select id="input-prodi" required class="form-input">
