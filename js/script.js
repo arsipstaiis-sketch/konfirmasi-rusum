@@ -495,11 +495,21 @@ function updateAdminStats() {
         else if (item.status === 'Ditolak') ditolak++;
     });
 
-    document.getElementById('admin-stat-total').innerText = total;
-    document.getElementById('admin-stat-pending').innerText = pending;
-    document.getElementById('admin-stat-disetujui').innerText = disetujui;
-    document.getElementById('admin-stat-ditolak').innerText = ditolak;
-    document.getElementById('admin-total-uang').innerText = 'Rp ' + totalUang.toLocaleString('id-ID');
+    const elTotal = document.getElementById('admin-stat-total');
+    if (elTotal) elTotal.innerText = total;
+
+    const elPending = document.getElementById('admin-stat-pending');
+    if (elPending) elPending.innerText = pending;
+
+    const elDisetujui = document.getElementById('admin-stat-disetujui');
+    if (elDisetujui) elDisetujui.innerText = disetujui;
+
+    const elDitolak = document.getElementById('admin-stat-ditolak');
+    if (elDitolak) elDitolak.innerText = ditolak;
+
+    // INI YANG DIPERBAIKI: Menggunakan ID 'admin-stat-penerimaan'
+    const elUang = document.getElementById('admin-stat-penerimaan');
+    if (elUang) elUang.innerText = 'Rp ' + totalUang.toLocaleString('id-ID');
 }
 
 function filterAdminTable() {
