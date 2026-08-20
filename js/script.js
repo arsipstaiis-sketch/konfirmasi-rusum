@@ -513,7 +513,7 @@ function updateAdminStats() {
 }
 
 function filterAdminTable() {
-    const query = document.getElementById('admin-search').value.toLowerCase();
+    const query = document.getElementById('admin-filter-search').value.toLowerCase();
     
     // Ambil parameter TA dari dropdown baru
     const filterTaElement = document.getElementById('filter-ta-admin');
