@@ -57,10 +57,7 @@ async function fetchSpreadsheetData() {
         console.error("Error fetching data:", error);
     }
 }
-// ==========================================
-// PENGISI DROPDOWN DINAMIS (AUTO-POPULATE)
-// ==========================================
-// ==========================================
+
 // PENGISI DROPDOWN DINAMIS (AUTO-POPULATE)
 // ==========================================
 function populateDynamicFilters() {
