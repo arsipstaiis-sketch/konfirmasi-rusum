@@ -625,7 +625,7 @@ function openAdminDetailModal(id) {
     if (displayUrl.includes('drive.google.com/file/d/')) {
         const match = displayUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
         if (match) {
-            displayUrl = `https://drive.google.com/uc?export=view&id=${match[1]}`;
+            displayUrl = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
         }
     }
 
