@@ -14,6 +14,7 @@ let isAdminLoggedIn = false;
 let selectedModalStatus = 'Pending';
 let activeMonitoringMode = 'angkatan'; // 'angkatan' atau 'ta'
 let globalTAAktif = '2025/2026'; // Default, nanti ditimpa dari Spreadsheet
+let activeVerifikasiStatusFilter = 'ALL';
 
 const defaultStatusNotes = {
     'Pending': 'Pembayaran sedang dalam proses verifikasi data dan mutasi rekening.',
@@ -495,11 +496,38 @@ function updateAdminStats() {
     const elUang = document.getElementById('admin-stat-penerimaan');
     if (elUang) elUang.innerText = 'Rp ' + totalUang.toLocaleString('id-ID');
 }
+function filterVerifikasiStatus(status) {
+    activeVerifikasiStatusFilter = status;
+    
+    // Perbarui visual tombol status
+    const btnAll = document.getElementById('verif-filter-all');
+    const btnPending = document.getElementById('verif-filter-pending');
+    const btnDisetujui = document.getElementById('verif-filter-disetujui');
+    const btnDitolak = document.getElementById('verif-filter-ditolak');
+    
+    // Reset semua gaya tombol
+    [btnAll, btnPending, btnDisetujui, btnDitolak].forEach(btn => {
+        if (btn) btn.className = "flex-1 sm:flex-none px-3 py-1.5 rounded-md text-slate-600 font-medium hover:text-slate-800 transition";
+    });
 
+    // Beri gaya khusus untuk tombol yang aktif
+    if (status === 'ALL' && btnAll) {
+        btnAll.className = "flex-1 sm:flex-none px-3 py-1.5 rounded-md bg-white shadow font-bold text-slate-800";
+    } else if (status === 'Pending' && btnPending) {
+        btnPending.className = "flex-1 sm:flex-none px-3 py-1.5 rounded-md bg-white shadow font-bold text-amber-600";
+    } else if (status === 'Disetujui' && btnDisetujui) {
+        btnDisetujui.className = "flex-1 sm:flex-none px-3 py-1.5 rounded-md bg-white shadow font-bold text-emerald-600";
+    } else if (status === 'Ditolak' && btnDitolak) {
+        btnDitolak.className = "flex-1 sm:flex-none px-3 py-1.5 rounded-md bg-white shadow font-bold text-rose-600";
+    }
+    
+    // Panggil ulang tabel agar datanya tersaring
+    filterAdminTable();
+}
 function filterAdminTable() {
     const query = document.getElementById('admin-filter-search').value.toLowerCase();
     
-    // Ambil parameter TA dari dropdown baru
+    // Ambil parameter TA dari dropdown admin
     const filterTaElement = document.getElementById('filter-ta-admin');
     const taFilter = filterTaElement ? filterTaElement.value : 'Semua';
 
@@ -510,8 +538,12 @@ function filterAdminTable() {
                            
         // Cek kesesuaian TA
         const matchTA = (taFilter === 'Semua') || (item.tahunAkademik === taFilter);
+        
+        // Cek kesesuaian Status dari tombol Pil baru
+        const matchStatus = (activeVerifikasiStatusFilter === 'ALL') || (item.status === activeVerifikasiStatusFilter);
 
-        return matchQuery && matchTA;
+        // Data akan ditampilkan HANYA jika lolos ketiga syarat di atas
+        return matchQuery && matchTA && matchStatus;
     });
 
     renderAdminTable(filtered);
