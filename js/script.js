@@ -553,21 +553,36 @@ function renderAngkatanMonitoring() {
     const mappedStudents = cohortStudents.map(mhs => {
         return { ...mhs, summary: getStudentPaymentSummary(mhs.nim, selectedTA) };
     }).filter(mhs => {
-        // Ambil angka tahun dari TA yang sedang dipantau (Misal "2024/2025" -> 2024)
         const tahunMulaiTA = parseInt(selectedTA.split('/')[0]);
+        const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
+        const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
         
-        // Ambil parameter tahun keluar (Jika masih aktif, beri batas 2099)
-        const batasTahunWajib = parseInt(mhs.tahunKeluar) || 2099;
-        
-        // Cek apakah TA yang dipantau ini adalah TA saat dia mengambil cuti
+        const statusTingkatan = String(mhs.tingkatan).toLowerCase();
         const taCuti = String(mhs.taCuti || '').trim();
         const sedangCuti = (taCuti === selectedTA);
+
+        let sudahTidakAktif = false;
+
+        // Aturan 1: Cek kolom Tahun Keluar jika Anda mengisinya
+        if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) < tahunMulaiTA) {
+            sudahTidakAktif = true;
+        }
+        // Aturan 2: Sistem membaca kata "Lulus/Keluar" dari kolom Tingkatan
+        else if (['lulus', 'keluar', 'do', 'pindah'].includes(statusTingkatan)) {
+            // Jika memantau TA berjalan (saat ini) atau masa depan, mereka bebas tagihan
+            if (tahunMulaiTA >= tahunAktifStart) {
+                sudahTidakAktif = true;
+            }
+            // Atau jika TA yang dipantau sudah melebihi masa studi 4 tahun mereka
+            else if (tahunMulaiTA >= tahunMasuk + 4) {
+                sudahTidakAktif = true;
+            }
+        }
+
+        // Syarat Wajib Bayar: TA harus >= Tahun Masuk, TIDAK sedang Cuti, dan BELUM Lulus
+        const wajibBayar = (tahunMulaiTA >= tahunMasuk) && !sedangCuti && !sudahTidakAktif;
         
-        // MAHASISWA WAJIB BAYAR JIKA:
-        // TA ini terjadi sebelum/pada tahun dia keluar, DAN dia tidak sedang cuti di TA ini.
-        const wajibBayar = (tahunMulaiTA <= batasTahunWajib) && !sedangCuti;
-        
-        // TAMPILKAN JIKA: Dia wajib bayar, ATAU dia sudah terlanjur menyetor uang di TA tersebut
+        // Tampilkan mhs di tabel jika: Wajib Bayar ATAU (sudah terlanjur menyetor uang)
         return wajibBayar || mhs.summary.totalDibayar > 0;
     });
 
@@ -1028,52 +1043,44 @@ function renderCabangTA(allTA) {
     const wrapper = document.getElementById('cabang-ta-wrapper');
     
     if (angkatanVal === 'ALL') {
-        // Sembunyikan jika "Semua Angkatan" dipilih
         wrapper.innerHTML = `<div class="text-[11px] text-slate-400 italic pt-6">
             <i class="fa-solid fa-circle-info"></i> Pilih angkatan untuk memunculkan riwayat TA.
         </div>`;
         return;
     }
 
-    // 1. Dapatkan tahun masuk
     const angkatanNum = parseInt(angkatanVal);
+    const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
     
-    // 2. Dapatkan batas maksimal tahun keluar (Lulus/Keluar) untuk angkatan ini
+    // Cek apakah SELURUH mahasiswa di angkatan ini sudah 'Lulus' / 'Keluar'
     const mhsAngkatanIni = mahasiswaMaster.filter(m => String(m.angkatan) === angkatanVal);
-    let maxTahunKeluar = 0;
-    let adaYangMasihAktif = false;
-    
-    mhsAngkatanIni.forEach(mhs => {
-        const tk = parseInt(mhs.tahunKeluar);
-        if (tk && tk > maxTahunKeluar) {
-            maxTahunKeluar = tk;
-        } else if (!tk) {
-            // Jika ada mahasiswa yang belum punya tahunKeluar, berarti angkatan ini masih aktif
-            adaYangMasihAktif = true; 
-        }
-    });
-    
-    // Jika masih ada yang aktif, batas akhirnya kita buat tak terhingga (misal 2099)
-    if (adaYangMasihAktif || maxTahunKeluar === 0) {
-        maxTahunKeluar = 2099;
+    const semuaSudahKeluar = mhsAngkatanIni.length > 0 && mhsAngkatanIni.every(m => 
+        ['lulus', 'keluar', 'do', 'pindah'].includes(String(m.tingkatan).toLowerCase())
+    );
+
+    // Tentukan batas atas TA (Defaultnya hingga TA Aktif saat ini)
+    let batasAtasTA = tahunAktifStart; 
+    if (semuaSudahKeluar) {
+        // Jika semuanya sudah lulus, batasnya adalah masa studi 4 tahun akademik (Angkatan + 3)
+        // Contoh: Angkatan 2021 -> TA 2021, 2022, 2023, 2024. Batas maksimalnya 2024.
+        batasAtasTA = angkatanNum + 3;
     }
 
-    // 3. Filter TA agar hanya yang berada di rentang (Tahun Masuk s/d Tahun Keluar)
-    const taRelevan = allTA.filter(ta => {
-        const taStart = parseInt(ta.split('/')[0]); // Tahun awal TA (misal 2024 dari "2024/2025")
-        const taEnd = parseInt(ta.split('/')[1]);   // Tahun akhir TA (misal 2025 dari "2024/2025")
-        
-        // Valid jika: Tahun mulai TA >= Tahun Masuk Angkatan DAN Tahun Akhir TA <= Tahun Keluar
-        return (taStart >= angkatanNum) && (taEnd <= maxTahunKeluar);
+    // Filter TA: Harus >= Tahun Angkatan DAN <= Batas Atas TA
+    let taRelevan = allTA.filter(ta => {
+        const taStart = parseInt(ta.split('/')[0]); 
+        return (taStart >= angkatanNum) && (taStart <= batasAtasTA);
     });
 
-    // Jika filter di atas kosong (misal data tahun keluar kurang rapi), fallback ke minimal >= tahun masuk
-    const finalTA = taRelevan.length > 0 ? taRelevan : allTA.filter(ta => parseInt(ta.split('/')[0]) >= angkatanNum);
+    // Fallback jika data kosong/tidak terduga
+    if (taRelevan.length === 0) {
+        taRelevan = allTA.filter(ta => parseInt(ta.split('/')[0]) >= angkatanNum);
+    }
 
     wrapper.innerHTML = `
         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Cabang: Pilih TA</label>
         <select id="filter-cabang-ta" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-emerald-800 bg-emerald-50 border-emerald-200 shadow-sm cursor-pointer hover:bg-emerald-100 transition">
-            ${finalTA.map(ta => `<option value="${ta}">TA ${ta}</option>`).join('')}
+            ${taRelevan.map(ta => `<option value="${ta}" ${ta === globalTAAktif ? 'selected' : ''}>TA ${ta}</option>`).join('')}
         </select>
     `;
 }
