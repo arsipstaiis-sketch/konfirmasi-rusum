@@ -1009,7 +1009,8 @@ function renderMonitoringFiltersUI() {
             <div class="flex flex-col sm:flex-row gap-3 w-full">
                 <div class="flex-1">
                     <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Filter Utama: Angkatan</label>
-                    <select id="filter-utama-angkatan" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-slate-700">
+                    <!-- PERBAIKAN DI SINI: Tidak lagi memanggil renderMonitoringFiltersUI() saat opsi diganti -->
+                    <select id="filter-utama-angkatan" onchange="renderCabangTA(); renderAngkatanMonitoring()" class="form-input font-bold text-slate-700">
                         <option value="ALL">Semua Angkatan</option>
                         ${uniqueAngkatan.map(a => `<option value="${a}">Angkatan ${a}</option>`).join('')}
                     </select>
@@ -1019,6 +1020,7 @@ function renderMonitoringFiltersUI() {
                 </div>
             </div>
         `;
+        renderCabangTA(); // Panggil tanpa parameter allTA
     } else {
         // Mode Berdasarkan Tahun Akademik
         container.innerHTML = `
@@ -1034,21 +1036,25 @@ function renderMonitoringFiltersUI() {
                 </div>
             </div>
         `;
-        onMainTAChanged(); // Cek kemunculan cabang tingkatan
+        onMainTAChanged();
     }
 }
 // Fungsi pembantu untuk menentukan TA yang relevan
-function renderCabangTA(allTA) {
+function renderCabangTA() {
     const angkatanVal = document.getElementById('filter-utama-angkatan').value;
     const wrapper = document.getElementById('cabang-ta-wrapper');
     
     if (angkatanVal === 'ALL') {
+        // Jika "Semua Angkatan" dipilih, sembunyikan dropdown TA
         wrapper.innerHTML = `<div class="text-[11px] text-slate-400 italic pt-6">
             <i class="fa-solid fa-circle-info"></i> Pilih angkatan untuk memunculkan riwayat TA.
         </div>`;
         return;
     }
 
+    // Ekstrak ulang data TA dari transaksi
+    const allTA = [...new Set(transaksiData.map(item => item.tahunAkademik))].filter(Boolean).sort().reverse();
+    
     const angkatanNum = parseInt(angkatanVal);
     const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
     
@@ -1062,7 +1068,6 @@ function renderCabangTA(allTA) {
     let batasAtasTA = tahunAktifStart; 
     if (semuaSudahKeluar) {
         // Jika semuanya sudah lulus, batasnya adalah masa studi 4 tahun akademik (Angkatan + 3)
-        // Contoh: Angkatan 2021 -> TA 2021, 2022, 2023, 2024. Batas maksimalnya 2024.
         batasAtasTA = angkatanNum + 3;
     }
 
@@ -1078,7 +1083,7 @@ function renderCabangTA(allTA) {
     }
 
     wrapper.innerHTML = `
-        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Cabang: Pilih TA</label>
+        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Cabang: Pilih TA Riwayat</label>
         <select id="filter-cabang-ta" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-emerald-800 bg-emerald-50 border-emerald-200 shadow-sm cursor-pointer hover:bg-emerald-100 transition">
             ${taRelevan.map(ta => `<option value="${ta}" ${ta === globalTAAktif ? 'selected' : ''}>TA ${ta}</option>`).join('')}
         </select>
