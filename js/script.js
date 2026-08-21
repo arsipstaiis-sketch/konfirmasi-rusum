@@ -414,12 +414,11 @@ async function loginAdmin() {
         return;
     }
 
-    // Ubah status tombol menjadi loading
-    btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memverifikasi...</span>`;
+    // Ubah status tombol menjadi loading dengan jarak (space-x-2) yang rapi
+    btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i><span>Memverifikasi...</span>`;
     btnLogin.disabled = true;
 
     try {
-        // Mengirim PIN ke server untuk dicocokkan (Tidak ada lagi PIN di frontend)
         const response = await fetch(SCRIPT_URL + "?action=verifyPin&pin=" + encodeURIComponent(pin));
         const result = await response.json();
 
@@ -435,8 +434,8 @@ async function loginAdmin() {
     } catch (error) {
         showToast("Error", "Gagal menghubungi server. Periksa koneksi Anda.");
     } finally {
-        // Kembalikan tombol seperti semula
-        btnLogin.innerHTML = `Login Panel <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>`;
+        // Kembalikan tombol seperti semula dengan spasi ikon yang proporsional
+        btnLogin.innerHTML = `<span>Login Panel</span><i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>`;
         btnLogin.disabled = false;
     }
 }
