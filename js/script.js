@@ -529,7 +529,7 @@ function renderAngkatanMonitoring() {
         const elAngkatan = document.getElementById('filter-utama-angkatan');
         const elTA = document.getElementById('filter-cabang-ta');
         if (elAngkatan) selectedAngkatan = elAngkatan.value;
-        if (elTA) selectedTA = elTA.value;
+        if (selectedAngkatan !== 'ALL' && elTA) selectedTA = elTA.value;
     } else {
         const elTA = document.getElementById('filter-utama-ta');
         const elTingkatan = document.getElementById('filter-cabang-tingkatan');
@@ -999,11 +999,8 @@ function renderMonitoringFiltersUI() {
                         ${uniqueAngkatan.map(a => `<option value="${a}">Angkatan ${a}</option>`).join('')}
                     </select>
                 </div>
-                <div class="flex-1">
-                    <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Cabang: Pilih Tahun Akademik Riwayat</label>
-                    <select id="filter-cabang-ta" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-emerald-800 bg-emerald-50 border-emerald-200">
-                        ${uniqueTA.map(ta => `<option value="${ta}" ${ta === globalTAAktif ? 'selected' : ''}>TA ${ta}</option>`).join('')}
-                    </select>
+                <div class="flex-1" id="cabang-ta-wrapper">
+                    <!-- Cabang TA akan diisi oleh fungsi di bawah -->
                 </div>
             </div>
         `;
@@ -1025,7 +1022,29 @@ function renderMonitoringFiltersUI() {
         onMainTAChanged(); // Cek kemunculan cabang tingkatan
     }
 }
+function renderCabangTA(allTA) {
+    const angkatanVal = document.getElementById('filter-utama-angkatan').value;
+    const wrapper = document.getElementById('cabang-ta-wrapper');
+    
+    if (angkatanVal === 'ALL') {
+        wrapper.innerHTML = `<p class="text-[11px] text-slate-400 italic pt-6">Pilih angkatan untuk melihat riwayat TA.</p>`;
+        return;
+    }
 
+    // TA yang relevan: mulai dari tahun angkatan (misal angkatan 2024 mulai TA 2024/2025)
+    const angkatanNum = parseInt(angkatanVal);
+    const taRelevan = allTA.filter(ta => {
+        const taStart = parseInt(ta.split('/')[0]);
+        return taStart >= angkatanNum;
+    });
+
+    wrapper.innerHTML = `
+        <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Cabang: Pilih TA</label>
+        <select id="filter-cabang-ta" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-emerald-800 bg-emerald-50 border-emerald-200">
+            ${taRelevan.map(ta => `<option value="${ta}">TA ${ta}</option>`).join('')}
+        </select>
+    `;
+}
 function onMainTAChanged() {
     const selectedTA = document.getElementById('filter-utama-ta').value;
     const wrapper = document.getElementById('branch-tingkatan-wrapper');
