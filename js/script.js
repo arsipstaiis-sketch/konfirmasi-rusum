@@ -402,20 +402,43 @@ function executeStatusSearch() {
 // ==========================================
 // ADMIN DASHBOARD
 // ==========================================
-function loginAdmin() {
+// ==========================================
+// ADMIN DASHBOARD & SECURE LOGIN
+// ==========================================
+async function loginAdmin() {
     const pin = document.getElementById('admin-pin-input').value.trim();
-    if (pin === '1234') {
-        isAdminLoggedIn = true;
-        renderAdminDashboard();
-        showToast("Login Berhasil", "Selamat datang di Panel Admin Keuangan.");
-    } else {
-        showToast("PIN Salah", "Gunakan PIN 1234 untuk login demo admin.");
-    }
-}
+    const btnLogin = document.getElementById('btn-login-admin');
 
-function loginAdminDemo() {
-    document.getElementById('admin-pin-input').value = '1234';
-    loginAdmin();
+    if (!pin) {
+        showToast("Peringatan", "Masukkan PIN terlebih dahulu.");
+        return;
+    }
+
+    // Ubah status tombol menjadi loading
+    btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memverifikasi...</span>`;
+    btnLogin.disabled = true;
+
+    try {
+        // Mengirim PIN ke server untuk dicocokkan (Tidak ada lagi PIN di frontend)
+        const response = await fetch(SCRIPT_URL + "?action=verifyPin&pin=" + encodeURIComponent(pin));
+        const result = await response.json();
+
+        if (result.success) {
+            isAdminLoggedIn = true;
+            document.getElementById('admin-pin-input').value = '';
+            renderAdminDashboard();
+            showToast("Login Berhasil", "Selamat datang di Panel Admin Keuangan.");
+        } else {
+            showToast("Akses Ditolak", "PIN yang Anda masukkan salah.");
+            document.getElementById('admin-pin-input').value = '';
+        }
+    } catch (error) {
+        showToast("Error", "Gagal menghubungi server. Periksa koneksi Anda.");
+    } finally {
+        // Kembalikan tombol seperti semula
+        btnLogin.innerHTML = `Login Panel <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>`;
+        btnLogin.disabled = false;
+    }
 }
 
 function logoutAdmin() {
@@ -934,34 +957,33 @@ window.onload = function() {
     }
 };
 // ==========================================
-// FITUR ZOOM FLEKSIBEL (PANNING GAMBAR)
+// FITUR ZOOM RAMAH MOBILE (TOGGLE)
 // ==========================================
-function zoomImage(event) {
+let isImageZoomed = false;
+
+function toggleMobileZoom() {
     const container = document.getElementById('resi-zoom-container');
     const img = document.getElementById('modal-resi-img');
     
-    // 1. Dapatkan dimensi kotak pembungkus
-    const rect = container.getBoundingClientRect();
+    isImageZoomed = !isImageZoomed;
     
-    // 2. Hitung posisi koordinat X dan Y kursor di dalam kotak
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-    
-    // 3. Konversi menjadi persentase (0% - 100%)
-    const xPercent = (x / rect.width) * 100;
-    const yPercent = (y / rect.height) * 100;
-    
-    // 4. Ubah titik fokus zoom agar mengikuti kursor dan perbesar gambar (misal 2.5x)
-    img.style.transformOrigin = `${xPercent}% ${yPercent}%`;
-    img.style.transform = 'scale(2.5)';
-}
-
-function resetZoom() {
-    const img = document.getElementById('modal-resi-img');
-    
-    // Kembalikan ke posisi tengah dan ukuran semula saat kursor keluar
-    img.style.transformOrigin = 'center center';
-    img.style.transform = 'scale(1)';
+    if (isImageZoomed) {
+        // Saat Di-zoom: Gambar membesar, kursor berubah, dan bisa digeser (scroll) secara natural di HP
+        img.style.transform = 'scale(2.5)';
+        img.style.cursor = 'zoom-out';
+        container.style.overflow = 'auto'; 
+        container.classList.remove('justify-center', 'items-center');
+    } else {
+        // Saat Normal: Kembali ke tengah, tidak bisa di-scroll
+        img.style.transform = 'scale(1)';
+        img.style.cursor = 'zoom-in';
+        container.style.overflow = 'hidden';
+        container.classList.add('justify-center', 'items-center');
+        
+        // Reset posisi scroll ke paling atas/kiri
+        container.scrollTop = 0;
+        container.scrollLeft = 0;
+    }
 }
 // ==========================================
 // RENDER TABEL ADMIN
