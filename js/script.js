@@ -1022,26 +1022,58 @@ function renderMonitoringFiltersUI() {
         onMainTAChanged(); // Cek kemunculan cabang tingkatan
     }
 }
+// Fungsi pembantu untuk menentukan TA yang relevan
 function renderCabangTA(allTA) {
     const angkatanVal = document.getElementById('filter-utama-angkatan').value;
     const wrapper = document.getElementById('cabang-ta-wrapper');
     
     if (angkatanVal === 'ALL') {
-        wrapper.innerHTML = `<p class="text-[11px] text-slate-400 italic pt-6">Pilih angkatan untuk melihat riwayat TA.</p>`;
+        // Sembunyikan jika "Semua Angkatan" dipilih
+        wrapper.innerHTML = `<div class="text-[11px] text-slate-400 italic pt-6">
+            <i class="fa-solid fa-circle-info"></i> Pilih angkatan untuk memunculkan riwayat TA.
+        </div>`;
         return;
     }
 
-    // TA yang relevan: mulai dari tahun angkatan (misal angkatan 2024 mulai TA 2024/2025)
+    // 1. Dapatkan tahun masuk
     const angkatanNum = parseInt(angkatanVal);
-    const taRelevan = allTA.filter(ta => {
-        const taStart = parseInt(ta.split('/')[0]);
-        return taStart >= angkatanNum;
+    
+    // 2. Dapatkan batas maksimal tahun keluar (Lulus/Keluar) untuk angkatan ini
+    const mhsAngkatanIni = mahasiswaMaster.filter(m => String(m.angkatan) === angkatanVal);
+    let maxTahunKeluar = 0;
+    let adaYangMasihAktif = false;
+    
+    mhsAngkatanIni.forEach(mhs => {
+        const tk = parseInt(mhs.tahunKeluar);
+        if (tk && tk > maxTahunKeluar) {
+            maxTahunKeluar = tk;
+        } else if (!tk) {
+            // Jika ada mahasiswa yang belum punya tahunKeluar, berarti angkatan ini masih aktif
+            adaYangMasihAktif = true; 
+        }
     });
+    
+    // Jika masih ada yang aktif, batas akhirnya kita buat tak terhingga (misal 2099)
+    if (adaYangMasihAktif || maxTahunKeluar === 0) {
+        maxTahunKeluar = 2099;
+    }
+
+    // 3. Filter TA agar hanya yang berada di rentang (Tahun Masuk s/d Tahun Keluar)
+    const taRelevan = allTA.filter(ta => {
+        const taStart = parseInt(ta.split('/')[0]); // Tahun awal TA (misal 2024 dari "2024/2025")
+        const taEnd = parseInt(ta.split('/')[1]);   // Tahun akhir TA (misal 2025 dari "2024/2025")
+        
+        // Valid jika: Tahun mulai TA >= Tahun Masuk Angkatan DAN Tahun Akhir TA <= Tahun Keluar
+        return (taStart >= angkatanNum) && (taEnd <= maxTahunKeluar);
+    });
+
+    // Jika filter di atas kosong (misal data tahun keluar kurang rapi), fallback ke minimal >= tahun masuk
+    const finalTA = taRelevan.length > 0 ? taRelevan : allTA.filter(ta => parseInt(ta.split('/')[0]) >= angkatanNum);
 
     wrapper.innerHTML = `
         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Cabang: Pilih TA</label>
-        <select id="filter-cabang-ta" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-emerald-800 bg-emerald-50 border-emerald-200">
-            ${taRelevan.map(ta => `<option value="${ta}">TA ${ta}</option>`).join('')}
+        <select id="filter-cabang-ta" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-emerald-800 bg-emerald-50 border-emerald-200 shadow-sm cursor-pointer hover:bg-emerald-100 transition">
+            ${finalTA.map(ta => `<option value="${ta}">TA ${ta}</option>`).join('')}
         </select>
     `;
 }
