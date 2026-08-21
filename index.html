@@ -261,15 +261,22 @@
 
         <!-- TAB 3: PANEL ADMIN -->
         <section id="tab-content-admin" class="space-y-6 hidden">
-            <div id="admin-login-card" class="max-w-md mx-auto card-main space-y-5">
-                <div class="text-center space-y-1.5">
-                    <div class="w-12 h-12 bg-emerald-900 text-white rounded-2xl flex items-center justify-center mx-auto shadow-md"><i class="fa-solid fa-lock text-lg"></i></div>
-                    <h3 class="text-lg font-bold text-slate-800">Otorisasi Pengelola Keuangan</h3>
+            <div id="admin-login-card" class="max-w-md mx-auto card-main space-y-6 py-10 px-6 sm:px-8">
+                <div class="text-center space-y-3">
+                    <div class="w-14 h-14 bg-emerald-900 text-white rounded-2xl flex items-center justify-center mx-auto shadow-md text-xl">
+                        <i class="fa-solid fa-lock"></i>
+                    </div>
+                    <h3 class="text-lg font-extrabold text-slate-800 tracking-tight">Otorisasi Pengelola Keuangan</h3>
+                    <p class="text-xs text-slate-500">Masukkan PIN rahasia untuk mengakses panel admin.</p>
                 </div>
                 <div class="space-y-4">
-                    <input type="password" id="admin-pin-input" placeholder="Masukkan PIN Admin..." class="...">
-                    <button id="btn-login-admin" onclick="loginAdmin()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 px-4 rounded-xl shadow-md transition">
-                        Login Panel <i class="fa-solid fa-arrow-right-to-bracket ml-2"></i>
+                    <div>
+                        <label for="admin-pin-input" class="form-label">PIN Admin</label>
+                        <input type="password" id="admin-pin-input" placeholder="••••••••" class="form-input text-center text-lg font-mono tracking-widest py-3">
+                    </div>
+                    <button type="button" id="btn-login-admin" onclick="loginAdmin()" class="btn-primary py-3.5 justify-center space-x-2">
+                        <span>Login Panel</span>
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
                     </button>
                 </div>
             </div>
