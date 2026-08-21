@@ -751,8 +751,10 @@ function openAdminDetailModal(id) {
 
     // Menampilkan gambar dan memastikan link saat diklik terbuka dengan benar
     document.getElementById('modal-resi-img').src = displayUrl;
-    document.getElementById('modal-resi-link').href = realLink;
-
+    const resiLink = document.getElementById('modal-resi-link');
+    if (resiLink) {
+        resiLink.href = realLink;
+    }
     selectModalStatus(item.status || 'Pending');
     document.getElementById('modal-review').classList.remove('hidden');
 }
