@@ -423,10 +423,11 @@
                     <p class="text-xs font-bold uppercase">BUKTI RESI</p>
                     
                     <!-- Fitur Zoom Sentuh / Klik -->
-                    <div id="resi-zoom-container" class="bg-slate-100 rounded-xl mb-4 flex justify-center items-center overflow-hidden relative cursor-zoom-in h-64 border border-slate-200" onclick="toggleMobileZoom()">
-                        <img id="modal-resi-img" src="" alt="Bukti Transfer" class="max-h-full object-contain transition-transform duration-300 origin-top-left" style="transform: scale(1);">
-                    </div>
-                    <p class="text-[10px] text-center text-slate-400 italic mb-4"><i class="fa-solid fa-hand-pointer"></i> Ketuk gambar untuk memperbesar / memperkecil</p>
+                    <!-- Fitur Zoom Sentuh / Klik / Geser (Pan) -->
+<div id="resi-zoom-container" class="bg-slate-100 rounded-xl mb-4 flex justify-center items-center overflow-hidden relative cursor-zoom-in h-64 border border-slate-200">
+    <img id="modal-resi-img" src="" alt="Bukti Transfer" class="max-h-full object-contain transition-transform duration-300 origin-top-left pointer-events-none" style="transform: scale(1);">
+</div>
+<p class="text-[10px] text-center text-slate-400 italic mb-4"><i class="fa-solid fa-hand-pointer"></i> Ketuk/Klik gambar untuk zoom. Seret untuk menggeser.</p>
                 </div>
                 <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
                     <div><span class="text-slate-500 text-[10px] uppercase font-bold">NIM & Nama:</span>
