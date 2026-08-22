@@ -949,7 +949,8 @@ function formatTanggalWaktu(dateString) {
 // ==========================================
 window.onload = function() {
     selectTab('form');
-    fetchSpreadsheetData(); 
+    fetchSpreadsheetData();
+    initResiZoomPan();
     
     // Memicu pengecekan ulang histori saat mahasiswa memilih opsi Tagihan TA
     const inputTA = document.getElementById('input-ta');
@@ -958,33 +959,87 @@ window.onload = function() {
     }
 };
 // ==========================================
-// FITUR ZOOM RAMAH MOBILE (TOGGLE)
+// FITUR ZOOM & DRAG-TO-PAN (DESKTOP & MOBILE)
 // ==========================================
 let isImageZoomed = false;
+let isDraggingResi = false;
+let startPanX, startPanY, startScrollLeft, startScrollTop;
+let hasDraggedResi = false;
 
-function toggleMobileZoom() {
+function initResiZoomPan() {
     const container = document.getElementById('resi-zoom-container');
-    const img = document.getElementById('modal-resi-img');
-    
-    isImageZoomed = !isImageZoomed;
-    
-    if (isImageZoomed) {
-        // Saat Di-zoom: Gambar membesar, kursor berubah, dan bisa digeser (scroll) secara natural di HP
-        img.style.transform = 'scale(2.5)';
-        img.style.cursor = 'zoom-out';
-        container.style.overflow = 'auto'; 
-        container.classList.remove('justify-center', 'items-center');
-    } else {
-        // Saat Normal: Kembali ke tengah, tidak bisa di-scroll
-        img.style.transform = 'scale(1)';
-        img.style.cursor = 'zoom-in';
-        container.style.overflow = 'hidden';
-        container.classList.add('justify-center', 'items-center');
+    if (!container) return;
+
+    // 1. Tangani Klik untuk Toggle Zoom (Abaikan jika itu adalah geseran)
+    container.addEventListener('click', (e) => {
+        if (hasDraggedResi) {
+            hasDraggedResi = false; // Reset state drag, jangan lakukan zoom
+            return; 
+        }
         
-        // Reset posisi scroll ke paling atas/kiri
-        container.scrollTop = 0;
-        container.scrollLeft = 0;
-    }
+        const img = document.getElementById('modal-resi-img');
+        isImageZoomed = !isImageZoomed;
+        
+        if (isImageZoomed) {
+            img.style.transform = 'scale(2.5)';
+            container.style.cursor = 'grab'; // Kursor tangan terbuka
+            container.style.overflow = 'auto';
+            container.classList.remove('justify-center', 'items-center');
+            container.classList.add('no-scrollbar'); // Sembunyikan scrollbar bawaan yg jelek
+        } else {
+            img.style.transform = 'scale(1)';
+            container.style.cursor = 'zoom-in';
+            container.style.overflow = 'hidden';
+            container.classList.add('justify-center', 'items-center');
+            container.classList.remove('no-scrollbar');
+            container.scrollTop = 0;
+            container.scrollLeft = 0;
+        }
+    });
+
+    // 2. Tangani Awal Drag (Mousedown)
+    container.addEventListener('mousedown', (e) => {
+        if (!isImageZoomed) return; // Jangan izinkan drag jika belum dizoom
+        isDraggingResi = true;
+        hasDraggedResi = false;
+        container.style.cursor = 'grabbing'; // Kursor tangan mengepal
+        
+        // Simpan koordinat awal
+        startPanX = e.pageX - container.offsetLeft;
+        startPanY = e.pageY - container.offsetTop;
+        startScrollLeft = container.scrollLeft;
+        startScrollTop = container.scrollTop;
+    });
+
+    // 3. Tangani Proses Menggeser (Mousemove)
+    container.addEventListener('mousemove', (e) => {
+        if (!isDraggingResi || !isImageZoomed) return;
+        e.preventDefault(); // Mencegah browser menyorot area teks secara tak sengaja
+
+        const x = e.pageX - container.offsetLeft;
+        const y = e.pageY - container.offsetTop;
+        
+        const walkX = (x - startPanX) * 1.5; // Angka 1.5 adalah kecepatan geser (bisa dinaik-turunkan)
+        const walkY = (y - startPanY) * 1.5;
+
+        // Jika digeser lebih dari 5px, anggap ini drag (bukan klik biasa)
+        if (Math.abs(walkX) > 5 || Math.abs(walkY) > 5) {
+            hasDraggedResi = true;
+        }
+
+        container.scrollLeft = startScrollLeft - walkX;
+        container.scrollTop = startScrollTop - walkY;
+    });
+
+    // 4. Berhenti Drag saat klik dilepas atau mouse keluar area kotak
+    const stopPan = () => {
+        if (isDraggingResi) {
+            isDraggingResi = false;
+            if (isImageZoomed) container.style.cursor = 'grab';
+        }
+    };
+    container.addEventListener('mouseup', stopPan);
+    container.addEventListener('mouseleave', stopPan);
 }
 // ==========================================
 // RENDER TABEL ADMIN
