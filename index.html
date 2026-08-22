@@ -272,7 +272,7 @@
                 <div class="space-y-4">
                     <div>
                         <label for="admin-pin-input" class="form-label">PIN Admin</label>
-                        <input type="password" id="admin-pin-input" placeholder="••••••••" class="form-input text-center text-lg font-mono tracking-widest py-3">
+                        <input type="password" id="admin-pin-input" onkeydown="if(event.key === 'Enter') loginAdmin()" placeholder="••••••••" class="form-input text-center text-lg font-mono tracking-widest py-3">
                     </div>
                     <button type="button" id="btn-login-admin" onclick="loginAdmin()" class="btn-primary py-3.5 justify-center space-x-2">
                         <span>Login Panel</span>
