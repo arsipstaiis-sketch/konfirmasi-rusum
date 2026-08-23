@@ -928,14 +928,22 @@ function formatInputRupiah(input) {
 
 function terbilang(angka) {
     const bil = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
-    let n = Math.floor(angka);
+    let n = Math.floor(Math.abs(angka)); // Memastikan angkanya bulat positif
+    
+    if (n === 0) return "Nol";
     if (n < 12) return bil[n];
     if (n < 20) return terbilang(n - 10) + " Belas";
-    if (n < 100) return terbilang(Math.floor(n / 10)) + " Puluh " + terbilang(n % 10);
-    if (n < 1000) return "Seratus " + terbilang(n - 100);
-    if (n < 2000) return "Seribu " + terbilang(n - 1000);
-    if (n < 1000000) return terbilang(Math.floor(n / 1000)) + " Ribu " + terbilang(n % 1000);
-    if (n < 1000000000) return terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000);
+    if (n < 100) return (terbilang(Math.floor(n / 10)) + " Puluh " + terbilang(n % 10)).trim();
+    
+    // PERBAIKAN DI SINI: Pemisahan antara "Seratus" dan ratusan lainnya (200-999)
+    if (n < 200) return ("Seratus " + terbilang(n - 100)).trim();
+    if (n < 1000) return (terbilang(Math.floor(n / 100)) + " Ratus " + terbilang(n % 100)).trim();
+    
+    if (n < 2000) return ("Seribu " + terbilang(n - 1000)).trim();
+    if (n < 1000000) return (terbilang(Math.floor(n / 1000)) + " Ribu " + terbilang(n % 1000)).trim();
+    if (n < 1000000000) return (terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000)).trim();
+    if (n < 1000000000000) return (terbilang(Math.floor(n / 1000000000)) + " Miliar " + terbilang(n % 1000000000)).trim();
+    
     return n.toString();
 }
 function formatTanggalWaktu(dateString) {
