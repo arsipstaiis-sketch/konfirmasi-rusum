@@ -664,7 +664,16 @@ function renderAngkatanMonitoring() {
     if (activeAngkatanStatusFilter === 'PAID') displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS');
     else if (activeAngkatanStatusFilter === 'PARTIAL') displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'DICICIL');
     else if (activeAngkatanStatusFilter === 'UNPAID') displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'BELUM_BAYAR');
-
+    const searchInputEl = document.getElementById('cohort-search-input');
+    if (searchInputEl) {
+        const query = searchInputEl.value.toLowerCase().trim();
+        if (query) {
+            displayStudents = displayStudents.filter(m => 
+                (m.nama && m.nama.toLowerCase().includes(query)) ||
+                (m.nim && String(m.nim).toLowerCase().includes(query))
+            );
+        }
+    }
     document.getElementById('cohort-table-count').innerText = `${displayStudents.length} Data`;
 
     const tbody = document.getElementById('cohort-table-body');
