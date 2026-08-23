@@ -927,24 +927,28 @@ function formatInputRupiah(input) {
 }
 
 function terbilang(angka) {
-    const bil = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
-    let n = Math.floor(Math.abs(angka)); // Memastikan angkanya bulat positif
+    let nilai = Math.floor(Math.abs(angka));
     
-    if (n === 0) return "Nol";
-    if (n < 12) return bil[n];
-    if (n < 20) return terbilang(n - 10) + " Belas";
-    if (n < 100) return (terbilang(Math.floor(n / 10)) + " Puluh " + terbilang(n % 10)).trim();
-    
-    // PERBAIKAN DI SINI: Pemisahan antara "Seratus" dan ratusan lainnya (200-999)
-    if (n < 200) return ("Seratus " + terbilang(n - 100)).trim();
-    if (n < 1000) return (terbilang(Math.floor(n / 100)) + " Ratus " + terbilang(n % 100)).trim();
-    
-    if (n < 2000) return ("Seribu " + terbilang(n - 1000)).trim();
-    if (n < 1000000) return (terbilang(Math.floor(n / 1000)) + " Ribu " + terbilang(n % 1000)).trim();
-    if (n < 1000000000) return (terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000)).trim();
-    if (n < 1000000000000) return (terbilang(Math.floor(n / 1000000000)) + " Miliar " + terbilang(n % 1000000000)).trim();
-    
-    return n.toString();
+    // Jika dari awal angkanya memang 0 (bukan sisa), maka cetak "Nol"
+    if (nilai === 0) return "Nol";
+
+    // Fungsi inti untuk memproses rekursi (tanpa memunculkan kata "Nol" di tengah kalimat)
+    const proses = (n) => {
+        const bil = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+        if (n < 12) return bil[n];
+        if (n < 20) return proses(n - 10) + " Belas";
+        if (n < 100) return proses(Math.floor(n / 10)) + " Puluh " + proses(n % 10);
+        if (n < 200) return "Seratus " + proses(n - 100);
+        if (n < 1000) return proses(Math.floor(n / 100)) + " Ratus " + proses(n % 100);
+        if (n < 2000) return "Seribu " + proses(n - 1000);
+        if (n < 1000000) return proses(Math.floor(n / 1000)) + " Ribu " + proses(n % 1000);
+        if (n < 1000000000) return proses(Math.floor(n / 1000000)) + " Juta " + proses(n % 1000000);
+        if (n < 1000000000000) return proses(Math.floor(n / 1000000000)) + " Miliar " + proses(n % 1000000000);
+        return n.toString();
+    };
+
+    // Bersihkan spasi ganda yang mungkin terbentuk dari penggabungan kata kosong
+    return proses(nilai).replace(/\s+/g, ' ').trim();
 }
 function formatTanggalWaktu(dateString) {
     if (!dateString || dateString === '-') return '-';
