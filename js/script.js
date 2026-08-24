@@ -741,7 +741,26 @@ function openAdminDetailModal(id) {
     document.getElementById('modal-mhs-tingkatan').innerText = item.tingkatan;
     
     document.getElementById('modal-mhs-nominal').innerText = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal);
-    document.getElementById('modal-mhs-bank').innerText = `${item.bank} (${formatTanggalWaktu(item.tanggal)})`;
+    
+    // ==============================================================
+    // PERBAIKAN: MEMISAHKAN BANK & MENYIAPKAN EDIT TANGGAL
+    // ==============================================================
+    document.getElementById('modal-mhs-bank-name').innerText = item.bank || '-';
+    document.getElementById('modal-mhs-date-text').innerText = formatTanggalWaktu(item.tanggal);
+
+    // Mengonversi tanggal dari database ke format YYYY-MM-DD untuk input
+    const tgl = new Date(item.tanggal);
+    if (!isNaN(tgl.getTime())) {
+        const yyyy = tgl.getFullYear();
+        const mm = String(tgl.getMonth() + 1).padStart(2, '0');
+        const dd = String(tgl.getDate()).padStart(2, '0');
+        document.getElementById('modal-edit-tanggal').value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    // Mereset tampilan agar selalu kembali ke mode teks (bukan input) saat modal baru dibuka
+    document.getElementById('modal-mhs-date-text').classList.remove('hidden');
+    document.getElementById('modal-edit-tanggal').classList.add('hidden');
+    // ==============================================================
 
     // Kalkulasi Khusus sesuai TA pada form
     const summary = getStudentPaymentSummary(item.nim, item.tahunAkademik);
@@ -764,6 +783,7 @@ function openAdminDetailModal(id) {
     if (resiLink) {
         resiLink.href = realLink;
     }
+    
     selectModalStatus(item.status || 'Pending');
     document.getElementById('modal-review').classList.remove('hidden');
 }
@@ -789,7 +809,33 @@ function closeModalReview() {
     document.getElementById('modal-review').classList.add('hidden');
     activeReviewItem = null;
 }
+function toggleEditTanggal() {
+    const textEl = document.getElementById('modal-mhs-date-text');
+    const inputEl = document.getElementById('modal-edit-tanggal');
+    
+    if (inputEl.classList.contains('hidden')) {
+        // Tampilkan input, sembunyikan teks
+        textEl.classList.add('hidden');
+        inputEl.classList.remove('hidden');
+        inputEl.focus();
+        try { inputEl.showPicker(); } catch(e) {} // Otomatis buka kalender (jika browser mendukung)
+    } else {
+        // Kembalikan ke teks
+        textEl.classList.remove('hidden');
+        inputEl.classList.add('hidden');
+    }
+}
 
+function applyEditTanggal() {
+    const inputEl = document.getElementById('modal-edit-tanggal');
+    const textEl = document.getElementById('modal-mhs-date-text');
+    
+    // Perbarui teks visual saat admin memilih tanggal baru
+    if (inputEl.value) {
+        textEl.innerText = formatTanggalWaktu(inputEl.value);
+    }
+    toggleEditTanggal(); // Sembunyikan kembali inputnya setelah memilih
+}
 // UPDATE STATUS KE GOOGLE SHEETS (DENGAN/TANPA EMAIL)
 async function prosesVerifikasi(kirimEmail) {
     if (!activeReviewItem) return;
@@ -797,6 +843,9 @@ async function prosesVerifikasi(kirimEmail) {
     const item = activeReviewItem;
     const newStatus = selectedModalStatus;
     const newNote = document.getElementById('modal-admin-note').value.trim();
+    
+    // MENGAMBIL NILAI TANGGAL BARU (JIKA DIEDIT)
+    const newTanggal = document.getElementById('modal-edit-tanggal').value;
 
     if (kirimEmail) {
         showToast("Memproses", "Menyimpan data dan mengirim email ke mahasiswa...");
@@ -812,7 +861,8 @@ async function prosesVerifikasi(kirimEmail) {
                 id: item.id,
                 status: newStatus,
                 adminNote: newNote,
-                sendEmail: kirimEmail // <-- Mengirim instruksi ke server apakah harus kirim email atau tidak
+                tanggalBaru: newTanggal, // <-- Parameter baru dikirim ke server
+                sendEmail: kirimEmail 
             })
         });
 
@@ -821,6 +871,11 @@ async function prosesVerifikasi(kirimEmail) {
         if (result.success) {
             item.status = newStatus;
             item.adminNote = newNote;
+            
+            // PERBARUI TANGGAL DI MEMORI APLIKASI WEB
+            if (newTanggal) {
+                item.tanggal = newTanggal;
+            }
 
             updateAdminStats();
             filterAdminTable();
