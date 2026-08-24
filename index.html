@@ -435,13 +435,12 @@
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2">
                     <p class="text-xs font-bold uppercase">BUKTI RESI</p>
-                    
-                    <!-- Fitur Zoom Sentuh / Klik -->
+                
                     <!-- Fitur Zoom Sentuh / Klik / Geser (Pan) -->
-<div id="resi-zoom-container" class="bg-slate-100 rounded-xl mb-4 flex justify-center items-center overflow-hidden relative cursor-zoom-in h-64 border border-slate-200">
-    <img id="modal-resi-img" src="" alt="Bukti Transfer" class="max-h-full object-contain transition-transform duration-300 origin-top-left pointer-events-none" style="transform: scale(1);">
-</div>
-<p class="text-[10px] text-center text-slate-400 italic mb-4"><i class="fa-solid fa-hand-pointer"></i> Ketuk/Klik gambar untuk zoom. Seret untuk menggeser.</p>
+                <div id="resi-zoom-container" class="bg-slate-100 rounded-xl mb-4 flex justify-center items-center overflow-hidden relative cursor-zoom-in h-64 border border-slate-200">
+                    <img id="modal-resi-img" src="" alt="Bukti Transfer" class="max-h-full object-contain transition-transform duration-300 origin-top-left pointer-events-none" style="transform: scale(1);">
+                </div>
+                <p class="text-[10px] text-center text-slate-400 italic mb-4"><i class="fa-solid fa-hand-pointer"></i> Ketuk/Klik gambar untuk zoom. Seret untuk menggeser.</p>
                 </div>
                 <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
                     <div><span class="text-slate-500 text-[10px] uppercase font-bold">NIM & Nama:</span>
@@ -450,8 +449,27 @@
                     <div><span class="text-slate-500 text-[10px] uppercase font-bold">Email / Prodi / Tingkat:</span>
                         <p id="modal-mhs-email"></p><p id="modal-mhs-prodi"></p><p id="modal-mhs-tingkatan"></p>
                     </div>
-                    <div><span class="text-slate-500 text-[10px] uppercase font-bold">Setoran:</span>
-                        <p id="modal-mhs-nominal" class="font-black text-emerald-700 text-sm"></p><p id="modal-mhs-bank"></p>
+                    <!-- Bagian Setoran & Bank -->
+                    <div>
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Setoran:</span>
+                        <div class="text-emerald-700 font-bold text-base" id="modal-mhs-nominal"></div>
+                        <div class="text-xs text-slate-600 flex items-center space-x-1.5 mt-0.5">
+                            <span id="modal-mhs-bank-name"></span>
+                            <span class="text-slate-400">(</span>
+                            
+                            <!-- Teks Tanggal Asli -->
+                            <span id="modal-mhs-date-text" class="font-medium text-slate-700"></span>
+                            
+                            <!-- Input Tanggal (Sembunyi by Default) -->
+                            <input type="date" id="modal-edit-tanggal" onchange="applyEditTanggal()" class="hidden text-[11px] border border-emerald-300 rounded px-1 py-0.5 outline-none focus:ring-1 focus:ring-emerald-500 bg-emerald-50 text-emerald-800">
+                            
+                            <span class="text-slate-400">)</span>
+                            
+                            <!-- Tombol Edit Ikon Pensil -->
+                            <button type="button" onclick="toggleEditTanggal()" class="text-slate-300 hover:text-emerald-600 transition p-1 rounded-md hover:bg-emerald-50" title="Edit Tanggal">
+                                <i class="fa-solid fa-pen text-[10px]"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="bg-emerald-100/50 p-2 rounded-lg">
                         <span class="text-emerald-900 text-[10px] uppercase font-bold">Kalkulasi:</span>
