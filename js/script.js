@@ -611,7 +611,8 @@ function renderAngkatanMonitoring() {
         const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
         const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
         
-        const statusTingkatan = String(mhs.tingkatan).toLowerCase();
+        // PERBAIKAN: Baca dari kolom status
+        const statusMhs = String(mhs.status || '').toLowerCase();
         const taCuti = String(mhs.taCuti || '').trim();
         const sedangCuti = (taCuti === selectedTA);
 
@@ -621,8 +622,8 @@ function renderAngkatanMonitoring() {
         if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) < tahunMulaiTA) {
             sudahTidakAktif = true;
         }
-        // Aturan 2: Sistem membaca kata "Lulus/Keluar" dari kolom Tingkatan
-        else if (['lulus', 'keluar', 'do', 'pindah'].includes(statusTingkatan)) {
+        // Aturan 2: Sistem membaca kata "Lulus/Keluar" dari kolom Status
+        else if (['lulus', 'keluar', 'do', 'pindah'].includes(statusMhs)) {
             // Jika memantau TA berjalan (saat ini) atau masa depan, mereka bebas tagihan
             if (tahunMulaiTA >= tahunAktifStart) {
                 sudahTidakAktif = true;
@@ -1191,8 +1192,9 @@ function renderCabangTA() {
     
     // Cek apakah SELURUH mahasiswa di angkatan ini sudah 'Lulus' / 'Keluar'
     const mhsAngkatanIni = mahasiswaMaster.filter(m => String(m.angkatan) === angkatanVal);
+   // PERBAIKAN: Cek kelulusan dari m.status, bukan m.tingkatan
     const semuaSudahKeluar = mhsAngkatanIni.length > 0 && mhsAngkatanIni.every(m => 
-        ['lulus', 'keluar', 'do', 'pindah'].includes(String(m.tingkatan).toLowerCase())
+        ['lulus', 'keluar', 'do', 'pindah'].includes(String(m.status || '').toLowerCase())
     );
 
     // Tentukan batas atas TA (Defaultnya hingga TA Aktif saat ini)
