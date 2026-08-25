@@ -595,6 +595,13 @@ function renderAngkatanMonitoring() {
         if (elTingkatan) selectedTingkatan = elTingkatan.value;
     }
 
+    // -------------------------------------------------------------
+    // KONDISI BARU: Tampilkan Tingkatan HANYA di mode TA Aktif
+    // -------------------------------------------------------------
+    const isModeTAActive = (activeMonitoringMode !== 'angkatan');
+    const showTingkatan = isModeTAActive && (selectedTA === globalTAAktif);
+    // -------------------------------------------------------------
+
     let cohortStudents = mahasiswaMaster;
     
     // 1. Filter Angkatan
@@ -669,6 +676,7 @@ function renderAngkatanMonitoring() {
     if (activeAngkatanStatusFilter === 'PAID') displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS');
     else if (activeAngkatanStatusFilter === 'PARTIAL') displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'DICICIL');
     else if (activeAngkatanStatusFilter === 'UNPAID') displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'BELUM_BAYAR');
+    
     const searchInputEl = document.getElementById('cohort-search-input');
     if (searchInputEl) {
         const query = searchInputEl.value.toLowerCase().trim();
@@ -699,7 +707,13 @@ function renderAngkatanMonitoring() {
                 <td class="p-3 font-medium">
                     <div class="font-bold">${mhs.nama}</div><div class="text-[11px] text-slate-500">${mhs.nim}</div>
                 </td>
-                <td class="p-3 text-[11px]">${mhs.prodi}<br>Angkatan ${mhs.angkatan} &bull; ${mhs.tingkatan}</td>
+                
+                <!-- PERUBAHAN DI SINI: TINGKATAN MUNCUL BERSYARAT -->
+                <td class="p-3 text-[11px]">
+                    ${mhs.prodi}<br>
+                    Angkatan ${mhs.angkatan}${showTingkatan ? ` &bull; ${mhs.tingkatan}` : ''}
+                </td>
+                
                 <td class="p-3 font-bold">${formattedTotal}</td>
                 <td class="p-3 font-bold text-rose-700">${formattedSisa}</td>
                 <td class="p-3 text-center">${statusBadge}</td>
@@ -707,7 +721,6 @@ function renderAngkatanMonitoring() {
         `;
     }).join('');
 }
-
 function filterAngkatanStatus(status) {
     activeAngkatanStatusFilter = status;
     
