@@ -1243,31 +1243,27 @@ function renderCabangTA() {
         return;
     }
 
-    const angkatanNum = parseInt(angkatanVal);
-    const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
-    
-    // SENSOR MASA DEPAN: Cek adakah transaksi yang TA-nya lebih tinggi dari TA Aktif saat ini
-    const allTxYears = transaksiData.map(t => parseInt((t.tahunAkademik || '').split('/')[0])).filter(n => !isNaN(n));
-    const maxTxYear = allTxYears.length > 0 ? Math.max(...allTxYears) : tahunAktifStart;
-
-    // Batas atas adalah yang paling tinggi antara TA Aktif atau data transaksi tertinggi
-    let batasAtasTA = Math.max(tahunAktifStart, maxTxYear); 
-    
-    // Cek apakah SELURUH mahasiswa di angkatan ini sudah lulus / keluar / non-aktif
+    // 1. Kumpulkan semua NIM dari angkatan yang dipilih
     const mhsAngkatanIni = mahasiswaMaster.filter(m => String(m.angkatan) === angkatanVal);
-    const semuaSudahKeluar = mhsAngkatanIni.length > 0 && mhsAngkatanIni.every(m => 
-        ['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(String(m.status || '').toLowerCase())
-    );
+    const nimAngkatanIni = mhsAngkatanIni.map(m => m.nim);
 
-    if (semuaSudahKeluar) {
-        // Jika semuanya sudah lulus/keluar, batasnya dikunci di masa studi maksimal 4 tahun (Angkatan + 3)
-        batasAtasTA = angkatanNum + 3;
-    }
+    // 2. Saring transaksi HANYA milik mahasiswa di angkatan tersebut
+    const txAngkatanIni = transaksiData.filter(tx => nimAngkatanIni.includes(tx.nim));
 
-    // GENERATE LIST TA SECARA OTOMATIS DARI BATAS ATAS HINGGA TAHUN ANGKATAN
-    let taRelevan = [];
-    for (let thn = batasAtasTA; thn >= angkatanNum; thn--) {
-        taRelevan.push(`${thn}/${thn + 1}`);
+    // 3. Ekstrak TA unik dari transaksi yang tersaring
+    let taRelevan = [...new Set(txAngkatanIni.map(item => item.tahunAkademik))]
+        .filter(Boolean)
+        .sort()
+        .reverse();
+
+    // 4. Jika belum ada data transaksi sama sekali untuk angkatan ini
+    if (taRelevan.length === 0) {
+        wrapper.innerHTML = `
+            <div class="text-[11px] text-rose-500 italic pt-6 font-semibold">
+                <i class="fa-solid fa-circle-info"></i> Belum ada data transaksi untuk angkatan ini.
+            </div>
+        `;
+        return;
     }
 
     wrapper.innerHTML = `
