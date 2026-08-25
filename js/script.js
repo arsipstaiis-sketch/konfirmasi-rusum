@@ -36,6 +36,10 @@ async function fetchSpreadsheetData() {
         }
         if (data.taAktif) {
             globalTAAktif = String(data.taAktif).trim();
+            const badgeTA = document.getElementById('display-ta-aktif');
+            if (badgeTA) {
+                badgeTA.innerText = globalTAAktif;
+            }
         }
         transaksiData = data.transaksi.map(tx => ({
             ...tx,
@@ -1239,35 +1243,31 @@ function renderCabangTA() {
         return;
     }
 
-    // Ekstrak ulang data TA dari transaksi
-    const allTA = [...new Set(transaksiData.map(item => item.tahunAkademik))].filter(Boolean).sort().reverse();
-    
     const angkatanNum = parseInt(angkatanVal);
     const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
     
-    // Cek apakah SELURUH mahasiswa di angkatan ini sudah 'Lulus' / 'Keluar'
+    // SENSOR MASA DEPAN: Cek adakah transaksi yang TA-nya lebih tinggi dari TA Aktif saat ini
+    const allTxYears = transaksiData.map(t => parseInt((t.tahunAkademik || '').split('/')[0])).filter(n => !isNaN(n));
+    const maxTxYear = allTxYears.length > 0 ? Math.max(...allTxYears) : tahunAktifStart;
+
+    // Batas atas adalah yang paling tinggi antara TA Aktif atau data transaksi tertinggi
+    let batasAtasTA = Math.max(tahunAktifStart, maxTxYear); 
+    
+    // Cek apakah SELURUH mahasiswa di angkatan ini sudah lulus / keluar / non-aktif
     const mhsAngkatanIni = mahasiswaMaster.filter(m => String(m.angkatan) === angkatanVal);
-   // PERBAIKAN: Cek kelulusan dari m.status, bukan m.tingkatan
     const semuaSudahKeluar = mhsAngkatanIni.length > 0 && mhsAngkatanIni.every(m => 
-        ['lulus', 'keluar', 'do', 'pindah'].includes(String(m.status || '').toLowerCase())
+        ['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(String(m.status || '').toLowerCase())
     );
 
-    // Tentukan batas atas TA (Defaultnya hingga TA Aktif saat ini)
-    let batasAtasTA = tahunAktifStart; 
     if (semuaSudahKeluar) {
-        // Jika semuanya sudah lulus, batasnya adalah masa studi 4 tahun akademik (Angkatan + 3)
+        // Jika semuanya sudah lulus/keluar, batasnya dikunci di masa studi maksimal 4 tahun (Angkatan + 3)
         batasAtasTA = angkatanNum + 3;
     }
 
-    // Filter TA: Harus >= Tahun Angkatan DAN <= Batas Atas TA
-    let taRelevan = allTA.filter(ta => {
-        const taStart = parseInt(ta.split('/')[0]); 
-        return (taStart >= angkatanNum) && (taStart <= batasAtasTA);
-    });
-
-    // Fallback jika data kosong/tidak terduga
-    if (taRelevan.length === 0) {
-        taRelevan = allTA.filter(ta => parseInt(ta.split('/')[0]) >= angkatanNum);
+    // GENERATE LIST TA SECARA OTOMATIS DARI BATAS ATAS HINGGA TAHUN ANGKATAN
+    let taRelevan = [];
+    for (let thn = batasAtasTA; thn >= angkatanNum; thn--) {
+        taRelevan.push(`${thn}/${thn + 1}`);
     }
 
     wrapper.innerHTML = `
