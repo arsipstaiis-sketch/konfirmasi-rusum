@@ -623,7 +623,7 @@ function renderAngkatanMonitoring() {
             sudahTidakAktif = true;
         }
         // Aturan 2: Sistem membaca kata "Lulus/Keluar" dari kolom Status
-        else if (['lulus', 'keluar', 'do', 'pindah'].includes(statusMhs)) {
+        else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusMhs)) {
             // Jika memantau TA berjalan (saat ini) atau masa depan, mereka bebas tagihan
             if (tahunMulaiTA >= tahunAktifStart) {
                 sudahTidakAktif = true;
@@ -1284,6 +1284,26 @@ function onMainTAChanged() {
 
     // Cabang tingkatan HANYA MUNCUL jika TA yang dipilih adalah TA Aktif (Berjalan)
     if (selectedTA === globalTAAktif) {
+        const tahunMulaiTA = parseInt(globalTAAktif.split('/')[0]);
+        
+        // 1. Saring mahasiswa yang berstatus WAJIB BAYAR pada TA Aktif ini
+        const mhsWajibBayar = mahasiswaMaster.filter(mhs => {
+            const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
+            const statusMhs = String(mhs.status || '').toLowerCase();
+            const taCuti = String(mhs.taCuti || '').trim();
+            const sedangCuti = (taCuti === globalTAAktif);
+            
+            let sudahTidakAktif = false;
+            if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) < tahunMulaiTA) {
+                sudahTidakAktif = true;
+            }
+            // Memasukkan 'non-aktif' agar kelas Tamhidi tidak masuk tagihan
+            else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusMhs)) {
+                sudahTidakAktif = true; 
+            }
+            
+            return (tahunMulaiTA >= tahunMasuk) && !sedangCuti && !sudahTidakAktif;
+        });
         const uniqueTingkatan = [...new Set(mahasiswaMaster.map(item => item.tingkatan))].filter(Boolean);
         wrapper.innerHTML = `
             <label class="block text-[10px] font-bold text-rose-600 uppercase mb-1"><i class="fa-solid fa-filter"></i> Cabang Aktif: Filter Tingkatan (${globalTAAktif})</label>
