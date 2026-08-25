@@ -1298,22 +1298,39 @@ function onMainTAChanged() {
         // 1. Saring mahasiswa yang berstatus WAJIB BAYAR pada TA Aktif ini
         const mhsWajibBayar = mahasiswaMaster.filter(mhs => {
             const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
+            
+            // Ambil data status dan tingkatan dengan huruf kecil semua agar mudah dicek
             const statusMhs = String(mhs.status || '').toLowerCase();
+            const tingkatanMhs = String(mhs.tingkatan || '').toLowerCase();
+            
             const taCuti = String(mhs.taCuti || '').trim();
             const sedangCuti = (taCuti === globalTAAktif);
             
             let sudahTidakAktif = false;
+            
+            // Cek 1: Berdasarkan Tahun Keluar
             if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) < tahunMulaiTA) {
                 sudahTidakAktif = true;
             }
-            // Memasukkan 'non-aktif' agar kelas Tamhidi tidak masuk tagihan
+            // Cek 2: Berdasarkan Status (Lulus, Keluar, Non-Aktif, dll)
             else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusMhs)) {
                 sudahTidakAktif = true; 
+            }
+            // Cek 3: Blokir tingkatan Tamhidi dan Lulus
+            if (['tamhidi', 'lulus'].includes(tingkatanMhs)) {
+                sudahTidakAktif = true;
             }
             
             return (tahunMulaiTA >= tahunMasuk) && !sedangCuti && !sudahTidakAktif;
         });
-        const uniqueTingkatan = [...new Set(mahasiswaMaster.map(item => item.tingkatan))].filter(Boolean);
+
+        // 2. Ambil Tingkatan HANYA dari mahasiswa yang lolos saringan (mhsWajibBayar)
+        // LALU blokir paksa kata "Tamhidi" dan "Lulus" (Kunci Ganda)
+        const forbiddenOptions = ['tamhidi', 'lulus'];
+        const uniqueTingkatan = [...new Set(mhsWajibBayar.map(item => item.tingkatan))]
+            .filter(Boolean)
+            .filter(t => !forbiddenOptions.includes(String(t).toLowerCase()));
+        
         wrapper.innerHTML = `
             <label class="block text-[10px] font-bold text-rose-600 uppercase mb-1"><i class="fa-solid fa-filter"></i> Cabang Aktif: Filter Tingkatan (${globalTAAktif})</label>
             <select id="filter-cabang-tingkatan" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-slate-700">
