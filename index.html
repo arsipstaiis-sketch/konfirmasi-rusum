@@ -70,11 +70,16 @@
                     <h1 class="text-base sm:text-lg lg:text-xl font-bold tracking-tight text-white leading-tight">STAI Imam Syafi'i Cianjur</h1>
                     <p class="text-[10px] sm:text-xs text-emerald-200 font-medium mb-1.5">Sistem Pembayaran & Angsuran Rusum Tahunan</p>
                     
-                    <!-- Badge Pengingat TA Aktif (Mencolok, Simpel, LED Berkedip) -->
+                    <!-- Badge Pengingat TA Aktif (Mencolok, Simpel, LED Glow) -->
                     <div class="inline-flex items-center space-x-2 w-max px-3 py-1.5 border border-emerald-400 rounded-lg bg-black/15 shadow-[0_0_10px_rgba(52,211,153,0.25)] mt-0.5">
                         
-                        <!-- Efek Lampu LED Merah (Lebih Kecil & Berkedip Meredup) -->
-                        <span class="inline-block h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_6px_#ef4444] animate-pulse"></span>
+                        <!-- Efek Lampu LED Merah (Dengan Glow Aura) -->
+                        <span class="relative flex h-1.5 w-1.5 items-center justify-center">
+                            <!-- Aura Glow (Pendaran cahaya yang lebih lebar dan berkedip) -->
+                            <span class="absolute inline-flex h-full w-full rounded-full bg-red-500 shadow-[0_0_8px_3px_#ef4444] opacity-80 animate-pulse"></span>
+                            <!-- Inti Lampu (Warna lebih terang) -->
+                            <span class="relative inline-flex h-1.5 w-1.5 rounded-full bg-red-400"></span>
+                        </span>
                         
                         <!-- Teks dengan Kontras Tinggi -->
                         <span class="text-[10px] font-extrabold text-emerald-100 uppercase tracking-widest">
