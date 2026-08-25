@@ -51,41 +51,52 @@
 
 <body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col justify-between antialiased">
 
-    <!-- Navigation Bar -->
     <header class="bg-emerald-900 text-white shadow-md sticky top-0 z-40 border-b border-emerald-800">
-        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center justify-between h-20">
-                <div class="flex items-center space-x-3.5">
-                    <div class="w-12 h-12 bg-white rounded-full p-1 flex items-center justify-center shadow-md shrink-0 overflow-hidden">
-                        <img src="assets/logo.png" alt="Logo STAIIS" class="w-full h-full object-contain">
-                    </div>
-                    <div>
-                        <h1 class="text-base sm:text-lg font-bold tracking-tight text-white leading-tight">STAI Imam Syafi'i Cianjur</h1>
-                        <p class="text-xs text-emerald-200 font-medium">Sistem Pembayaran & Angsuran Rusum Tahunan</p>
+    <!-- Diperlebar menjadi max-w-7xl -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Diubah menjadi h-auto py-4 agar elemen vertikal tidak terpotong -->
+        <div class="flex items-center justify-between h-auto py-4">
+            
+            <!-- BAGIAN KIRI: Logo, Judul, Subjudul, dan Badge TA -->
+            <div class="flex items-center space-x-4">
+                
+                <!-- Logo (Diperbesar) -->
+                <div class="w-14 h-14 sm:w-16 sm:h-16 bg-white rounded-full p-1 flex items-center justify-center shadow-md shrink-0 overflow-hidden">
+                    <img src="assets/logo.png" alt="Logo STAIIS" class="w-full h-full object-contain">
+                </div>
+                
+                <!-- Teks & Badge Disusun Vertikal -->
+                <div class="flex flex-col justify-center">
+                    <h1 class="text-base sm:text-lg lg:text-xl font-bold tracking-tight text-white leading-tight">STAI Imam Syafi'i Cianjur</h1>
+                    <p class="text-[10px] sm:text-xs text-emerald-200 font-medium mb-1.5">Sistem Pembayaran & Angsuran Rusum Tahunan</p>
+                    
+                    <!-- Badge Pengingat TA Aktif (Desain Baru) -->
+                    <div class="inline-flex items-center space-x-2 w-max px-2.5 py-1 border border-emerald-500/60 rounded-md bg-emerald-800/50 shadow-sm">
+                        <!-- Titik Lampu Hijau -->
+                        <span class="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_5px_#4ade80] animate-pulse"></span>
+                        <span class="text-[9px] font-bold text-emerald-100 uppercase tracking-wider">
+                            TA Aktif: <span id="display-ta-aktif">Memuat...</span>
+                        </span>
                     </div>
                 </div>
-                <!-- Badge Pengingat TA Aktif -->
-                <div class="inline-flex items-center space-x-1.5 bg-emerald-100 border border-emerald-300 text-emerald-800 px-3 py-1.5 rounded-full shadow-sm">
-                    <i class="fa-solid fa-calendar-check text-[11px]"></i>
-                    <span class="text-[10px] font-extrabold uppercase tracking-wide">
-                        TA Aktif: <span id="display-ta-aktif">Memuat...</span>
-                    </span>
-                </div>
-
-                <nav class="hidden md:flex items-center space-x-2">
-                    <button id="tab-btn-form" onclick="selectTab('form')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 bg-emerald-800 text-white shadow-inner">
-                        <i class="fa-solid fa-file-signature"></i><span>Formulir Konfirmasi</span>
-                    </button>
-                    <button id="tab-btn-status" onclick="selectTab('status')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60">
-                        <i class="fa-solid fa-magnifying-glass"></i><span>Cek Status & Angsuran</span>
-                    </button>
-                    <button id="tab-btn-admin" onclick="selectTab('admin')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60">
-                        <i class="fa-solid fa-user-shield"></i><span>Panel Admin</span>
-                    </button>
-                </nav>
             </div>
+
+            <!-- BAGIAN KANAN: Navigasi Desktop -->
+            <nav class="hidden md:flex items-center space-x-2 shrink-0">
+                <button id="tab-btn-form" onclick="selectTab('form')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 bg-emerald-800 text-white shadow-inner">
+                    <i class="fa-solid fa-file-signature"></i><span>Formulir Konfirmasi</span>
+                </button>
+                <button id="tab-btn-status" onclick="selectTab('status')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60">
+                    <i class="fa-solid fa-magnifying-glass"></i><span>Cek Status & Angsuran</span>
+                </button>
+                <button id="tab-btn-admin" onclick="selectTab('admin')" class="px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60">
+                    <i class="fa-solid fa-user-shield"></i><span>Panel Admin</span>
+                </button>
+            </nav>
         </div>
-        
+    </div>
+    
+        <!-- BAWAH: Navigasi Mobile (Dipertahankan Persis Seperti Aslinya) -->
         <div class="md:hidden flex border-t border-emerald-800 bg-emerald-950/90 backdrop-blur-md">
             <button id="m-tab-form" onclick="selectTab('form')" class="flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 bg-emerald-800 text-white">
                 <i class="fa-solid fa-file-signature text-base"></i><span>Formulir</span>
