@@ -70,13 +70,20 @@
                     <h1 class="text-base sm:text-lg lg:text-xl font-bold tracking-tight text-white leading-tight">STAI Imam Syafi'i Cianjur</h1>
                     <p class="text-[10px] sm:text-xs text-emerald-200 font-medium mb-1.5">Sistem Pembayaran & Angsuran Rusum Tahunan</p>
                     
-                    <!-- Badge Pengingat TA Aktif (Desain Baru) -->
-                    <div class="inline-flex items-center space-x-2 w-max px-2.5 py-1 border border-emerald-500/60 rounded-md bg-emerald-800/50 shadow-sm">
-                        <!-- Titik Lampu Hijau -->
-                        <span class="w-2 h-2 rounded-full bg-green-400 shadow-[0_0_5px_#4ade80] animate-pulse"></span>
-                        <span class="text-[9px] font-bold text-emerald-100 uppercase tracking-wider">
-                            TA Aktif: <span id="display-ta-aktif">Memuat...</span>
+                    <!-- Badge Pengingat TA Aktif (Mencolok & Simpel) -->
+                    <div class="inline-flex items-center space-x-2.5 w-max px-3 py-1.5 border border-emerald-400 rounded-lg bg-black/15 shadow-[0_0_10px_rgba(52,211,153,0.25)] mt-0.5">
+                        
+                        <!-- Efek Lampu Indikator (Radar Pulse) -->
+                        <span class="relative flex h-2.5 w-2.5">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-400 shadow-[0_0_5px_#4ade80]"></span>
                         </span>
+                        
+                        <!-- Teks dengan Kontras Tinggi -->
+                        <span class="text-[10px] font-extrabold text-emerald-100 uppercase tracking-widest">
+                            TA Aktif: <span id="display-ta-aktif" class="text-white">Memuat...</span>
+                        </span>
+                        
                     </div>
                 </div>
             </div>
