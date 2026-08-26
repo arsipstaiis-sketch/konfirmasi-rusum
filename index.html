@@ -162,7 +162,12 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label for="input-nim" class="form-label">Nomor Induk Mahasiswa (NIM) *</label>
-                                <input type="text" id="input-nim" maxlength="11" oninput="this.value = this.value.replace(/[^0-9.]/g, ''); checkPreviousInstallments()" required placeholder="Contoh: 24110412 atau 21.1.1.0412" class="form-input">
+                                <!-- Menambahkan autofillNama() sebelum checkPreviousInstallments() -->
+                                <input type="text" id="input-nim" maxlength="11" oninput="this.value = this.value.replace(/[^0-9.]/g, ''); autofillNama(); checkPreviousInstallments();" required placeholder="Contoh: 24110412 atau 21.1.1.0412" class="form-input transition-colors">
+                                
+                                <!-- Peringatan jika NIM tidak ditemukan -->
+                                <p id="nim-warning" class="text-[10px] text-rose-500 font-medium mt-1.5 hidden"><i class="fa-solid fa-triangle-exclamation"></i> NIM tidak ditemukan di data master.</p>
+                                
                                 <div id="nim-installment-info" class="hidden mt-2 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-1"></div>
                             </div>
                             <div>
@@ -179,7 +184,8 @@
                         <!-- Baris 2: Nama (Lebar Penuh) -->
                         <div>
                             <label for="input-nama" class="form-label">Nama Lengkap Mahasiswa *</label>
-                            <input type="text" id="input-nama" oninput="this.value = toProperCase(this.value)" required placeholder="Nama sesuai KRS / KPM" class="form-input">
+                            <!-- Menghapus oninput toProperCase, menambah readonly dan styling terkunci -->
+                            <input type="text" id="input-nama" readonly required placeholder="Terisi otomatis berdasarkan NIM..." class="form-input bg-slate-100 text-slate-500 cursor-not-allowed font-bold shadow-inner">
                         </div>
 
                         <!-- Baris 3: Tingkatan (Kiri) & Email (Kanan) -->
