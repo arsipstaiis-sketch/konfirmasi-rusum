@@ -324,81 +324,139 @@ function executeStatusSearch() {
     const resultsContainer = document.getElementById('search-status-results');
 
     if (!query) {
-        resultsContainer.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl"><h4 class="text-xs font-bold text-slate-700">Ketik NIM Untuk Mencari</h4></div>`;
+        resultsContainer.innerHTML = `<div class="text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl"><h4 class="text-xs font-bold text-slate-700">Ketik NIM atau Nama Untuk Mencari</h4></div>`;
         return;
     }
 
-    const filtered = transaksiData.filter(d => 
-        (d.nim && d.nim.toLowerCase().includes(query)) || 
-        (d.nama && d.nama.toLowerCase().includes(query))
+    // 1. CARI DI DATA MASTER TERLEBIH DAHULU (Agar mhs yang belum pernah bayar tetap muncul)
+    const student = mahasiswaMaster.find(m => 
+        (m.nim && String(m.nim).toLowerCase() === query) || 
+        (m.nama && m.nama.toLowerCase().includes(query))
     );
 
-    if (filtered.length === 0) {
+    // Filter histori transaksinya
+    const studentTx = transaksiData.filter(d => 
+        (student && d.nim === student.nim) || 
+        (!student && ((d.nim && String(d.nim).toLowerCase() === query) || (d.nama && d.nama.toLowerCase().includes(query))))
+    );
+
+    if (!student && studentTx.length === 0) {
         resultsContainer.innerHTML = `<div class="text-center py-12 border border-slate-200 bg-slate-50 rounded-2xl"><p class="text-xs font-bold text-slate-700">Data Tidak Ditemukan</p></div>`;
         return;
     }
 
-    const targetNim = filtered[0].nim;
-    
-    // Cari transaksi terakhir yang disetujui untuk mengetahui TA tagihan yang aktif
-    const lastApproved = filtered.find(d => d.status === 'Disetujui');
-    const targetTA = lastApproved ? lastApproved.tahunAkademik : filtered[0].tahunAkademik;
-    
-    const summary = getStudentPaymentSummary(targetNim, targetTA);
+    // 2. AMBIL VARIABEL IDENTITAS
+    const targetNim = student ? student.nim : studentTx[0].nim;
+    const studentName = student ? student.nama : studentTx[0].nama;
+    const studentProdi = student ? student.prodi : (studentTx[0].prodi || '-');
+    const studentTingkatan = student ? student.tingkatan : (studentTx[0].tingkatan || '-');
+    const studentAngkatan = student ? parseInt(student.angkatan) : parseInt((studentTx[0].tahunAkademik || globalTAAktif).split('/')[0]);
 
-    const formattedTotalDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
-    const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+    // 3. TENTUKAN DAFTAR TA YANG HARUS DITAMPILKAN
+    const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
+    const startYear = studentAngkatan || tahunAktifStart;
+    
+    // Cek adakah transaksi di masa depan
+    const allTxYears = studentTx.map(t => parseInt((t.tahunAkademik || '').split('/')[0])).filter(n => !isNaN(n));
+    const maxTxYear = allTxYears.length > 0 ? Math.max(...allTxYears) : tahunAktifStart;
+    
+    let batasAtasTA = Math.max(tahunAktifStart, maxTxYear);
 
+    // Kunci batas atas jika mahasiswa sudah lulus/keluar (Maksimal 4 tahun dari masuk)
+    if (student) {
+        const statusMhs = String(student.status || '').toLowerCase();
+        if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusMhs)) {
+            batasAtasTA = Math.max(maxTxYear, startYear + 3);
+        }
+    }
+
+    // Buat daftar TA dari atas (terbaru) ke bawah (terlama)
+    let listTA = [];
+    for (let y = batasAtasTA; y >= startYear; y--) {
+        listTA.push(`${y}/${y+1}`);
+    }
+    if (listTA.length === 0) listTA = [globalTAAktif];
+
+    // 4. MULAI MEMBANGUN KARTU HTML
     let html = `
-        <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-4">
+        <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-5">
             <div class="flex justify-between border-b border-emerald-800 pb-4">
                 <div>
-                    <h3 class="text-lg font-extrabold">${filtered[0].nama} (${filtered[0].nim})</h3>
-                    <p class="text-xs text-emerald-200">${filtered[0].prodi} - ${filtered[0].tingkatan}</p>
+                    <h3 class="text-lg font-extrabold">${studentName} (${targetNim})</h3>
+                    <p class="text-xs text-emerald-200">${studentProdi} - ${studentTingkatan}</p>
                 </div>
             </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div class="bg-white/10 p-3.5 rounded-xl border border-white/10">
-                    <span class="text-emerald-200 text-[10px] font-bold uppercase block">Total Disetujui (TA ${targetTA})</span>
-                    <span class="text-lg font-black">${formattedTotalDibayar}</span>
-                </div>
-                <div class="bg-rose-950 p-3.5 rounded-xl border-2 border-rose-500 shadow-inner">
-                    <span class="text-rose-300 text-[10px] font-extrabold uppercase block tracking-wider"><i class="fa-solid fa-triangle-exclamation"></i> Sisa Tagihan TA ${targetTA}</span>
-                    <span class="text-xl font-black text-white">${formattedSisa}</span>
-                </div>
-            </div>
-        </div>
-        <h4 class="text-xs font-bold text-slate-700 uppercase pt-2">Riwayat Transaksi</h4>
+            <div class="space-y-5">
     `;
 
-    html += filtered.map((item, index) => {
-        const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
-        let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
-        let cleanDate = formatTanggalWaktu(item.tanggal);
-        let btn = item.status === 'Disetujui' ? `<button onclick="openKwitansiPreview('${item.id}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow-sm flex items-center space-x-1.5"><i class="fa-solid fa-receipt"></i><span>Cetak Kwitansi</span></button>` : '';
+    // 5. LOOPING SETIAP TA UNTUK DIBUATKAN KOTAK KALKULASI
+    listTA.forEach(ta => {
+        const summary = getStudentPaymentSummary(targetNim, ta);
+        const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
+        const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+        
+        // Logika Warna: Jika sisa tagihan 0, ubah jadi hijau. Jika tidak, merah.
+        const isLunas = summary.sisaTagihan <= 0;
+        const boxColor = isLunas ? 'bg-emerald-800/80 border-emerald-500' : 'bg-rose-950 border-rose-500';
+        const textColor = isLunas ? 'text-emerald-300' : 'text-rose-300';
+        const iconSign = isLunas ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-triangle-exclamation"></i>';
 
-        return `
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3 text-xs">
-                <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                    <div class="flex items-center space-x-2">
-                        <span class="font-mono text-[11px] font-bold text-slate-400">#${filtered.length - index}</span>
-                        <span class="font-extrabold text-slate-800">${item.id}</span>
-                        <span class="text-slate-300">|</span>
-                        <span class="text-slate-600 font-medium">${formattedNominal} <span class="text-[10px] text-slate-400 font-normal">(TA ${item.tahunAkademik})</span></span>
+        html += `
+            <div class="bg-black/10 p-4 rounded-xl border border-white/5">
+                <h4 class="text-[11px] font-bold text-emerald-300 mb-2.5 uppercase tracking-wide"><i class="fa-solid fa-calendar-days mr-1.5"></i> Tahun Akademik ${ta}</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div class="bg-white/10 p-3.5 rounded-xl border border-white/10">
+                        <span class="text-emerald-200 text-[10px] font-bold uppercase block">Total Disetujui</span>
+                        <span class="text-lg font-black">${formattedTotal}</span>
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${badge}">${item.status}</span>
+                    <div class="${boxColor} p-3.5 rounded-xl border-2 shadow-inner transition-colors">
+                        <span class="${textColor} text-[10px] font-extrabold uppercase block tracking-wider">${iconSign} Sisa Tagihan</span>
+                        <span class="text-xl font-black text-white">${formattedSisa}</span>
+                    </div>
                 </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 text-[11px]">
-                    <div><b class="text-slate-400">Bank & Tgl:</b> ${item.bank || '-'} (${cleanDate})</div>
-                    <div><b class="text-slate-400">Catatan:</b> ${item.catatan || '-'}</div>
-                    <div class="sm:col-span-2"><b class="text-slate-400">Admin Note:</b> <span class="italic text-slate-700">${item.adminNote || '-'}</span></div>
-                </div>
-
-                ${btn ? `<div class="pt-1 flex justify-end">${btn}</div>` : ''}
             </div>
         `;
-    }).join('');
+    });
+
+    html += `
+            </div>
+        </div>
+        <h4 class="text-xs font-bold text-slate-700 uppercase pt-4 pb-1 border-b border-slate-200">Riwayat Transaksi</h4>
+    `;
+
+    // 6. RENDER DAFTAR RIWAYAT TRANSAKSI (Sama seperti sebelumnya)
+    if (studentTx.length === 0) {
+        html += `<div class="text-center py-6 text-slate-400 text-xs italic">Belum ada riwayat transaksi.</div>`;
+    } else {
+        html += studentTx.map((item, index) => {
+            const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
+            let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
+            let cleanDate = formatTanggalWaktu(item.tanggal);
+            let btn = item.status === 'Disetujui' ? `<button onclick="openKwitansiPreview('${item.id}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow-sm flex items-center space-x-1.5"><i class="fa-solid fa-receipt"></i><span>Cetak Kwitansi</span></button>` : '';
+
+            return `
+                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3 text-xs mt-3">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+                        <div class="flex items-center space-x-2">
+                            <span class="font-mono text-[11px] font-bold text-slate-400">#${studentTx.length - index}</span>
+                            <span class="font-extrabold text-slate-800">${item.id}</span>
+                            <span class="text-slate-300">|</span>
+                            <span class="text-slate-600 font-medium">${formattedNominal} <span class="text-[10px] text-slate-400 font-normal">(TA ${item.tahunAkademik})</span></span>
+                        </div>
+                        <span class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${badge}">${item.status}</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 text-[11px]">
+                        <div><b class="text-slate-400">Bank & Tgl:</b> ${item.bank || '-'} (${cleanDate})</div>
+                        <div><b class="text-slate-400">Catatan:</b> ${item.catatan || '-'}</div>
+                        <div class="sm:col-span-2"><b class="text-slate-400">Admin Note:</b> <span class="italic text-slate-700">${item.adminNote || '-'}</span></div>
+                    </div>
+
+                    ${btn ? `<div class="pt-1 flex justify-end">${btn}</div>` : ''}
+                </div>
+            `;
+        }).join('');
+    }
 
     resultsContainer.innerHTML = html;
 }
