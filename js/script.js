@@ -328,13 +328,11 @@ function executeStatusSearch() {
         return;
     }
 
-    // 1. CARI DI DATA MASTER TERLEBIH DAHULU (Agar mhs yang belum pernah bayar tetap muncul)
     const student = mahasiswaMaster.find(m => 
         (m.nim && String(m.nim).toLowerCase() === query) || 
         (m.nama && m.nama.toLowerCase().includes(query))
     );
 
-    // Filter histori transaksinya
     const studentTx = transaksiData.filter(d => 
         (student && d.nim === student.nim) || 
         (!student && ((d.nim && String(d.nim).toLowerCase() === query) || (d.nama && d.nama.toLowerCase().includes(query))))
@@ -345,24 +343,20 @@ function executeStatusSearch() {
         return;
     }
 
-    // 2. AMBIL VARIABEL IDENTITAS
     const targetNim = student ? student.nim : studentTx[0].nim;
     const studentName = student ? student.nama : studentTx[0].nama;
     const studentProdi = student ? student.prodi : (studentTx[0].prodi || '-');
     const studentTingkatan = student ? student.tingkatan : (studentTx[0].tingkatan || '-');
     const studentAngkatan = student ? parseInt(student.angkatan) : parseInt((studentTx[0].tahunAkademik || globalTAAktif).split('/')[0]);
 
-    // 3. TENTUKAN DAFTAR TA YANG HARUS DITAMPILKAN
     const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
     const startYear = studentAngkatan || tahunAktifStart;
     
-    // Cek adakah transaksi di masa depan
     const allTxYears = studentTx.map(t => parseInt((t.tahunAkademik || '').split('/')[0])).filter(n => !isNaN(n));
     const maxTxYear = allTxYears.length > 0 ? Math.max(...allTxYears) : tahunAktifStart;
     
     let batasAtasTA = Math.max(tahunAktifStart, maxTxYear);
 
-    // Kunci batas atas jika mahasiswa sudah lulus/keluar (Maksimal 4 tahun dari masuk)
     if (student) {
         const statusMhs = String(student.status || '').toLowerCase();
         if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusMhs)) {
@@ -370,61 +364,55 @@ function executeStatusSearch() {
         }
     }
 
-    // Buat daftar TA dari atas (terbaru) ke bawah (terlama)
     let listTA = [];
     for (let y = batasAtasTA; y >= startYear; y--) {
         listTA.push(`${y}/${y+1}`);
     }
     if (listTA.length === 0) listTA = [globalTAAktif];
 
-    // 4. MULAI MEMBANGUN KARTU HTML
+    // Gunakan TA Aktif sebagai default jika ada di daftar, jika tidak gunakan TA paling atas
+    const initialTA = listTA.includes(globalTAAktif) ? globalTAAktif : listTA[0];
+    const initialSummary = getStudentPaymentSummary(targetNim, initialTA);
+    const initialTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(initialSummary.totalDibayar);
+    const initialSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(initialSummary.sisaTagihan);
+    
+    const isLunas = initialSummary.sisaTagihan <= 0;
+    const boxColor = isLunas ? 'bg-emerald-800/80 border-emerald-500' : 'bg-rose-950 border-rose-500';
+    const textColor = isLunas ? 'text-emerald-300' : 'text-rose-300';
+    const iconSign = isLunas ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-triangle-exclamation"></i>';
+
     let html = `
-        <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-5">
-            <div class="flex justify-between border-b border-emerald-800 pb-4">
+        <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-emerald-800 pb-4 gap-4 sm:gap-0">
                 <div>
                     <h3 class="text-lg font-extrabold">${studentName} (${targetNim})</h3>
                     <p class="text-xs text-emerald-200">${studentProdi} - ${studentTingkatan}</p>
                 </div>
-            </div>
-            <div class="space-y-5">
-    `;
-
-    // 5. LOOPING SETIAP TA UNTUK DIBUATKAN KOTAK KALKULASI
-    listTA.forEach(ta => {
-        const summary = getStudentPaymentSummary(targetNim, ta);
-        const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
-        const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
-        
-        // Logika Warna: Jika sisa tagihan 0, ubah jadi hijau. Jika tidak, merah.
-        const isLunas = summary.sisaTagihan <= 0;
-        const boxColor = isLunas ? 'bg-emerald-800/80 border-emerald-500' : 'bg-rose-950 border-rose-500';
-        const textColor = isLunas ? 'text-emerald-300' : 'text-rose-300';
-        const iconSign = isLunas ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-triangle-exclamation"></i>';
-
-        html += `
-            <div class="bg-black/10 p-4 rounded-xl border border-white/5">
-                <h4 class="text-[11px] font-bold text-emerald-300 mb-2.5 uppercase tracking-wide"><i class="fa-solid fa-calendar-days mr-1.5"></i> Tahun Akademik ${ta}</h4>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                    <div class="bg-white/10 p-3.5 rounded-xl border border-white/10">
-                        <span class="text-emerald-200 text-[10px] font-bold uppercase block">Total Disetujui</span>
-                        <span class="text-lg font-black">${formattedTotal}</span>
-                    </div>
-                    <div class="${boxColor} p-3.5 rounded-xl border-2 shadow-inner transition-colors">
-                        <span class="${textColor} text-[10px] font-extrabold uppercase block tracking-wider">${iconSign} Sisa Tagihan</span>
-                        <span class="text-xl font-black text-white">${formattedSisa}</span>
-                    </div>
+                
+                <!-- DROPDOWN TA -->
+                <div class="flex items-center space-x-2 shrink-0">
+                    <label class="text-[10px] font-bold text-emerald-300 uppercase"><i class="fa-solid fa-filter"></i> TA:</label>
+                    <select onchange="updateStatusTADisplay(this.value, '${targetNim}')" class="bg-emerald-950 text-emerald-100 border border-emerald-700 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer shadow-sm">
+                        ${listTA.map(ta => `<option value="${ta}" ${ta === initialTA ? 'selected' : ''}>TA ${ta}</option>`).join('')}
+                    </select>
                 </div>
             </div>
-        `;
-    });
-
-    html += `
+            
+            <!-- KOTAK KALKULASI DINAMIS -->
+            <div id="status-calculation-box" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div class="bg-white/10 p-3.5 rounded-xl border border-white/10">
+                    <span class="text-emerald-200 text-[10px] font-bold uppercase block">Total Disetujui</span>
+                    <span class="text-lg font-black">${initialTotal}</span>
+                </div>
+                <div class="${boxColor} p-3.5 rounded-xl border-2 shadow-inner transition-colors">
+                    <span class="${textColor} text-[10px] font-extrabold uppercase block tracking-wider">${iconSign} Sisa Tagihan</span>
+                    <span class="text-xl font-black text-white">${initialSisa}</span>
+                </div>
             </div>
         </div>
         <h4 class="text-xs font-bold text-slate-700 uppercase pt-4 pb-1 border-b border-slate-200">Riwayat Transaksi</h4>
     `;
 
-    // 6. RENDER DAFTAR RIWAYAT TRANSAKSI (Sama seperti sebelumnya)
     if (studentTx.length === 0) {
         html += `<div class="text-center py-6 text-slate-400 text-xs italic">Belum ada riwayat transaksi.</div>`;
     } else {
@@ -460,7 +448,6 @@ function executeStatusSearch() {
 
     resultsContainer.innerHTML = html;
 }
-
 // ==========================================
 // ADMIN DASHBOARD
 // ==========================================
@@ -1404,4 +1391,29 @@ function onMainTAChanged() {
         `;
     }
     renderAngkatanMonitoring();
+}
+// Fungsi untuk merender ulang kotak kalkulasi saat dropdown TA diubah
+function updateStatusTADisplay(ta, nim) {
+    const summary = getStudentPaymentSummary(nim, ta);
+    const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
+    const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+    
+    const isLunas = summary.sisaTagihan <= 0;
+    const boxColor = isLunas ? 'bg-emerald-800/80 border-emerald-500' : 'bg-rose-950 border-rose-500';
+    const textColor = isLunas ? 'text-emerald-300' : 'text-rose-300';
+    const iconSign = isLunas ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-triangle-exclamation"></i>';
+
+    const container = document.getElementById('status-calculation-box');
+    if (container) {
+        container.innerHTML = `
+            <div class="bg-white/10 p-3.5 rounded-xl border border-white/10">
+                <span class="text-emerald-200 text-[10px] font-bold uppercase block">Total Disetujui</span>
+                <span class="text-lg font-black">${formattedTotal}</span>
+            </div>
+            <div class="${boxColor} p-3.5 rounded-xl border-2 shadow-inner transition-colors">
+                <span class="${textColor} text-[10px] font-extrabold uppercase block tracking-wider">${iconSign} Sisa Tagihan</span>
+                <span class="text-xl font-black text-white">${formattedSisa}</span>
+            </div>
+        `;
+    }
 }
