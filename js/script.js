@@ -388,13 +388,23 @@ function executeStatusSearch() {
                     <h3 class="text-lg font-extrabold">${studentName} (${targetNim})</h3>
                     <p class="text-xs text-emerald-200">${studentProdi} - ${studentTingkatan}</p>
                 </div>
-                
-                <!-- DROPDOWN TA -->
-                <div class="flex items-center space-x-2 shrink-0">
-                    <label class="text-[10px] font-bold text-emerald-300 uppercase"><i class="fa-solid fa-filter"></i> TA:</label>
-                    <select onchange="updateStatusTADisplay(this.value, '${targetNim}')" class="bg-emerald-950 text-emerald-100 border border-emerald-700 text-xs font-bold rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer shadow-sm">
-                        ${listTA.map(ta => `<option value="${ta}" ${ta === initialTA ? 'selected' : ''}>TA ${ta}</option>`).join('')}
+
+                <!-- DROPDOWN TA (Modern & Ringkas) -->
+                <div class="relative shrink-0 flex items-center group">
+                    <!-- Ikon di dalam dropdown -->
+                    <div class="absolute left-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500">
+                        <i class="fa-regular fa-calendar-days text-[11px]"></i>
+                    </div>
+                    
+                    <!-- Select Box tanpa panah bawaan (appearance-none) -->
+                    <select onchange="updateStatusTADisplay(this.value, '${targetNim}')" class="appearance-none bg-emerald-950/50 border border-emerald-700/60 text-emerald-100 text-[11px] font-bold rounded-xl pl-8 pr-8 py-1.5 focus:outline-none focus:border-emerald-400 hover:border-emerald-500 cursor-pointer shadow-sm transition w-full">
+                        ${listTA.map(ta => `<option value="${ta}" ${ta === initialTA ? 'selected' : ''} class="bg-emerald-900">${ta}</option>`).join('')}
                     </select>
+                    
+                    <!-- Ikon Panah Custom di sebelah kanan -->
+                    <div class="absolute right-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500">
+                        <i class="fa-solid fa-chevron-down text-[9px]"></i>
+                    </div>
                 </div>
             </div>
             
