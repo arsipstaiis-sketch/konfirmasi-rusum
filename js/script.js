@@ -1037,20 +1037,47 @@ function openAdminDetailModal(id) {
     const summary = getStudentPaymentSummary(item.nim, item.tahunAkademik);
     document.getElementById('modal-mhs-kalkulasi').innerText = `Telah Bayar (TA ${item.tahunAkademik}): ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(summary.totalDibayar)}`;
 
-    let displayUrl = item.resiUrl || '';
+    // --- MULAI PERUBAHAN LOGIKA PDF DI SINI ---
     let realLink = item.resiUrl || '#';
+    let displayUrl = realLink;
     
-    if (displayUrl.includes('drive.google.com/file/d/')) {
-        const match = displayUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (match) {
-            displayUrl = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+    const imgEl = document.getElementById('modal-resi-img');
+    const pdfContainer = document.getElementById('modal-resi-pdf-container');
+    const pdfLink = document.getElementById('modal-resi-pdf-link');
+    const zoomHint = document.getElementById('resi-zoom-hint');
+    const zoomContainer = document.getElementById('resi-zoom-container');
+    
+    // Reset status elemen
+    imgEl.classList.add('hidden');
+    pdfContainer.classList.add('hidden');
+    pdfContainer.classList.remove('flex');
+    
+    // Deteksi apakah file berekstensi .pdf atau datanya berupa PDF
+    const filename = (item.resiFilename || '').toLowerCase();
+    const isPdf = filename.endsWith('.pdf') || (displayUrl && displayUrl.toLowerCase().includes('pdf'));
+    
+    if (isPdf) {
+        // TAMPILAN UNTUK PDF
+        pdfContainer.classList.remove('hidden');
+        pdfContainer.classList.add('flex');
+        pdfLink.href = realLink;
+        
+        zoomHint.classList.add('hidden');
+        zoomContainer.classList.remove('cursor-zoom-in');
+    } else {
+        // TAMPILAN UNTUK GAMBAR
+        if (displayUrl.includes('drive.google.com/file/d/')) {
+            const match = displayUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (match) {
+                displayUrl = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+            }
         }
-    }
-
-    document.getElementById('modal-resi-img').src = displayUrl;
-    const resiLink = document.getElementById('modal-resi-link');
-    if (resiLink) {
-        resiLink.href = realLink;
+        
+        imgEl.src = displayUrl;
+        imgEl.classList.remove('hidden');
+        
+        zoomHint.classList.remove('hidden');
+        zoomContainer.classList.add('cursor-zoom-in');
     }
     
     selectModalStatus(item.status || 'Pending');
