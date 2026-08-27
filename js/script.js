@@ -610,7 +610,7 @@ function renderAdminDashboard() {
 function updateAdminStats() {
     let total = 0, pending = 0, disetujui = 0, ditolak = 0;
     let totalUang = 0;
-    
+    let uniqueStudents = new Set();
     const filterTaElement = document.getElementById('filter-ta-admin');
     const selectedTA = filterTaElement ? filterTaElement.value : 'Semua';
 
@@ -622,6 +622,7 @@ function updateAdminStats() {
         else if (item.status === 'Disetujui') {
             disetujui++;
             totalUang += parseFloat(item.nominal) || 0;
+            uniqueStudents.add(item.nim);
         }
         else if (item.status === 'Ditolak') ditolak++;
     });
@@ -640,6 +641,9 @@ function updateAdminStats() {
 
     const elUang = document.getElementById('admin-stat-penerimaan');
     if (elUang) elUang.innerText = 'Rp ' + totalUang.toLocaleString('id-ID');
+    const elMhsCount = document.getElementById('admin-stat-mhs-count');
+    if (elMhsCount) {
+        elMhsCount.innerText = `${uniqueStudents.size} Mhs`;
 }
 
 function filterVerifikasiStatus(status) {
