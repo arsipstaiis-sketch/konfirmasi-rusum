@@ -334,13 +334,37 @@
                 <!-- VIEW 1: VERIFIKASI -->
                 <div id="admin-view-verifikasi" class="space-y-6">
                     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                        <div class="card-stat"><p class="text-[10px] font-bold text-slate-500 uppercase">Total</p><p id="admin-stat-total" class="text-2xl font-black text-slate-800">0</p></div>
-                        <div class="card-stat"><p class="text-[10px] font-bold text-amber-600 uppercase">Pending</p><p id="admin-stat-pending" class="text-2xl font-black text-amber-600">0</p></div>
-                        <div class="card-stat"><p class="text-[10px] font-bold text-emerald-600 uppercase">Disetujui</p><p id="admin-stat-disetujui" class="text-2xl font-black text-emerald-600">0</p></div>
-                        <div class="card-stat"><p class="text-[10px] font-bold text-rose-600 uppercase">Ditolak</p><p id="admin-stat-ditolak" class="text-2xl font-black text-rose-600">0</p></div>
-                        <div class="col-span-2 bg-emerald-900 text-white p-5 rounded-2xl">
-                            <p class="text-[10px] font-bold text-emerald-200 uppercase flex items-center space-x-1"><i class="fa-solid fa-vault"></i><span>Total Penerimaan</span></p>
-                            <p id="admin-stat-penerimaan" class="text-2xl font-extrabold text-white">Rp 0</p>
+                        <div class="card-stat">
+                            <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Total</p>
+                            <p id="admin-stat-total" class="text-2xl font-black text-slate-800">0</p>
+                        </div>
+                        <div class="card-stat">
+                            <p class="text-[10px] font-bold text-amber-600 uppercase tracking-wide">Pending</p>
+                            <p id="admin-stat-pending" class="text-2xl font-black text-amber-600">0</p>
+                        </div>
+                        <div class="card-stat">
+                            <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide">Disetujui</p>
+                            <p id="admin-stat-disetujui" class="text-2xl font-black text-emerald-600">0</p>
+                        </div>
+                        <div class="card-stat">
+                            <p class="text-[10px] font-bold text-rose-600 uppercase tracking-wide">Ditolak</p>
+                            <p id="admin-stat-ditolak" class="text-2xl font-black text-rose-600">0</p>
+                        </div>
+                        
+                        <!-- KOTAK TOTAL PENERIMAAN & PENYETOR (Minimalis & Elegan) -->
+                        <div class="col-span-2 bg-emerald-900 text-white p-5 rounded-2xl flex justify-between items-center shadow-sm">
+                            <div>
+                                <p class="text-[10px] font-bold text-emerald-300 uppercase tracking-widest flex items-center space-x-1.5 mb-1">
+                                    <i class="fa-solid fa-vault"></i><span>Total Penerimaan</span>
+                                </p>
+                                <p id="admin-stat-penerimaan" class="text-2xl font-black text-white">Rp 0</p>
+                            </div>
+                            
+                            <!-- Lencana Penyetor -->
+                            <div class="bg-emerald-950/40 border border-emerald-800/60 px-3 py-1.5 rounded-xl text-right shrink-0">
+                                <span class="block text-[8px] font-extrabold text-emerald-400 uppercase tracking-widest mb-0.5">Penyetor</span>
+                                <span id="admin-stat-mhs-count" class="text-sm font-bold text-emerald-50">0 Mhs</span>
+                            </div>
                         </div>
                     </div>
 
