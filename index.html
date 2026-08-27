@@ -492,13 +492,20 @@
             </div>
             <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="space-y-2">
-                    <p class="text-xs font-bold uppercase">BUKTI RESI</p>
-                
+                    <p class="text-xs font-bold uppercase">BUKTI RESI</p>                
                     <!-- Fitur Zoom Sentuh / Klik / Geser (Pan) -->
-                <div id="resi-zoom-container" class="bg-slate-100 rounded-xl mb-4 flex justify-center items-center overflow-hidden relative cursor-zoom-in h-64 border border-slate-200">
-                    <img id="modal-resi-img" src="" alt="Bukti Transfer" class="max-h-full object-contain transition-transform duration-300 origin-top-left pointer-events-none" style="transform: scale(1);">
-                </div>
-                <p class="text-[10px] text-center text-slate-400 italic mb-4"><i class="fa-solid fa-hand-pointer"></i> Ketuk/Klik gambar untuk zoom. Seret untuk menggeser.</p>
+                    <div id="resi-zoom-container" class="bg-slate-100 rounded-xl mb-4 flex justify-center items-center overflow-hidden relative cursor-zoom-in h-64 border border-slate-200">
+                        <img id="modal-resi-img" src="" alt="Bukti Transfer" class="max-h-full object-contain transition-transform duration-300 origin-top-left pointer-events-none" style="transform: scale(1);">
+                        <div id="modal-resi-pdf-container" class="hidden flex-col items-center justify-center w-full h-full bg-slate-50">
+                            <i class="fa-solid fa-file-pdf text-4xl text-rose-500 mb-3"></i>
+                            <p class="text-xs font-bold text-slate-700 mb-2">File berformat PDF</p>
+                            <a id="modal-resi-pdf-link" href="#" target="_blank" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center">
+                                <i class="fa-solid fa-arrow-up-right-from-square mr-2"></i>Buka PDF
+                            </a>
+                        </div>
+                        
+                    </div>
+                    <p id="resi-zoom-hint" class="text-[10px] text-center text-slate-400 italic mb-4"><i class="fa-solid fa-hand-pointer"></i> Ketuk/Klik gambar untuk zoom. Seret untuk menggeser.</p>
                 </div>
                 <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
                     <div><span class="text-slate-500 text-[10px] uppercase font-bold">NIM & Nama:</span>
