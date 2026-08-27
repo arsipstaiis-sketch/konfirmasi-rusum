@@ -339,28 +339,96 @@ async function handleFormSubmit(e) {
 // ==========================================
 // PENCARIAN STATUS & DROPDOWN TA DINAMIS
 // ==========================================
-function updateStatusTADisplay(ta, nim) {
-    const summary = getStudentPaymentSummary(nim, ta);
-    const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
-    const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
+function updateStatusTADisplay(ta, nim, totalTAs = 1) {
+    // 1. Siapkan data transaksi khusus mahasiswa ini
+    const studentTx = transaksiData.filter(d => d.nim === nim);
+    let filteredTx = studentTx;
     
-    const isLunas = summary.sisaTagihan <= 0;
+    let totalDibayar = 0;
+    let sisaTagihan = 0;
+    
+    let labelDisetujui = 'Total Disetujui';
+    let labelSisa = 'Sisa Tagihan';
+
+    // 2. Logika Pemisahan (Jika 'Semua TA' dipilih vs 'TA Spesifik')
+    if (ta === 'ALL') {
+        // Hitung total dari SEMUA TA yang disetujui
+        const approvedTx = studentTx.filter(d => d.status === 'Disetujui');
+        totalDibayar = approvedTx.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
+        
+        // Kalkulasi sisa hutang dari keseluruhan masa studi yang tercatat
+        sisaTagihan = Math.max(0, (totalTAs * BIAYA_RUSUM_STANDAR) - totalDibayar);
+        
+        labelDisetujui = 'Total Disetujui (Semua TA)';
+        labelSisa = 'Total Sisa (Keseluruhan)';
+    } else {
+        // Saring transaksi hanya untuk TA yang dipilih
+        filteredTx = studentTx.filter(d => d.tahunAkademik === ta);
+        
+        const summary = getStudentPaymentSummary(nim, ta);
+        totalDibayar = summary.totalDibayar;
+        sisaTagihan = summary.sisaTagihan;
+    }
+
+    const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalDibayar);
+    const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(sisaTagihan);
+    
+    // Logika Warna Status (Hijau jika Lunas, Merah jika Nunggak)
+    const isLunas = sisaTagihan <= 0;
     const boxColor = isLunas ? 'bg-emerald-800/80 border-emerald-500' : 'bg-rose-950 border-rose-500';
     const textColor = isLunas ? 'text-emerald-300' : 'text-rose-300';
     const iconSign = isLunas ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-triangle-exclamation"></i>';
 
-    const container = document.getElementById('status-calculation-box');
-    if (container) {
-        container.innerHTML = `
+    // 3. CETAK KOTAK KALKULASI
+    const calcContainer = document.getElementById('status-calculation-box');
+    if (calcContainer) {
+        calcContainer.innerHTML = `
             <div class="bg-white/10 p-3.5 rounded-xl border border-white/10">
-                <span class="text-emerald-200 text-[10px] font-bold uppercase block">Total Disetujui</span>
+                <span class="text-emerald-200 text-[10px] font-bold uppercase block">${labelDisetujui}</span>
                 <span class="text-lg font-black">${formattedTotal}</span>
             </div>
             <div class="${boxColor} p-3.5 rounded-xl border-2 shadow-inner transition-colors">
-                <span class="${textColor} text-[10px] font-extrabold uppercase block tracking-wider">${iconSign} Sisa Tagihan</span>
+                <span class="${textColor} text-[10px] font-extrabold uppercase block tracking-wider">${iconSign} ${labelSisa}</span>
                 <span class="text-xl font-black text-white">${formattedSisa}</span>
             </div>
         `;
+    }
+
+    // 4. CETAK DAFTAR RIWAYAT TRANSAKSI (Sesuai Filter)
+    const historyContainer = document.getElementById('status-history-list');
+    if (historyContainer) {
+        if (filteredTx.length === 0) {
+            historyContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs italic">Belum ada riwayat transaksi ${ta !== 'ALL' ? 'di TA ini' : ''}.</div>`;
+        } else {
+            historyContainer.innerHTML = filteredTx.map((item, index) => {
+                const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
+                let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
+                let cleanDate = formatTanggalWaktu(item.tanggal);
+                let btn = item.status === 'Disetujui' ? `<button onclick="openKwitansiPreview('${item.id}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow-sm flex items-center space-x-1.5"><i class="fa-solid fa-receipt"></i><span>Cetak Kwitansi</span></button>` : '';
+
+                return `
+                    <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3 text-xs mt-3">
+                        <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-mono text-[11px] font-bold text-slate-400">#${filteredTx.length - index}</span>
+                                <span class="font-extrabold text-slate-800">${item.id}</span>
+                                <span class="text-slate-300">|</span>
+                                <span class="text-slate-600 font-medium">${formattedNominal} <span class="text-[10px] text-slate-400 font-normal">(TA ${item.tahunAkademik})</span></span>
+                            </div>
+                            <span class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${badge}">${item.status}</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 text-[11px]">
+                            <div><b class="text-slate-400">Bank & Tgl:</b> ${item.bank || '-'} (${cleanDate})</div>
+                            <div><b class="text-slate-400">Catatan:</b> ${item.catatan || '-'}</div>
+                            <div class="sm:col-span-2"><b class="text-slate-400">Admin Note:</b> <span class="italic text-slate-700">${item.adminNote || '-'}</span></div>
+                        </div>
+
+                        ${btn ? `<div class="pt-1 flex justify-end">${btn}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
     }
 }
 
@@ -388,12 +456,14 @@ function executeStatusSearch() {
         return;
     }
 
+    // Ambil Data Identitas
     const targetNim = student ? student.nim : studentTx[0].nim;
     const studentName = student ? student.nama : studentTx[0].nama;
     const studentProdi = student ? student.prodi : (studentTx[0].prodi || '-');
     const studentTingkatan = student ? student.tingkatan : (studentTx[0].tingkatan || '-');
     const studentAngkatan = student ? parseInt(student.angkatan) : parseInt((studentTx[0].tahunAkademik || globalTAAktif).split('/')[0]);
 
+    // Kalkulasi Jangkauan TA
     const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
     const startYear = studentAngkatan || tahunAktifStart;
     
@@ -409,22 +479,15 @@ function executeStatusSearch() {
         }
     }
 
+    // Bangun daftar dropdown TA
     let listTA = [];
     for (let y = batasAtasTA; y >= startYear; y--) {
         listTA.push(`${y}/${y+1}`);
     }
     if (listTA.length === 0) listTA = [globalTAAktif];
-
     const initialTA = listTA.includes(globalTAAktif) ? globalTAAktif : listTA[0];
-    const initialSummary = getStudentPaymentSummary(targetNim, initialTA);
-    const initialTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(initialSummary.totalDibayar);
-    const initialSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(initialSummary.sisaTagihan);
-    
-    const isLunas = initialSummary.sisaTagihan <= 0;
-    const boxColor = isLunas ? 'bg-emerald-800/80 border-emerald-500' : 'bg-rose-950 border-rose-500';
-    const textColor = isLunas ? 'text-emerald-300' : 'text-rose-300';
-    const iconSign = isLunas ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-triangle-exclamation"></i>';
 
+    // BENTUK KERANGKA HTML
     let html = `
         <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-4">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-emerald-800 pb-4 gap-4 sm:gap-0">
@@ -433,13 +496,15 @@ function executeStatusSearch() {
                     <p class="text-xs text-emerald-200">${studentProdi} - ${studentTingkatan}</p>
                 </div>
 
-                <!-- DROPDOWN TA (Modern & Ringkas) -->
+                <!-- DROPDOWN TA -->
                 <div class="relative shrink-0 flex items-center group">
                     <div class="absolute left-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500">
                         <i class="fa-regular fa-calendar-days text-[11px]"></i>
                     </div>
                     
-                    <select onchange="updateStatusTADisplay(this.value, '${targetNim}')" class="appearance-none bg-emerald-950/50 border border-emerald-700/60 text-emerald-100 text-[11px] font-bold rounded-xl pl-8 pr-8 py-1.5 focus:outline-none focus:border-emerald-400 hover:border-emerald-500 cursor-pointer shadow-sm transition w-full">
+                    <!-- Menambahkan Opsi 'Semua TA' di Paling Atas -->
+                    <select onchange="updateStatusTADisplay(this.value, '${targetNim}', ${listTA.length})" class="appearance-none bg-emerald-950/50 border border-emerald-700/60 text-emerald-100 text-[11px] font-bold rounded-xl pl-8 pr-8 py-1.5 focus:outline-none focus:border-emerald-400 hover:border-emerald-500 cursor-pointer shadow-sm transition w-full">
+                        <option value="ALL" class="bg-emerald-900">Semua TA</option>
                         ${listTA.map(ta => `<option value="${ta}" ${ta === initialTA ? 'selected' : ''} class="bg-emerald-900">${ta}</option>`).join('')}
                     </select>
                     
@@ -449,55 +514,20 @@ function executeStatusSearch() {
                 </div>
             </div>
             
-            <!-- KOTAK KALKULASI DINAMIS -->
-            <div id="status-calculation-box" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                <div class="bg-white/10 p-3.5 rounded-xl border border-white/10">
-                    <span class="text-emerald-200 text-[10px] font-bold uppercase block">Total Disetujui</span>
-                    <span class="text-lg font-black">${initialTotal}</span>
-                </div>
-                <div class="${boxColor} p-3.5 rounded-xl border-2 shadow-inner transition-colors">
-                    <span class="${textColor} text-[10px] font-extrabold uppercase block tracking-wider">${iconSign} Sisa Tagihan</span>
-                    <span class="text-xl font-black text-white">${initialSisa}</span>
-                </div>
-            </div>
+            <!-- KOTAK KALKULASI (Wadah Kosong) -->
+            <div id="status-calculation-box" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs"></div>
         </div>
+        
         <h4 class="text-xs font-bold text-slate-700 uppercase pt-4 pb-1 border-b border-slate-200">Riwayat Transaksi</h4>
+        
+        <!-- DAFTAR RIWAYAT TRANSAKSI (Wadah Kosong) -->
+        <div id="status-history-list"></div>
     `;
 
-    if (studentTx.length === 0) {
-        html += `<div class="text-center py-6 text-slate-400 text-xs italic">Belum ada riwayat transaksi.</div>`;
-    } else {
-        html += studentTx.map((item, index) => {
-            const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
-            let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
-            let cleanDate = formatTanggalWaktu(item.tanggal);
-            let btn = item.status === 'Disetujui' ? `<button onclick="openKwitansiPreview('${item.id}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow-sm flex items-center space-x-1.5"><i class="fa-solid fa-receipt"></i><span>Cetak Kwitansi</span></button>` : '';
-
-            return `
-                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3 text-xs mt-3">
-                    <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
-                        <div class="flex items-center space-x-2">
-                            <span class="font-mono text-[11px] font-bold text-slate-400">#${studentTx.length - index}</span>
-                            <span class="font-extrabold text-slate-800">${item.id}</span>
-                            <span class="text-slate-300">|</span>
-                            <span class="text-slate-600 font-medium">${formattedNominal} <span class="text-[10px] text-slate-400 font-normal">(TA ${item.tahunAkademik})</span></span>
-                        </div>
-                        <span class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${badge}">${item.status}</span>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 text-[11px]">
-                        <div><b class="text-slate-400">Bank & Tgl:</b> ${item.bank || '-'} (${cleanDate})</div>
-                        <div><b class="text-slate-400">Catatan:</b> ${item.catatan || '-'}</div>
-                        <div class="sm:col-span-2"><b class="text-slate-400">Admin Note:</b> <span class="italic text-slate-700">${item.adminNote || '-'}</span></div>
-                    </div>
-
-                    ${btn ? `<div class="pt-1 flex justify-end">${btn}</div>` : ''}
-                </div>
-            `;
-        }).join('');
-    }
-
     resultsContainer.innerHTML = html;
+
+    // OTOMATIS JALANKAN PEMBARUAN SETELAH HTML DIBUAT
+    updateStatusTADisplay(initialTA, targetNim, listTA.length);
 }
 
 // ==========================================
