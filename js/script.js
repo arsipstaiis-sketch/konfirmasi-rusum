@@ -644,6 +644,7 @@ function updateAdminStats() {
     const elMhsCount = document.getElementById('admin-stat-mhs-count');
     if (elMhsCount) {
         elMhsCount.innerText = `${uniqueStudents.size} Mhs`;
+    }
 }
 
 function filterVerifikasiStatus(status) {
