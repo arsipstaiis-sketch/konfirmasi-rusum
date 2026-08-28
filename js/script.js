@@ -896,9 +896,9 @@ function renderAngkatanMonitoring() {
     const mappedStudents = cohortStudents.map(mhs => {
         return { ...mhs, summary: getStudentPaymentSummary(mhs.nim, selectedTA) };
     }).filter(mhs => {
+        // Ambil tahun awal dari TA yang SEDANG DIPANTAU (bukan TA aktif global)
         const tahunMulaiTA = parseInt(selectedTA.split('/')[0]);
         const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
-        const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
         
         const statusMhs = String(mhs.status || '').toLowerCase();
         const taCuti = String(mhs.taCuti || '').trim();
@@ -906,10 +906,12 @@ function renderAngkatanMonitoring() {
 
         let sudahTidakAktif = false;
 
-        if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) < tahunMulaiTA) sudahTidakAktif = true;
-        else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusMhs)) {
-            if (tahunMulaiTA >= tahunAktifStart) sudahTidakAktif = true;
-            else if (tahunMulaiTA >= tahunMasuk + 4) sudahTidakAktif = true;
+        // Logika Statis: Tidak lagi bergantung pada globalTAAktif
+        if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) <= tahunMulaiTA) {
+            sudahTidakAktif = true;
+        } else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusMhs)) {
+            // Jika tahunKeluar kosong, gunakan batas absolut masa studi 4 tahun
+            if (tahunMulaiTA >= tahunMasuk + 4) sudahTidakAktif = true;
         }
 
         const wajibBayar = (tahunMulaiTA >= tahunMasuk) && !sedangCuti && !sudahTidakAktif;
