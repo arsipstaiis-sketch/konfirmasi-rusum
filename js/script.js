@@ -1037,30 +1037,27 @@ function openAdminDetailModal(id) {
     const summary = getStudentPaymentSummary(item.nim, item.tahunAkademik);
     document.getElementById('modal-mhs-kalkulasi').innerText = `Telah Bayar (TA ${item.tahunAkademik}): ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(summary.totalDibayar)}`;
 
-    // --- MULAI PERUBAHAN LOGIKA PDF DI SINI ---
     let realLink = item.resiUrl || '#';
     let displayUrl = realLink;
     
     const imgEl = document.getElementById('modal-resi-img');
-    const pdfContainer = document.getElementById('modal-resi-pdf-container');
-    const pdfLink = document.getElementById('modal-resi-pdf-link');
+    const pdfViewer = document.getElementById('modal-resi-pdf-viewer');
     const zoomHint = document.getElementById('resi-zoom-hint');
     const zoomContainer = document.getElementById('resi-zoom-container');
     
     // Reset status elemen
     imgEl.classList.add('hidden');
-    pdfContainer.classList.add('hidden');
-    pdfContainer.classList.remove('flex');
+    pdfViewer.classList.add('hidden');
+    pdfViewer.removeAttribute('data');
     
     // Deteksi apakah file berekstensi .pdf atau datanya berupa PDF
     const filename = (item.resiFilename || '').toLowerCase();
     const isPdf = filename.endsWith('.pdf') || (displayUrl && displayUrl.toLowerCase().includes('pdf'));
     
     if (isPdf) {
-        // TAMPILAN UNTUK PDF
-        pdfContainer.classList.remove('hidden');
-        pdfContainer.classList.add('flex');
-        pdfLink.href = realLink;
+        // TAMPILAN PDF LANGSUNG DI KOTAK
+        pdfViewer.classList.remove('hidden');
+        pdfViewer.setAttribute('data', realLink); // Berkas PDF langsung dimuat ke dalam kotak
         
         zoomHint.classList.add('hidden');
         zoomContainer.classList.remove('cursor-zoom-in');
@@ -1069,7 +1066,8 @@ function openAdminDetailModal(id) {
         if (displayUrl.includes('drive.google.com/file/d/')) {
             const match = displayUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
             if (match) {
-                displayUrl = `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1000`;
+                // Menggunakan format preview langsung dari Google Drive jika berupa link Drive
+                displayUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
             }
         }
         
