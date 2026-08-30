@@ -23,7 +23,12 @@ const defaultStatusNotes = {
     'Disetujui': 'Pembayaran setoran angsuran telah diverifikasi sah.',
     'Ditolak': 'Bukti transfer tidak valid atau nominal tidak sesuai ketentuan. Silakan perbaiki dan unggah ulang.'
 };
-
+// --- HELPER FUNCTIONS ---
+const formatRp = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(angka || 0);
+const getBadge = (status) => {
+    const map = { 'Disetujui': 'bg-emerald-100 text-emerald-800', 'Ditolak': 'bg-rose-100 text-rose-800', 'Pending': 'bg-amber-100 text-amber-800' };
+    return map[status] || map['Pending'];
+};
 // ==========================================
 // FUNGSI FETCH GOOGLE SHEETS
 // ==========================================
@@ -176,28 +181,15 @@ function checkPreviousInstallments() {
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('drop-zone');
-    if (dropZone) {
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, preventDefaults, false);
-        });
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+    if (!dropZone) return;
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.add('border-emerald-500', 'bg-emerald-50'), false);
-        });
-        ['dragleave', 'drop'].forEach(eventName => {
-            dropZone.addEventListener(eventName, () => dropZone.classList.remove('border-emerald-500', 'bg-emerald-50'), false);
-        });
+    const prevent = (e) => { e.preventDefault(); e.stopPropagation(); };
+    const toggleHighlight = (add) => dropZone.classList.toggle('border-emerald-500', add) || dropZone.classList.toggle('bg-emerald-50', add);
 
-        dropZone.addEventListener('drop', handleDrop, false);
-        function handleDrop(e) {
-            const dt = e.dataTransfer;
-            handleFiles(dt.files);
-        }
-    }
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, prevent));
+    ['dragenter', 'dragover'].forEach(ev => dropZone.addEventListener(ev, () => toggleHighlight(true)));
+    ['dragleave', 'drop'].forEach(ev => dropZone.addEventListener(ev, () => toggleHighlight(false)));
+    dropZone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
 });
 
 function handleFileSelect(e) {
@@ -230,20 +222,13 @@ function handleFiles(files) {
 // ==========================================
 function selectTab(tab) {
     activeTab = tab;
-
     ['form', 'status', 'admin'].forEach(t => {
-        document.getElementById(`tab-content-${t}`).classList.add('hidden');
-        document.getElementById(`tab-btn-${t}`).className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 text-emerald-100 hover:bg-emerald-800/60";
-        document.getElementById(`m-tab-${t}`).className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 hover:bg-emerald-900";
+        const isMatch = t === tab;
+        document.getElementById(`tab-content-${t}`).classList.toggle('hidden', !isMatch);
+        document.getElementById(`tab-btn-${t}`).className = `px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 ${isMatch ? 'bg-emerald-800 text-white shadow-inner' : 'text-emerald-100 hover:bg-emerald-800/60'}`;
+        document.getElementById(`m-tab-${t}`).className = `flex-1 py-3 text-center text-xs font-semibold flex flex-col items-center space-y-1 ${isMatch ? 'bg-emerald-800 text-white' : 'text-emerald-200 hover:bg-emerald-900'}`;
     });
-
-    document.getElementById(`tab-content-${tab}`).classList.remove('hidden');
-    document.getElementById(`tab-btn-${tab}`).className = "px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center space-x-2 bg-emerald-800 text-white shadow-inner";
-    document.getElementById(`m-tab-${tab}`).className = "flex-1 py-3 text-center text-xs font-semibold text-emerald-200 flex flex-col items-center space-y-1 bg-emerald-800 text-white";
-
-    if (tab === 'admin' && isAdminLoggedIn) {
-        renderAdminDashboard();
-    }
+    if (tab === 'admin' && isAdminLoggedIn) renderAdminDashboard();
 }
 
 function copyRekening() {
@@ -693,46 +678,18 @@ function filterAdminTable() {
 function renderAdminTable(data) {
     const tbody = document.getElementById('admin-table-body');
     if (!tbody) return;
+    if (data.length === 0) return tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 text-xs">Tidak ada data.</td></tr>`;
 
-    if (data.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-slate-400 text-xs">Tidak ada data transaksi yang sesuai filter.</td></tr>`;
-        return;
-    }
-
-    tbody.innerHTML = data.map(item => {
-        const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
-        
-        let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : 
-                   (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
-        
-        let cleanDate = formatTanggalWaktu(item.tanggal);
-
-        return `
-            <tr class="hover:bg-slate-50 border-b border-slate-100 transition-colors">
-                <td class="p-3.5">
-                    <div class="text-xs font-bold text-slate-800">${item.nama}</div>
-                    <div class="text-[11px] text-slate-500 font-mono mt-0.5">${item.nim}</div>
-                </td>
-                <td class="p-3.5 text-xs text-slate-600">${item.prodi}</td>
-                <td class="p-3.5">
-                    <div class="text-xs font-bold text-slate-700">${formattedNominal}</div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">TA ${item.tahunAkademik}</div>
-                </td>
-                <td class="p-3.5 text-xs">
-                    <div class="text-slate-700">${item.bank || '-'}</div>
-                    <div class="text-[10px] text-slate-400 mt-0.5">${cleanDate}</div>
-                </td>
-                <td class="p-3.5 text-center">
-                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold ${badge}">${item.status}</span>
-                </td>
-                <td class="p-3.5 text-center">
-                    <button onclick="openAdminDetailModal('${item.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shadow-sm inline-flex items-center space-x-1.5 mx-auto">
-                        <i class="fa-solid fa-eye"></i><span>Tinjau</span>
-                    </button>
-                </td>
-            </tr>
-        `;
-    }).join('');
+    tbody.innerHTML = data.map(item => `
+        <tr class="hover:bg-slate-50 border-b border-slate-100 transition-colors">
+            <td class="p-3.5"><div class="text-xs font-bold text-slate-800">${item.nama}</div><div class="text-[11px] text-slate-500 font-mono mt-0.5">${item.nim}</div></td>
+            <td class="p-3.5 text-xs text-slate-600">${item.prodi}</td>
+            <td class="p-3.5"><div class="text-xs font-bold text-slate-700">${formatRp(item.nominal)}</div><div class="text-[10px] text-slate-400 mt-0.5">TA ${item.tahunAkademik}</div></td>
+            <td class="p-3.5 text-xs"><div class="text-slate-700">${item.bank || '-'}</div><div class="text-[10px] text-slate-400 mt-0.5">${formatTanggalWaktu(item.tanggal)}</div></td>
+            <td class="p-3.5 text-center"><span class="px-2.5 py-1 rounded-lg text-[10px] font-bold ${getBadge(item.status)}">${item.status}</span></td>
+            <td class="p-3.5 text-center"><button onclick="openAdminDetailModal('${item.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition shadow-sm inline-flex items-center space-x-1.5 mx-auto"><i class="fa-solid fa-eye"></i><span>Tinjau</span></button></td>
+        </tr>
+    `).join('');
 }
 
 // ==========================================
@@ -1064,13 +1021,9 @@ function openAdminDetailModal(id) {
         zoomHint.classList.add('hidden');
         zoomContainer.classList.remove('cursor-zoom-in');
     } else {
-        // TAMPILAN UNTUK GAMBAR
-        if (displayUrl.includes('drive.google.com/file/d/')) {
-            const match = displayUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-            if (match) {
-                // Menggunakan format preview langsung dari Google Drive jika berupa link Drive
-                displayUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
-            }
+        const matchDrive = displayUrl.match(/[-\w]{25,}/); // Ekstrak ID File
+        if (displayUrl.includes('drive.google.com') && matchDrive) {
+            displayUrl = `https://drive.google.com/uc?export=view&id=${matchDrive[0]}`;
         }
         
         imgEl.src = displayUrl;
@@ -1086,18 +1039,17 @@ function openAdminDetailModal(id) {
 
 function selectModalStatus(status) {
     selectedModalStatus = status;
-    const btnPending = document.getElementById('btn-status-pending');
-    const btnDisetujui = document.getElementById('btn-status-disetujui');
-    const btnDitolak = document.getElementById('btn-status-ditolak');
+    const configs = {
+        'Pending': { id: 'btn-status-pending', activeClass: 'border-2 border-amber-600 bg-amber-500 text-white' },
+        'Disetujui': { id: 'btn-status-disetujui', activeClass: 'border-2 border-emerald-700 bg-emerald-600 text-white' },
+        'Ditolak': { id: 'btn-status-ditolak', activeClass: 'border-2 border-rose-700 bg-rose-600 text-white' }
+    };
+    const defaultClass = "py-2.5 border rounded-xl text-xs font-bold bg-slate-50 text-slate-600";
 
-    btnPending.className = "py-2.5 border rounded-xl text-xs font-bold bg-slate-50 text-slate-600";
-    btnDisetujui.className = "py-2.5 border rounded-xl text-xs font-bold bg-slate-50 text-slate-600";
-    btnDitolak.className = "py-2.5 border rounded-xl text-xs font-bold bg-slate-50 text-slate-600";
-
-    if (status === 'Pending') btnPending.className = "py-2.5 border-2 border-amber-600 rounded-xl text-xs font-bold bg-amber-500 text-white";
-    else if (status === 'Disetujui') btnDisetujui.className = "py-2.5 border-2 border-emerald-700 rounded-xl text-xs font-bold bg-emerald-600 text-white";
-    else if (status === 'Ditolak') btnDitolak.className = "py-2.5 border-2 border-rose-700 rounded-xl text-xs font-bold bg-rose-600 text-white";
-
+    ['Pending', 'Disetujui', 'Ditolak'].forEach(key => {
+        const btn = document.getElementById(configs[key].id);
+        if (btn) btn.className = (key === status) ? `py-2.5 rounded-xl text-xs font-bold ${configs[key].activeClass}` : defaultClass;
+    });
     document.getElementById('modal-admin-note').value = defaultStatusNotes[status] || '';
 }
 
