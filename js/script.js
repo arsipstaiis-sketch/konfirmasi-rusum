@@ -1117,7 +1117,32 @@ async function prosesVerifikasi(kirimEmail) {
         showToast("Error Koneksi", "Gagal menghubungi database server.");
     }
 }
+// ==========================================
+// FUNGSI LAYAR PENUH (FULLSCREEN RESI)
+// ==========================================
+function openFullScreenResi() {
+    const currentIframe = document.getElementById('modal-resi-iframe');
+    const fsIframe = document.getElementById('fullscreen-resi-iframe');
+    
+    // Ambil URL dari iframe kecil dan pindahkan ke iframe besar
+    if (currentIframe && currentIframe.src) {
+        fsIframe.src = currentIframe.src;
+        
+        // Tampilkan modal fullscreen (hapus class hidden, tambah flex)
+        const modalFs = document.getElementById('modal-fullscreen-resi');
+        modalFs.classList.remove('hidden');
+        modalFs.classList.add('flex');
+    }
+}
 
+function closeFullScreenResi() {
+    const modalFs = document.getElementById('modal-fullscreen-resi');
+    modalFs.classList.add('hidden');
+    modalFs.classList.remove('flex');
+    
+    // Hapus src agar video/loading terhenti saat ditutup
+    document.getElementById('fullscreen-resi-iframe').src = ''; 
+}
 // ==========================================
 // MODAL KWITANSI & PDF
 // ==========================================
