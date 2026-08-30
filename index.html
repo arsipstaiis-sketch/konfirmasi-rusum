@@ -504,10 +504,10 @@
                         </div>
                     </div>
                     <div class="text-center mb-4 mt-2">
-                        <a id="btn-full-resi" href="#" target="_blank" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-lg text-[10px] font-bold transition">
-                            <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                            <span>Buka Gambar Penuh (Zoom)</span>
-                        </a>
+                        <button type="button" onclick="openFullScreenResi()" class="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-800 hover:bg-emerald-200 rounded-lg text-[10px] font-bold transition">
+                            <i class="fa-solid fa-expand"></i>
+                            <span>Buka Layar Penuh</span>
+                        </button>
                     </div>
                 </div>
                 <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
@@ -649,6 +649,20 @@
     <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
         <p>&copy; 2026 STAI Imam Syafi'i Cianjur. All Rights Reserved.</p>
     </footer>
+    <!-- MODAL FULLSCREEN RESI -->
+    <div id="modal-fullscreen-resi" class="fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-[60] flex-col hidden">
+        <!-- Header / Tombol Tutup -->
+        <div class="p-4 flex justify-between items-center bg-slate-900/50 shadow-md">
+            <h3 class="text-emerald-400 font-bold text-sm tracking-wide"><i class="fa-solid fa-magnifying-glass-plus mr-2"></i> Mode Layar Penuh</h3>
+            <button onclick="closeFullScreenResi()" class="w-10 h-10 rounded-full bg-slate-800 hover:bg-rose-600 text-white flex items-center justify-center transition-colors shadow-lg">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+        </div>
+        <!-- Wadah Iframe Ukuran Besar -->
+        <div class="flex-1 w-full h-full p-2 md:p-8 flex justify-center items-center">
+            <iframe id="fullscreen-resi-iframe" src="" class="w-full h-full max-w-5xl border-0 rounded-xl bg-white shadow-2xl" allowfullscreen></iframe>
+        </div>
+    </div>
 
     <!-- Script dari folder js/ -->
     <script src="js/script.js"></script>
