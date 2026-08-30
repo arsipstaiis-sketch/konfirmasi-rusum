@@ -1023,7 +1023,7 @@ function openAdminDetailModal(id) {
     } else {
         const matchDrive = displayUrl.match(/[-\w]{25,}/); // Ekstrak ID File
         if (displayUrl.includes('drive.google.com') && matchDrive) {
-            displayUrl = `https://drive.google.com/uc?export=view&id=${matchDrive[0]}`;
+            displayUrl = `https://drive.google.com/thumbnail?id=${matchDrive[0]}&sz=w1000`;
         }
         
         imgEl.src = displayUrl;
