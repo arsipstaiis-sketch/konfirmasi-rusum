@@ -496,20 +496,13 @@
 
                     <!-- Kotak Preview (Mendukung Gambar & PDF langsung) -->
                     <div id="resi-zoom-container" class="bg-slate-100 rounded-xl mb-4 flex justify-center items-center overflow-hidden relative h-64 border border-slate-200">
+                        <!-- Iframe Universal untuk Gambar & PDF -->
+                        <iframe id="modal-resi-iframe" src="" class="w-full h-full hidden border-0" allowfullscreen></iframe>
                         
-                        <!-- Gambar (Hanya Muncul Jika File Gambar) -->
-                        <img id="modal-resi-img" src="" alt="Bukti Transfer" class="max-h-full object-contain transition-transform duration-300 origin-top-left pointer-events-none hidden" style="transform: scale(1);">
-                        
-                        <!-- PDF Viewer Langsung (Hanya Muncul Jika File PDF) -->
-                        <object id="modal-resi-pdf-viewer" data="" type="application/pdf" class="w-full h-full hidden">
-                            <div class="flex flex-col items-center justify-center h-full p-4 text-center">
-                                <i class="fa-solid fa-file-pdf text-3xl text-rose-500 mb-2"></i>
-                                <p class="text-xs text-slate-600">Browser Anda tidak mendukung preview PDF langsung.</p>
-                            </div>
-                        </object>
-                        
+                        <div id="resi-loading" class="absolute inset-0 flex items-center justify-center text-emerald-600 hidden">
+                            <i class="fa-solid fa-spinner fa-spin text-3xl"></i>
+                        </div>
                     </div>
-                    <p id="resi-zoom-hint" class="text-[10px] text-center text-slate-400 italic mb-4"><i class="fa-solid fa-hand-pointer"></i> Ketuk/Klik gambar untuk zoom. Seret untuk menggeser.</p>
                 </div>
                 <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
                     <div><span class="text-slate-500 text-[10px] uppercase font-bold">NIM & Nama:</span>
