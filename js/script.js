@@ -1010,6 +1010,7 @@ function openAdminDetailModal(id) {
     }
 
     iframeEl.src = displayUrl;
+    document.getElementById('btn-full-resi').href = displayUrl;
     iframeEl.onload = () => {
         loadingEl.classList.add('hidden');
         iframeEl.classList.remove('hidden');
