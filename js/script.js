@@ -996,42 +996,24 @@ function openAdminDetailModal(id) {
     const summary = getStudentPaymentSummary(item.nim, item.tahunAkademik);
     document.getElementById('modal-mhs-kalkulasi').innerText = `Telah Bayar (TA ${item.tahunAkademik}): ${new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(summary.totalDibayar)}`;
 
-    let realLink = item.resiUrl || '#';
-    let displayUrl = realLink;
+    let displayUrl = item.resiUrl || '#';
+    const iframeEl = document.getElementById('modal-resi-iframe');
+    const loadingEl = document.getElementById('resi-loading');
     
-    const imgEl = document.getElementById('modal-resi-img');
-    const pdfViewer = document.getElementById('modal-resi-pdf-viewer');
-    const zoomHint = document.getElementById('resi-zoom-hint');
-    const zoomContainer = document.getElementById('resi-zoom-container');
-    
-    // Reset status elemen
-    imgEl.classList.add('hidden');
-    pdfViewer.classList.add('hidden');
-    pdfViewer.removeAttribute('data');
-    
-    // Deteksi apakah file berekstensi .pdf atau datanya berupa PDF
-    const filename = (item.resiFilename || '').toLowerCase();
-    const isPdf = filename.endsWith('.pdf') || (displayUrl && displayUrl.toLowerCase().includes('pdf'));
-    
-    if (isPdf) {
-        // TAMPILAN PDF LANGSUNG DI KOTAK
-        pdfViewer.classList.remove('hidden');
-        pdfViewer.setAttribute('data', realLink); // Berkas PDF langsung dimuat ke dalam kotak
-        
-        zoomHint.classList.add('hidden');
-        zoomContainer.classList.remove('cursor-zoom-in');
-    } else {
-        const matchDrive = displayUrl.match(/[-\w]{25,}/); // Ekstrak ID File
-        if (displayUrl.includes('drive.google.com') && matchDrive) {
-            displayUrl = `https://drive.google.com/thumbnail?id=${matchDrive[0]}&sz=w1000`;
-        }
-        
-        imgEl.src = displayUrl;
-        imgEl.classList.remove('hidden');
-        
-        zoomHint.classList.remove('hidden');
-        zoomContainer.classList.add('cursor-zoom-in');
+    iframeEl.classList.add('hidden');
+    loadingEl.classList.remove('hidden');
+
+    // Ekstrak ID dan gunakan endpoint /preview bawaan Google Drive
+    const matchDrive = displayUrl.match(/[-\w]{25,}/);
+    if (displayUrl.includes('drive.google.com') && matchDrive) {
+        displayUrl = `https://drive.google.com/file/d/${matchDrive[0]}/preview`;
     }
+
+    iframeEl.src = displayUrl;
+    iframeEl.onload = () => {
+        loadingEl.classList.add('hidden');
+        iframeEl.classList.remove('hidden');
+    };
     
     selectModalStatus(item.status || 'Pending');
     document.getElementById('modal-review').classList.remove('hidden');
