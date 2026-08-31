@@ -6,7 +6,7 @@ const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzMprNgTOeIFiCUO3BJH
 
 let transaksiData = []; 
 let mahasiswaMaster = []; 
-
+let currentFilteredCohort = [];
 let activeTab = 'form';
 let activeAdminSubtab = 'verifikasi';
 let activeAngkatanStatusFilter = 'ALL';
@@ -910,6 +910,7 @@ function renderAngkatanMonitoring() {
             );
         }
     }
+    currentFilteredCohort = displayStudents;
     document.getElementById('cohort-table-count').innerText = `${displayStudents.length} Data`;
 
     const tbody = document.getElementById('cohort-table-body');
@@ -1350,4 +1351,101 @@ function initResiZoomPan() {
     };
     container.addEventListener('mouseup', stopPan);
     container.addEventListener('mouseleave', stopPan);
+}
+// ==========================================
+// EKSPOR LAPORAN PDF (PEMANTAUAN ANGKATAN)
+// ==========================================
+function exportPemantauanPDF() {
+    if (currentFilteredCohort.length === 0) {
+        showToast("Kosong", "Tidak ada data untuk diekspor.");
+        return;
+    }
+
+    if (typeof window.jspdf === 'undefined') {
+        showToast("Error", "Library pembuat PDF belum termuat. Periksa koneksi internet.");
+        return;
+    }
+
+    showToast("Memproses", "Sedang membuat dokumen PDF...");
+
+    // Inisiasi jsPDF (Landscape, millimeters, ukuran A4)
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('l', 'mm', 'a4');
+
+    // 1. Kumpulkan Informasi Filter Aktif untuk Kop Surat
+    let modeText = activeMonitoringMode === 'angkatan' ? 'Berdasarkan Angkatan' : 'Berdasarkan Tahun Akademik';
+    let filterUtama = activeMonitoringMode === 'angkatan' 
+        ? document.getElementById('filter-utama-angkatan').options[document.getElementById('filter-utama-angkatan').selectedIndex].text
+        : document.getElementById('filter-utama-ta').options[document.getElementById('filter-utama-ta').selectedIndex].text;
+    
+    let filterCabang = activeMonitoringMode === 'angkatan' 
+        ? (document.getElementById('filter-cabang-ta') ? document.getElementById('filter-cabang-ta').options[document.getElementById('filter-cabang-ta').selectedIndex].text : '-')
+        : (document.getElementById('filter-cabang-tingkatan') ? document.getElementById('filter-cabang-tingkatan').options[document.getElementById('filter-cabang-tingkatan').selectedIndex].text : '-');
+
+    let statusText = activeAngkatanStatusFilter === 'ALL' ? 'Semua Status' : activeAngkatanStatusFilter;
+
+    // 2. Buat Kop Laporan (Header PDF)
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text("LAPORAN PEMANTAUAN KEUANGAN RUSUM - STAIIS", 14, 15);
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Dicetak pada : ${new Date().toLocaleString('id-ID')}`, 14, 22);
+    doc.text(`Mode Filter  : ${modeText}`, 14, 27);
+    doc.text(`Parameter    : ${filterUtama} | ${filterCabang} | Status: ${statusText}`, 14, 32);
+
+    // 3. Konfigurasi Kolom Tabel
+    const tableColumns = [['No', 'NIM', 'Nama Mahasiswa', 'Prodi', 'Angkatan - Tingkat', 'Total Terbayar', 'Sisa Tagihan', 'Status']];
+    
+    // 4. Petakan Data (Mapping)
+    const tableRows = currentFilteredCohort.map((mhs, index) => {
+        const nominalBayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.totalDibayar);
+        const nominalSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.sisaTagihan);
+        
+        let teksStatus = mhs.summary.statusOverall;
+        if (teksStatus === 'BELUM_BAYAR') teksStatus = 'Belum Bayar';
+
+        return [
+            index + 1,
+            mhs.nim,
+            mhs.nama,
+            mhs.prodi,
+            `${mhs.angkatan} - ${mhs.tingkatan}`,
+            nominalBayar,
+            nominalSisa,
+            teksStatus
+        ];
+    });
+
+    // 5. Render Tabel dengan AutoTable
+    doc.autoTable({
+        startY: 38,
+        head: tableColumns,
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [6, 95, 70], textColor: 255, halign: 'center' }, // Warna Hijau Emerald STAIIS
+        styles: { fontSize: 8, cellPadding: 2 },
+        columnStyles: {
+            0: { halign: 'center', cellWidth: 10 },
+            1: { halign: 'center', cellWidth: 25 },
+            4: { halign: 'center' },
+            5: { halign: 'right' }, // Rata Kanan untuk Uang
+            6: { halign: 'right', textColor: [159, 18, 57] }, // Warna Merah (Rose-700) untuk Sisa Tagihan
+            7: { halign: 'center', fontStyle: 'bold' }
+        },
+        didDrawPage: function (data) {
+            // Footer Halaman (Nomor Halaman)
+            let pageString = 'Halaman ' + doc.internal.getNumberOfPages();
+            doc.setFontSize(8);
+            doc.text(pageString, data.settings.margin.left, doc.internal.pageSize.height - 10);
+        }
+    });
+
+    // 6. Unduh File PDF
+    const safeDate = new Date().toISOString().slice(0,10);
+    doc.save(`Rekap_Keuangan_STAIIS_${safeDate}.pdf`);
+    
+    // Matikan notifikasi proses
+    setTimeout(() => { showToast("Selesai", "File laporan PDF berhasil diunduh."); }, 1000);
 }
