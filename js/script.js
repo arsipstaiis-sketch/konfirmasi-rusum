@@ -30,7 +30,7 @@ const getBadge = (status) => {
     return map[status] || map['Pending'];
 };
 // ==========================================
-// FUNGSI FETCH GOOGLE SHEETS
+// FUNGSI FETCH GOOGLE SHEETS (DEEP TRIM)
 // ==========================================
 async function fetchSpreadsheetData() {
     try {
@@ -38,52 +38,38 @@ async function fetchSpreadsheetData() {
         const response = await fetch(SCRIPT_URL + "?action=getData");
         const data = await response.json();
         
-        if (data.biayaRusum) {
-            BIAYA_RUSUM_STANDAR = Number(data.biayaRusum);
-        }
+        if (data.biayaRusum) BIAYA_RUSUM_STANDAR = Number(data.biayaRusum);
         if (data.taAktif) {
             globalTAAktif = String(data.taAktif).trim();
             const badgeTA = document.getElementById('display-ta-aktif');
-            if (badgeTA) {
-                badgeTA.innerText = globalTAAktif;
-            }
+            if (badgeTA) badgeTA.innerText = globalTAAktif;
         }
-        transaksiData = data.transaksi.map(tx => ({
-            ...tx,
-            nim: String(tx.nim), 
-            nominal: Number(tx.nominal)
-        })).reverse(); 
         
-        mahasiswaMaster = data.mahasiswa.map(m => ({
-            ...m,
-            nim: String(m.nim).trim(),
-            nama: String(m.nama || '').trim(),
-            tingkatan: String(m.tingkatan || '').trim(),
-            status: String(m.status || '').trim(),
-            prodi: String(m.prodi || '').trim(),
-            angkatan: String(m.angkatan || '').trim()
-        }));
+        // PEMBERSIHAN DATA TRANSAKSI
+        transaksiData = data.transaksi.map(tx => {
+            let obj = {};
+            // Bersihkan spasi berlebih di SETIAP kolom
+            for (let key in tx) obj[key] = typeof tx[key] === 'string' ? tx[key].trim() : tx[key];
+            obj.nim = String(obj.nim || '').replace(/\s+/g, ''); // Hapus semua spasi di NIM
+            obj.nominal = Number(obj.nominal || 0);
+            return obj;
+        }).filter(tx => tx.nim !== '').reverse(); // Abaikan baris kosong
+        
+        // PEMBERSIHAN DATA MAHASISWA MASTER
+        mahasiswaMaster = data.mahasiswa.map(m => {
+            let obj = {};
+            for (let key in m) obj[key] = typeof m[key] === 'string' ? m[key].trim() : m[key];
+            obj.nim = String(obj.nim || '').replace(/\s+/g, '');
+            return obj;
+        }).filter(m => m.nim !== ''); // Abaikan baris kosong
         
         populateDynamicFilters();
-        showToast("Berhasil", "Data berhasil dimuat dari database Google Sheets.");
+        showToast("Berhasil", "Data berhasil dimuat secara penuh.");
         
-        if (isAdminLoggedIn) {
-            renderAdminDashboard();
-        }
+        if (isAdminLoggedIn) renderAdminDashboard();
     } catch (error) {
         showToast("Error", "Gagal memuat data. Periksa koneksi internet.");
-        console.error("Error fetching data:", error);
     }
-}
-
-function populateDynamicFilters() {
-    const uniqueTA = [...new Set(transaksiData.map(item => item.tahunAkademik))].filter(Boolean).sort().reverse();
-    const filterTaAdmin = document.getElementById('filter-ta-admin');
-    if (filterTaAdmin) {
-        filterTaAdmin.innerHTML = '<option value="Semua">Semua TA</option>' + 
-            uniqueTA.map(ta => `<option value="${ta}">${ta}</option>`).join('');
-    }
-    renderMonitoringFiltersUI();
 }
 
 // ==========================================
@@ -1367,14 +1353,14 @@ function exportPemantauanPDF() {
     }
 
     if (typeof window.jspdf === 'undefined') {
-        showToast("Error", "Library pembuat PDF belum termuat. Periksa koneksi internet.");
+        showToast("Error", "Library pembuat PDF belum termuat.");
         return;
     }
 
     showToast("Memproses", "Sedang membuat dokumen PDF...");
 
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4'); // Kertas A4 Landscape
+    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
 
     // 1. Kumpulkan Informasi Filter
     let filterTA = activeMonitoringMode === 'ta' 
@@ -1387,61 +1373,65 @@ function exportPemantauanPDF() {
         
     let statusText = activeAngkatanStatusFilter === 'ALL' ? 'Semua Status' : activeAngkatanStatusFilter;
 
-    // 2. Kalkulasi Total Akumulasi (Langkah Tambahan)
+    // 2. Kalkulasi Total Akumulasi
     const totalDibayarAll = currentFilteredCohort.reduce((sum, mhs) => sum + mhs.summary.totalDibayar, 0);
     const totalSisaAll = currentFilteredCohort.reduce((sum, mhs) => sum + mhs.summary.sisaTagihan, 0);
     const formatRp = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
 
-    // 3. Buat Kop Laporan (Header PDF) dengan Titik Dua Sejajar
+    // 3. Buat Kop Laporan (Header PDF)
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text("LAPORAN PEMANTAUAN KEUANGAN RUSUM - STAIIS", 14, 16);
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    
-    // Menggunakan koordinat X=14 untuk Label, dan X=42 untuk Nilainya agar titik dua sejajar rapi
     doc.text("Waktu Cetak", 14, 24);    doc.text(`: ${new Date().toLocaleString('id-ID')}`, 42, 24);
     doc.text("Tahun Akademik", 14, 29); doc.text(`: ${filterTA}`, 42, 29);
     doc.text("Kategori Filter", 14, 34);doc.text(`: ${filterKategori}`, 42, 34);
     doc.text("Status Bayar", 14, 39);   doc.text(`: ${statusText}`, 42, 39);
 
-    // 4. Konfigurasi Kolom Tabel
+    // 4. CETAK TOTAL DI ATAS (Hanya Muncul 1x di Halaman Pertama)
+    doc.autoTable({
+        startY: 44,
+        body: [
+            ['Total Akumulasi Terbayar', ':', formatRp(totalDibayarAll), 'Total Sisa Tagihan', ':', formatRp(totalSisaAll)]
+        ],
+        theme: 'plain',
+        styles: { fontSize: 9, fontStyle: 'bold', cellPadding: 1 },
+        columnStyles: {
+            0: { cellWidth: 40 },
+            1: { cellWidth: 5, halign: 'center' },
+            2: { cellWidth: 40, textColor: [6, 95, 70] }, // Hijau
+            3: { cellWidth: 35 },
+            4: { cellWidth: 5, halign: 'center' },
+            5: { textColor: [159, 18, 57] } // Merah
+        }
+    });
+
+    // Mulai tabel utama tepat di bawah blok total
+    let startYMainTable = doc.lastAutoTable.finalY + 4; 
+
+    // 5. Konfigurasi Kolom Tabel Utama
     const tableColumns = [['No', 'NIM', 'Nama Mahasiswa', 'Prodi', 'Angkatan - Tingkat', 'Total Terbayar', 'Sisa Tagihan', 'Status']];
-    
-    // 5. Petakan Data Mahasiswa
     const tableRows = currentFilteredCohort.map((mhs, index) => {
         let teksStatus = mhs.summary.statusOverall;
         if (teksStatus === 'BELUM_BAYAR') teksStatus = 'Belum Bayar';
-
         return [
-            index + 1,
-            mhs.nim,
-            mhs.nama,
-            mhs.prodi,
-            `${mhs.angkatan} - ${mhs.tingkatan}`,
-            formatRp(mhs.summary.totalDibayar),
-            formatRp(mhs.summary.sisaTagihan),
-            teksStatus
+            index + 1, mhs.nim, mhs.nama, mhs.prodi, `${mhs.angkatan} - ${mhs.tingkatan}`,
+            formatRp(mhs.summary.totalDibayar), formatRp(mhs.summary.sisaTagihan), teksStatus
         ];
     });
 
-    // 6. Konfigurasi Baris Total (Footer Tabel)
-    const tableFoot = [[
-        { content: 'TOTAL AKUMULASI KESELURUHAN', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold', fillColor: [241, 245, 249], textColor: [15, 23, 42] } },
-        { content: formatRp(totalDibayarAll), styles: { halign: 'right', fontStyle: 'bold', fillColor: [209, 250, 229], textColor: [6, 95, 70] } }, // Hijau
-        { content: formatRp(totalSisaAll), styles: { halign: 'right', fontStyle: 'bold', fillColor: [255, 228, 230], textColor: [159, 18, 57] } }, // Merah
-        { content: '-', styles: { halign: 'center', fillColor: [241, 245, 249] } }
-    ]];
+    // Penanda Total Halaman untuk Pagination
+    const totalPagesExp = '{total_pages_count_string}';
 
-    // 7. Render Tabel dengan AutoTable
+    // 6. Render Tabel Utama
     doc.autoTable({
-        startY: 45, // Diturunkan sedikit dari 38 agar tidak menabrak header yang baru
+        startY: startYMainTable, 
         head: tableColumns,
         body: tableRows,
-        foot: tableFoot,
         theme: 'grid',
-        headStyles: { fillColor: [6, 95, 70], textColor: 255, halign: 'center' }, // Warna Hijau STAIIS
+        headStyles: { fillColor: [6, 95, 70], textColor: 255, halign: 'center' },
         styles: { fontSize: 8, cellPadding: 2 },
         columnStyles: {
             0: { halign: 'center', cellWidth: 10 },
@@ -1452,11 +1442,18 @@ function exportPemantauanPDF() {
             7: { halign: 'center', fontStyle: 'bold' }
         },
         didDrawPage: function (data) {
-            let pageString = 'Halaman ' + doc.internal.getNumberOfPages();
+            // Footer Halaman (Format: Halaman 1 dari X)
+            let pageString = 'Halaman ' + doc.internal.getNumberOfPages() + ' dari ' + totalPagesExp;
             doc.setFontSize(8);
+            doc.setFont('helvetica', 'italic');
             doc.text(pageString, data.settings.margin.left, doc.internal.pageSize.height - 10);
         }
     });
+
+    // 7. Inject Jumlah Total Halaman ke String Penanda
+    if (typeof doc.putTotalPages === 'function') {
+        doc.putTotalPages(totalPagesExp);
+    }
 
     // 8. Unduh File PDF
     const safeDate = new Date().toISOString().slice(0,10);
