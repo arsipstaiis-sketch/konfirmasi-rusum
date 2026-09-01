@@ -88,7 +88,7 @@ async function fetchSpreadsheetData() {
         }).filter(m => m.nim !== ''); 
         
         showToast("Berhasil", "Data berhasil dimuat secara penuh.");
-        
+        populateAdminTAFilter();
         if (isAdminLoggedIn) {
             renderAdminDashboard();
         }
@@ -1457,4 +1457,23 @@ function exportPemantauanPDF() {
     doc.save(`Rekap_Keuangan_STAIIS_${safeDate}.pdf`);
     
     setTimeout(() => { showToast("Selesai", "File laporan PDF berhasil diunduh."); }, 1000);
+}
+// ==========================================
+// POPULATE DROPDOWN TA ADMIN VERIFIKASI
+// ==========================================
+function populateAdminTAFilter() {
+    const selectEl = document.getElementById('filter-ta-admin');
+    if (!selectEl) return;
+    
+    const currentValue = selectEl.value;
+    const uniqueTA = [...new Set(transaksiData.map(item => item.tahunAkademik))].filter(Boolean).sort().reverse();
+    
+    selectEl.innerHTML = `
+        <option value="Semua">Semua TA</option>
+        ${uniqueTA.map(ta => `<option value="${ta}">${ta}</option>`).join('')}
+    `;
+    
+    if (uniqueTA.includes(currentValue) || currentValue === 'Semua') {
+        selectEl.value = currentValue;
+    }
 }
