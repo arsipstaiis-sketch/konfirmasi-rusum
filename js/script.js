@@ -32,43 +32,72 @@ const getBadge = (status) => {
 // ==========================================
 // FUNGSI FETCH GOOGLE SHEETS (DEEP TRIM)
 // ==========================================
+// ==========================================
+// FUNGSI FETCH GOOGLE SHEETS (ULTRA SAFE)
+// ==========================================
 async function fetchSpreadsheetData() {
     try {
         showToast("Memuat Data", "Sedang menghubungkan ke database server...");
         const response = await fetch(SCRIPT_URL + "?action=getData");
         const data = await response.json();
         
-        if (data.biayaRusum) BIAYA_RUSUM_STANDAR = Number(data.biayaRusum);
+        // Cek dan set Biaya Rusum
+        if (data.biayaRusum) {
+            BIAYA_RUSUM_STANDAR = Number(data.biayaRusum);
+        }
+        
+        // Cek dan set TA Aktif
         if (data.taAktif) {
             globalTAAktif = String(data.taAktif).trim();
             const badgeTA = document.getElementById('display-ta-aktif');
             if (badgeTA) badgeTA.innerText = globalTAAktif;
         }
         
-        // PEMBERSIHAN DATA TRANSAKSI
-        transaksiData = data.transaksi.map(tx => {
-            let obj = {};
-            // Bersihkan spasi berlebih di SETIAP kolom
-            for (let key in tx) obj[key] = typeof tx[key] === 'string' ? tx[key].trim() : tx[key];
-            obj.nim = String(obj.nim || '').replace(/\s+/g, ''); // Hapus semua spasi di NIM
+        // PEMBERSIHAN DATA TRANSAKSI DENGAN AMAN
+        const rawTransaksi = data.transaksi || [];
+        transaksiData = rawTransaksi.map(tx => {
+            let obj = { ...tx }; // Salin data asli
+            
+            // Bersihkan spasi berlebih dengan aman
+            Object.keys(obj).forEach(key => {
+                if (typeof obj[key] === 'string') {
+                    obj[key] = obj[key].trim();
+                }
+            });
+            
+            // Pastikan NIM bersih dari spasi di tengah/awal/akhir
+            obj.nim = String(obj.nim || '').replace(/\s+/g, ''); 
             obj.nominal = Number(obj.nominal || 0);
             return obj;
-        }).filter(tx => tx.nim !== '').reverse(); // Abaikan baris kosong
+        }).filter(tx => tx.nim !== '').reverse(); // Abaikan jika baris benar-benar kosong
         
-        // PEMBERSIHAN DATA MAHASISWA MASTER
-        mahasiswaMaster = data.mahasiswa.map(m => {
-            let obj = {};
-            for (let key in m) obj[key] = typeof m[key] === 'string' ? m[key].trim() : m[key];
+        // PEMBERSIHAN DATA MAHASISWA MASTER DENGAN AMAN
+        const rawMahasiswa = data.mahasiswa || [];
+        mahasiswaMaster = rawMahasiswa.map(m => {
+            let obj = { ...m };
+            
+            Object.keys(obj).forEach(key => {
+                if (typeof obj[key] === 'string') {
+                    obj[key] = obj[key].trim();
+                }
+            });
+            
             obj.nim = String(obj.nim || '').replace(/\s+/g, '');
             return obj;
-        }).filter(m => m.nim !== ''); // Abaikan baris kosong
+        }).filter(m => m.nim !== ''); 
         
+        // Render filter
         populateDynamicFilters();
         showToast("Berhasil", "Data berhasil dimuat secara penuh.");
         
-        if (isAdminLoggedIn) renderAdminDashboard();
+        if (isAdminLoggedIn) {
+            renderAdminDashboard();
+        }
+        
     } catch (error) {
-        showToast("Error", "Gagal memuat data. Periksa koneksi internet.");
+        // Log ini akan memberitahu kita BARIS MANA yang error jika gagal lagi
+        console.error("DETAIL ERROR FETCH:", error); 
+        showToast("Error", "Gagal memuat data. Periksa konsol (F12).");
     }
 }
 
