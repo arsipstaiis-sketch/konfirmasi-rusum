@@ -23,15 +23,14 @@ const defaultStatusNotes = {
     'Disetujui': 'Pembayaran setoran angsuran telah diverifikasi sah.',
     'Ditolak': 'Bukti transfer tidak valid atau nominal tidak sesuai ketentuan. Silakan perbaiki dan unggah ulang.'
 };
+
 // --- HELPER FUNCTIONS ---
 const formatRp = (angka) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(angka || 0);
 const getBadge = (status) => {
     const map = { 'Disetujui': 'bg-emerald-100 text-emerald-800', 'Ditolak': 'bg-rose-100 text-rose-800', 'Pending': 'bg-amber-100 text-amber-800' };
     return map[status] || map['Pending'];
 };
-// ==========================================
-// FUNGSI FETCH GOOGLE SHEETS (DEEP TRIM)
-// ==========================================
+
 // ==========================================
 // FUNGSI FETCH GOOGLE SHEETS (ULTRA SAFE)
 // ==========================================
@@ -56,20 +55,19 @@ async function fetchSpreadsheetData() {
         // PEMBERSIHAN DATA TRANSAKSI DENGAN AMAN
         const rawTransaksi = data.transaksi || [];
         transaksiData = rawTransaksi.map(tx => {
-            let obj = { ...tx }; // Salin data asli
+            let obj = { ...tx }; 
             
-            // Bersihkan spasi berlebih dengan aman
+            // Bersihkan spasi berlebih
             Object.keys(obj).forEach(key => {
                 if (typeof obj[key] === 'string') {
                     obj[key] = obj[key].trim();
                 }
             });
             
-            // Pastikan NIM bersih dari spasi di tengah/awal/akhir
             obj.nim = String(obj.nim || '').replace(/\s+/g, ''); 
             obj.nominal = Number(obj.nominal || 0);
             return obj;
-        }).filter(tx => tx.nim !== '').reverse(); // Abaikan jika baris benar-benar kosong
+        }).filter(tx => tx.nim !== '').reverse(); 
         
         // PEMBERSIHAN DATA MAHASISWA MASTER DENGAN AMAN
         const rawMahasiswa = data.mahasiswa || [];
@@ -83,10 +81,12 @@ async function fetchSpreadsheetData() {
             });
             
             obj.nim = String(obj.nim || '').replace(/\s+/g, '');
+            // Amankan nama dari tanda kutip tunggal agar HTML tidak rusak
+            obj.nama = String(obj.nama || '').replace(/'/g, '’'); 
+            
             return obj;
         }).filter(m => m.nim !== ''); 
         
-        // Render filter
         showToast("Berhasil", "Data berhasil dimuat secara penuh.");
         
         if (isAdminLoggedIn) {
@@ -94,7 +94,6 @@ async function fetchSpreadsheetData() {
         }
         
     } catch (error) {
-        // Log ini akan memberitahu kita BARIS MANA yang error jika gagal lagi
         console.error("DETAIL ERROR FETCH:", error); 
         showToast("Error", "Gagal memuat data. Periksa konsol (F12).");
     }
@@ -111,6 +110,24 @@ function getStudentPaymentSummary(nim, targetTA = null) {
     }
 
     const totalDibayar = approvedTx.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
+    
+    // Cek status Cuti Mahasiswa
+    const mhs = mahasiswaMaster.find(m => m.nim === nim);
+    const taCuti = mhs ? String(mhs.taCuti || '').trim() : '';
+
+    // Jika mahasiswa sedang Cuti pada TA yang dipilih, bebaskan tagihan
+    if (targetTA && targetTA !== 'ALL' && taCuti === targetTA) {
+        return { 
+            totalDibayar, 
+            sisaTagihan: 0, 
+            percentPaid: 100, 
+            statusOverall: 'CUTI', 
+            approvedCount: approvedTx.length, 
+            ta: targetTA 
+        };
+    }
+
+    // Kalkulasi Normal untuk Mahasiswa Aktif / Tinggal Kelas
     const sisaTagihan = Math.max(0, BIAYA_RUSUM_STANDAR - totalDibayar);
     const percentPaid = Math.min(100, Math.round((totalDibayar / BIAYA_RUSUM_STANDAR) * 100));
 
@@ -124,7 +141,6 @@ function getStudentPaymentSummary(nim, targetTA = null) {
     return { totalDibayar, sisaTagihan, percentPaid, statusOverall, approvedCount: approvedTx.length, ta: targetTA };
 }
 
-// Fitur Baru: Autofill Nama dan Info Dasar Mahasiswa
 function autofillNama() {
     const nimInput = document.getElementById('input-nim');
     const namaInput = document.getElementById('input-nama');
@@ -145,8 +161,6 @@ function autofillNama() {
 
     if (student) {
         namaInput.value = student.nama || '';
-        
-        // Opsional: Otomatis mengisi prodi dan tingkatan jika elemennya ada
         const inputProdi = document.getElementById('input-prodi');
         const inputTingkatan = document.getElementById('input-tingkatan');
         if (inputProdi && student.prodi) inputProdi.value = student.prodi;
@@ -169,7 +183,6 @@ function checkPreviousInstallments() {
     const ta = inputTA ? inputTA.value : null; 
     const infoDiv = document.getElementById('nim-installment-info');
 
-    // Reset jika kosong atau TA belum dipilih
     if (!nim || !ta) {
         infoDiv.classList.add('hidden');
         return;
@@ -177,12 +190,14 @@ function checkPreviousInstallments() {
 
     const summary = getStudentPaymentSummary(nim, ta);
 
-    if (summary.totalDibayar > 0) {
+    if (summary.totalDibayar > 0 || summary.statusOverall === 'CUTI') {
         infoDiv.classList.remove('hidden');
         const formattedDibayar = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.totalDibayar);
         const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(summary.sisaTagihan);
 
-        if (summary.statusOverall === 'LUNAS') {
+        if (summary.statusOverall === 'CUTI') {
+            infoDiv.innerHTML = `<p class="font-bold text-slate-600"><i class="fa-solid fa-bed"></i> Status Mahasiswa: CUTI (Bebas Tagihan TA ${ta})</p>`;
+        } else if (summary.statusOverall === 'LUNAS') {
             infoDiv.innerHTML = `<p class="font-bold text-emerald-800"><i class="fa-solid fa-circle-check"></i> Sudah Lunas (${formattedDibayar}) untuk TA ${ta}</p>`;
         } else {
             infoDiv.innerHTML = `
@@ -196,7 +211,7 @@ function checkPreviousInstallments() {
 }
 
 // ==========================================
-// DRAG & DROP FILE HANDLER (FOTO/PDF)
+// DRAG & DROP FILE HANDLER
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('drop-zone');
@@ -261,7 +276,7 @@ function copyRekening() {
 }
 
 // ==========================================
-// FORM SUBMIT (MAHASISWA) KE GOOGLE SHEETS
+// FORM SUBMIT
 // ==========================================
 async function handleFormSubmit(e) {
     e.preventDefault();
@@ -270,8 +285,6 @@ async function handleFormSubmit(e) {
     btnSubmit.disabled = true;
 
     const nim = document.getElementById('input-nim').value.trim();
-    
-    // Validasi: Harus 8 angka (24110412) ATAU format 11 karakter dengan titik (21.1.1.0412)
     const isValidNIM = /^\d{8}$/.test(nim) || /^\d{2}\.\d{1}\.\d{1}\.\d{4}$/.test(nim);
     
     if (!isValidNIM) {
@@ -330,7 +343,7 @@ async function handleFormSubmit(e) {
 
         showToast("Pengajuan Terkirim", `Konfirmasi pembayaran untuk ${nama} berhasil disimpan.`);
         selectTab('status');
-        document.getElementById('search-status-input').value = nim; // Auto isi form pencarian dengan NIM barusan
+        document.getElementById('search-status-input').value = nim; 
         executeStatusSearch(); 
     } catch (error) {
         showToast("Gagal Menyimpan", "Terjadi kesalahan koneksi server.");
@@ -341,34 +354,25 @@ async function handleFormSubmit(e) {
 }
 
 // ==========================================
-// PENCARIAN STATUS & DROPDOWN TA DINAMIS
+// PENCARIAN STATUS & DROPDOWN TA
 // ==========================================
 function updateStatusTADisplay(ta, nim, totalTAs = 1) {
-    // 1. Siapkan data transaksi khusus mahasiswa ini
     const studentTx = transaksiData.filter(d => d.nim === nim);
     let filteredTx = studentTx;
     
     let totalDibayar = 0;
     let sisaTagihan = 0;
-    
     let labelDisetujui = 'Total Disetujui';
     let labelSisa = 'Sisa Tagihan';
 
-    // 2. Logika Pemisahan (Jika 'Semua TA' dipilih vs 'TA Spesifik')
     if (ta === 'ALL') {
-        // Hitung total dari SEMUA TA yang disetujui
         const approvedTx = studentTx.filter(d => d.status === 'Disetujui');
         totalDibayar = approvedTx.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
-        
-        // Kalkulasi sisa hutang dari keseluruhan masa studi yang tercatat
         sisaTagihan = Math.max(0, (totalTAs * BIAYA_RUSUM_STANDAR) - totalDibayar);
-        
         labelDisetujui = 'Total Disetujui (Semua TA)';
         labelSisa = 'Total Sisa (Keseluruhan)';
     } else {
-        // Saring transaksi hanya untuk TA yang dipilih
         filteredTx = studentTx.filter(d => d.tahunAkademik === ta);
-        
         const summary = getStudentPaymentSummary(nim, ta);
         totalDibayar = summary.totalDibayar;
         sisaTagihan = summary.sisaTagihan;
@@ -377,13 +381,11 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
     const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalDibayar);
     const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(sisaTagihan);
     
-    // Logika Warna Status (Hijau jika Lunas, Merah jika Nunggak)
     const isLunas = sisaTagihan <= 0;
     const boxColor = isLunas ? 'bg-emerald-800/80 border-emerald-500' : 'bg-rose-950 border-rose-500';
     const textColor = isLunas ? 'text-emerald-300' : 'text-rose-300';
     const iconSign = isLunas ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-triangle-exclamation"></i>';
 
-    // 3. CETAK KOTAK KALKULASI
     const calcContainer = document.getElementById('status-calculation-box');
     if (calcContainer) {
         calcContainer.innerHTML = `
@@ -398,7 +400,6 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
         `;
     }
 
-    // 4. CETAK DAFTAR RIWAYAT TRANSAKSI (Sesuai Filter)
     const historyContainer = document.getElementById('status-history-list');
     if (historyContainer) {
         if (filteredTx.length === 0) {
@@ -421,13 +422,11 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
                             </div>
                             <span class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${badge}">${item.status}</span>
                         </div>
-
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 text-[11px]">
                             <div><b class="text-slate-400">Bank & Tgl:</b> ${item.bank || '-'} (${cleanDate})</div>
                             <div><b class="text-slate-400">Catatan:</b> ${item.catatan || '-'}</div>
                             <div class="sm:col-span-2"><b class="text-slate-400">Admin Note:</b> <span class="italic text-slate-700">${item.adminNote || '-'}</span></div>
                         </div>
-
                         ${btn ? `<div class="pt-1 flex justify-end">${btn}</div>` : ''}
                     </div>
                 `;
@@ -460,14 +459,12 @@ function executeStatusSearch() {
         return;
     }
 
-    // Ambil Data Identitas
     const targetNim = student ? student.nim : studentTx[0].nim;
     const studentName = student ? student.nama : studentTx[0].nama;
     const studentProdi = student ? student.prodi : (studentTx[0].prodi || '-');
     const studentTingkatan = student ? student.tingkatan : (studentTx[0].tingkatan || '-');
     const studentAngkatan = student ? parseInt(student.angkatan) : parseInt((studentTx[0].tahunAkademik || globalTAAktif).split('/')[0]);
 
-    // Kalkulasi Jangkauan TA
     const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
     const startYear = studentAngkatan || tahunAktifStart;
     
@@ -483,7 +480,6 @@ function executeStatusSearch() {
         }
     }
 
-    // Bangun daftar dropdown TA
     let listTA = [];
     for (let y = batasAtasTA; y >= startYear; y--) {
         listTA.push(`${y}/${y+1}`);
@@ -491,7 +487,6 @@ function executeStatusSearch() {
     if (listTA.length === 0) listTA = [globalTAAktif];
     const initialTA = listTA.includes(globalTAAktif) ? globalTAAktif : listTA[0];
 
-    // BENTUK KERANGKA HTML
     let html = `
         <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-4">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-emerald-800 pb-4 gap-4 sm:gap-0">
@@ -499,38 +494,26 @@ function executeStatusSearch() {
                     <h3 class="text-lg font-extrabold">${studentName} (${targetNim})</h3>
                     <p class="text-xs text-emerald-200">${studentProdi} - ${studentTingkatan}</p>
                 </div>
-
-                <!-- DROPDOWN TA -->
                 <div class="relative shrink-0 flex items-center group">
                     <div class="absolute left-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500">
                         <i class="fa-regular fa-calendar-days text-[11px]"></i>
                     </div>
-                    
-                    <!-- Menambahkan Opsi 'Semua TA' di Paling Atas -->
                     <select onchange="updateStatusTADisplay(this.value, '${targetNim}', ${listTA.length})" class="appearance-none bg-emerald-950/50 border border-emerald-700/60 text-emerald-100 text-[11px] font-bold rounded-xl pl-8 pr-8 py-1.5 focus:outline-none focus:border-emerald-400 hover:border-emerald-500 cursor-pointer shadow-sm transition w-full">
                         <option value="ALL" class="bg-emerald-900">Semua TA</option>
                         ${listTA.map(ta => `<option value="${ta}" ${ta === initialTA ? 'selected' : ''} class="bg-emerald-900">${ta}</option>`).join('')}
                     </select>
-                    
                     <div class="absolute right-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500">
                         <i class="fa-solid fa-chevron-down text-[9px]"></i>
                     </div>
                 </div>
             </div>
-            
-            <!-- KOTAK KALKULASI (Wadah Kosong) -->
             <div id="status-calculation-box" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs"></div>
         </div>
-        
         <h4 class="text-xs font-bold text-slate-700 uppercase pt-4 pb-1 border-b border-slate-200">Riwayat Transaksi</h4>
-        
-        <!-- DAFTAR RIWAYAT TRANSAKSI (Wadah Kosong) -->
         <div id="status-history-list"></div>
     `;
 
     resultsContainer.innerHTML = html;
-
-    // OTOMATIS JALANKAN PEMBARUAN SETELAH HTML DIBUAT
     updateStatusTADisplay(initialTA, targetNim, listTA.length);
 }
 
@@ -737,7 +720,6 @@ function renderMonitoringFiltersUI() {
 
     const uniqueTA = [...new Set(transaksiData.map(item => item.tahunAkademik))].filter(Boolean).sort().reverse();
     const uniqueAngkatan = [...new Set(mahasiswaMaster.map(item => item.angkatan))].filter(Boolean).sort().reverse();
-    const uniqueTingkatan = [...new Set(mahasiswaMaster.map(item => item.tingkatan))].filter(Boolean);
 
     if (activeMonitoringMode === 'angkatan') {
         container.innerHTML = `
@@ -809,8 +791,6 @@ function onMainTAChanged() {
             const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
             const statusMhs = String(mhs.status || '').toLowerCase();
             const tingkatanMhs = String(mhs.tingkatan || '').toLowerCase();
-            const taCuti = String(mhs.taCuti || '').trim();
-            const sedangCuti = (taCuti === globalTAAktif);
             
             let sudahTidakAktif = false;
             
@@ -818,7 +798,7 @@ function onMainTAChanged() {
             else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusMhs)) sudahTidakAktif = true; 
             if (['tamhidi', 'lulus'].includes(tingkatanMhs)) sudahTidakAktif = true;
             
-            return (tahunMulaiTA >= tahunMasuk) && !sedangCuti && !sudahTidakAktif;
+            return (tahunMulaiTA >= tahunMasuk) && !sudahTidakAktif;
         });
 
         const forbiddenOptions = ['tamhidi', 'lulus'];
@@ -872,36 +852,35 @@ function renderAngkatanMonitoring() {
     const mappedStudents = cohortStudents.map(mhs => {
         return { ...mhs, summary: getStudentPaymentSummary(mhs.nim, selectedTA) };
     }).filter(mhs => {
-        // Ambil tahun awal dari TA yang SEDANG DIPANTAU (bukan TA aktif global)
         const tahunMulaiTA = parseInt(selectedTA.split('/')[0]);
         const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
-        
         const statusMhs = String(mhs.status || '').toLowerCase();
-        const taCuti = String(mhs.taCuti || '').trim();
-        const sedangCuti = (taCuti === selectedTA);
-
+        
         let sudahTidakAktif = false;
-
-        // Logika Statis: Tidak lagi bergantung pada globalTAAktif
         if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) <= tahunMulaiTA) {
             sudahTidakAktif = true;
         } else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusMhs)) {
-            // Jika tahunKeluar kosong, gunakan batas absolut masa studi 4 tahun
             if (tahunMulaiTA >= tahunMasuk + 4) sudahTidakAktif = true;
         }
 
-        const wajibBayar = (tahunMulaiTA >= tahunMasuk) && !sedangCuti && !sudahTidakAktif;
-        return wajibBayar || mhs.summary.totalDibayar > 0;
+        // Mahasiswa Cuti/Tinggal Kelas TETAP DITAMPILKAN di tabel
+        return (tahunMulaiTA >= tahunMasuk) && !sudahTidakAktif;
     });
 
     const totalMhs = mappedStudents.length;
+    
+    // Total mahasiswa wajib bayar (Bukan yang berstatus CUTI di TA ini)
+    const wajibBayarMhs = mappedStudents.filter(m => String(m.taCuti || '').trim() !== selectedTA).length;
+
     const paidMhs = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS').length;
     const partialMhs = mappedStudents.filter(m => m.summary.statusOverall === 'DICICIL').length;
     const unpaidMhs = mappedStudents.filter(m => m.summary.statusOverall === 'BELUM_BAYAR').length;
 
     const totalTerbayarCohort = mappedStudents.reduce((acc, curr) => acc + curr.summary.totalDibayar, 0);
     const totalTunggakanCohort = mappedStudents.reduce((acc, curr) => acc + curr.summary.sisaTagihan, 0);
-    const totalTargetCohort = totalMhs * BIAYA_RUSUM_STANDAR;
+    
+    // Target Total Hanya Dikalikan dengan Jumlah Mahasiswa Wajib Bayar
+    const totalTargetCohort = wajibBayarMhs * BIAYA_RUSUM_STANDAR;
     const overallPercentage = totalTargetCohort > 0 ? Math.round((totalTerbayarCohort / totalTargetCohort) * 100) : 0;
 
     document.getElementById('cohort-stat-total').innerText = `${totalMhs} Mhs`;
@@ -912,7 +891,7 @@ function renderAngkatanMonitoring() {
     
     document.getElementById('cohort-progress-text').innerText = `${overallPercentage}%`;
     document.getElementById('cohort-progress-bar').style.width = `${overallPercentage}%`;
-    document.getElementById('cohort-progress-sub').innerText = `${paidMhs} dari ${totalMhs} Lunas`;
+    document.getElementById('cohort-progress-sub').innerText = `${paidMhs} dari ${wajibBayarMhs} Wajib Bayar`;
 
     let displayStudents = mappedStudents;
     if (activeAngkatanStatusFilter === 'PAID') displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS');
@@ -929,6 +908,7 @@ function renderAngkatanMonitoring() {
             );
         }
     }
+    
     currentFilteredCohort = displayStudents;
     document.getElementById('cohort-table-count').innerText = `${displayStudents.length} Data`;
 
@@ -942,8 +922,11 @@ function renderAngkatanMonitoring() {
         const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.totalDibayar);
         const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.sisaTagihan);
 
-        let statusBadge = mhs.summary.statusOverall === 'LUNAS' ? `<span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-[10px] font-bold">LUNAS</span>` 
-            : (mhs.summary.statusOverall === 'DICICIL' ? `<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-[10px] font-bold">DICICIL</span>` : `<span class="bg-rose-100 text-rose-800 px-2 py-1 rounded text-[10px] font-bold">BELUM BAYAR</span>`);
+        let statusBadge = '';
+        if (mhs.summary.statusOverall === 'LUNAS') statusBadge = `<span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-[10px] font-bold">LUNAS</span>`;
+        else if (mhs.summary.statusOverall === 'DICICIL') statusBadge = `<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-[10px] font-bold">DICICIL</span>`;
+        else if (mhs.summary.statusOverall === 'CUTI') statusBadge = `<span class="bg-slate-200 text-slate-600 px-2 py-1 rounded text-[10px] font-bold">CUTI (BEBAS TAGIHAN)</span>`;
+        else statusBadge = `<span class="bg-rose-100 text-rose-800 px-2 py-1 rounded text-[10px] font-bold">BELUM BAYAR</span>`;
         
         return `
             <tr class="hover:bg-slate-50 border-b">
@@ -1023,7 +1006,6 @@ function openAdminDetailModal(id) {
     iframeEl.classList.add('hidden');
     loadingEl.classList.remove('hidden');
 
-    // Ekstrak ID dan gunakan endpoint /preview bawaan Google Drive
     const matchDrive = displayUrl.match(/[-\w]{25,}/);
     if (displayUrl.includes('drive.google.com') && matchDrive) {
         displayUrl = `https://drive.google.com/file/d/${matchDrive[0]}/preview`;
@@ -1136,6 +1118,7 @@ async function prosesVerifikasi(kirimEmail) {
         showToast("Error Koneksi", "Gagal menghubungi database server.");
     }
 }
+
 // ==========================================
 // FUNGSI LAYAR PENUH (FULLSCREEN RESI)
 // ==========================================
@@ -1143,11 +1126,8 @@ function openFullScreenResi() {
     const currentIframe = document.getElementById('modal-resi-iframe');
     const fsIframe = document.getElementById('fullscreen-resi-iframe');
     
-    // Ambil URL dari iframe kecil dan pindahkan ke iframe besar
     if (currentIframe && currentIframe.src) {
         fsIframe.src = currentIframe.src;
-        
-        // Tampilkan modal fullscreen (hapus class hidden, tambah flex)
         const modalFs = document.getElementById('modal-fullscreen-resi');
         modalFs.classList.remove('hidden');
         modalFs.classList.add('flex');
@@ -1158,10 +1138,9 @@ function closeFullScreenResi() {
     const modalFs = document.getElementById('modal-fullscreen-resi');
     modalFs.classList.add('hidden');
     modalFs.classList.remove('flex');
-    
-    // Hapus src agar video/loading terhenti saat ditutup
     document.getElementById('fullscreen-resi-iframe').src = ''; 
 }
+
 // ==========================================
 // MODAL KWITANSI & PDF
 // ==========================================
@@ -1170,7 +1149,6 @@ function openKwitansiPreview(id) {
     if (!item) return;
 
     activeKwitansiItem = item;
-    
     const summary = getStudentPaymentSummary(item.nim, item.tahunAkademik);
 
     document.getElementById('kwitansi-no').innerText = `KW-STAIIS-${item.id}`;
@@ -1371,6 +1349,7 @@ function initResiZoomPan() {
     container.addEventListener('mouseup', stopPan);
     container.addEventListener('mouseleave', stopPan);
 }
+
 // ==========================================
 // EKSPOR LAPORAN PDF (PEMANTAUAN ANGKATAN)
 // ==========================================
@@ -1390,7 +1369,6 @@ function exportPemantauanPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('l', 'mm', 'a4'); // Landscape
 
-    // 1. Kumpulkan Informasi Filter
     let filterTA = activeMonitoringMode === 'ta' 
         ? document.getElementById('filter-utama-ta').value 
         : (document.getElementById('filter-cabang-ta') ? document.getElementById('filter-cabang-ta').value : 'Semua TA');
@@ -1401,12 +1379,10 @@ function exportPemantauanPDF() {
         
     let statusText = activeAngkatanStatusFilter === 'ALL' ? 'Semua Status' : activeAngkatanStatusFilter;
 
-    // 2. Kalkulasi Total Akumulasi
     const totalDibayarAll = currentFilteredCohort.reduce((sum, mhs) => sum + mhs.summary.totalDibayar, 0);
     const totalSisaAll = currentFilteredCohort.reduce((sum, mhs) => sum + mhs.summary.sisaTagihan, 0);
     const formatRp = (num) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(num);
 
-    // 3. Buat Kop Laporan (Header PDF)
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.text("LAPORAN PEMANTAUAN KEUANGAN RUSUM - STAIIS", 14, 16);
@@ -1418,7 +1394,6 @@ function exportPemantauanPDF() {
     doc.text("Kategori Filter", 14, 34);doc.text(`: ${filterKategori}`, 42, 34);
     doc.text("Status Bayar", 14, 39);   doc.text(`: ${statusText}`, 42, 39);
 
-    // 4. CETAK TOTAL DI ATAS (Hanya Muncul 1x di Halaman Pertama)
     doc.autoTable({
         startY: 44,
         body: [
@@ -1429,31 +1404,28 @@ function exportPemantauanPDF() {
         columnStyles: {
             0: { cellWidth: 40 },
             1: { cellWidth: 5, halign: 'center' },
-            2: { cellWidth: 40, textColor: [6, 95, 70] }, // Hijau
+            2: { cellWidth: 40, textColor: [6, 95, 70] },
             3: { cellWidth: 35 },
             4: { cellWidth: 5, halign: 'center' },
-            5: { textColor: [159, 18, 57] } // Merah
+            5: { textColor: [159, 18, 57] }
         }
     });
 
-    // Mulai tabel utama tepat di bawah blok total
     let startYMainTable = doc.lastAutoTable.finalY + 4; 
 
-    // 5. Konfigurasi Kolom Tabel Utama
     const tableColumns = [['No', 'NIM', 'Nama Mahasiswa', 'Prodi', 'Angkatan - Tingkat', 'Total Terbayar', 'Sisa Tagihan', 'Status']];
     const tableRows = currentFilteredCohort.map((mhs, index) => {
         let teksStatus = mhs.summary.statusOverall;
         if (teksStatus === 'BELUM_BAYAR') teksStatus = 'Belum Bayar';
+        if (teksStatus === 'CUTI') teksStatus = 'Cuti (Bebas Tagihan)';
         return [
             index + 1, mhs.nim, mhs.nama, mhs.prodi, `${mhs.angkatan} - ${mhs.tingkatan}`,
             formatRp(mhs.summary.totalDibayar), formatRp(mhs.summary.sisaTagihan), teksStatus
         ];
     });
 
-    // Penanda Total Halaman untuk Pagination
     const totalPagesExp = '{total_pages_count_string}';
 
-    // 6. Render Tabel Utama
     doc.autoTable({
         startY: startYMainTable, 
         head: tableColumns,
@@ -1470,7 +1442,6 @@ function exportPemantauanPDF() {
             7: { halign: 'center', fontStyle: 'bold' }
         },
         didDrawPage: function (data) {
-            // Footer Halaman (Format: Halaman 1 dari X)
             let pageString = 'Halaman ' + doc.internal.getNumberOfPages() + ' dari ' + totalPagesExp;
             doc.setFontSize(8);
             doc.setFont('helvetica', 'italic');
@@ -1478,12 +1449,10 @@ function exportPemantauanPDF() {
         }
     });
 
-    // 7. Inject Jumlah Total Halaman ke String Penanda
     if (typeof doc.putTotalPages === 'function') {
         doc.putTotalPages(totalPagesExp);
     }
 
-    // 8. Unduh File PDF
     const safeDate = new Date().toISOString().slice(0,10);
     doc.save(`Rekap_Keuangan_STAIIS_${safeDate}.pdf`);
     
