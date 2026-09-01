@@ -87,7 +87,6 @@ async function fetchSpreadsheetData() {
         }).filter(m => m.nim !== ''); 
         
         // Render filter
-        populateDynamicFilters();
         showToast("Berhasil", "Data berhasil dimuat secara penuh.");
         
         if (isAdminLoggedIn) {
