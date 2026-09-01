@@ -850,28 +850,50 @@ function renderAngkatanMonitoring() {
     }
 
     const mappedStudents = cohortStudents.map(mhs => {
-        return { ...mhs, summary: getStudentPaymentSummary(mhs.nim, selectedTA) };
+        const tahunMulaiTA = parseInt(selectedTA.split('/')[0]);
+        const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
+        const currentStatusLower = String(mhs.status || '').toLowerCase();
+        
+        // 1. REKONSTRUKSI STATUS HISTORIS (TIME TRAVEL)
+        let statusHistoris = 'Aktif'; // Asumsi dasar: mereka aktif di masa lalu
+        
+        if (String(mhs.taCuti || '').trim() === selectedTA) {
+            statusHistoris = 'Cuti';
+        } 
+        else if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) <= tahunMulaiTA) {
+            // Jika tahun keluarnya sama atau sebelum tahun mulai TA ini, berarti sudah keluar
+            statusHistoris = mhs.status; 
+        } 
+        else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(currentStatusLower)) {
+            // Fallback jika admin lupa mengisi tahunKeluar (asumsi max 4 tahun studi)
+            if (tahunMulaiTA >= tahunMasuk + 4) {
+                statusHistoris = mhs.status;
+            }
+        }
+
+        return { 
+            ...mhs, 
+            statusHistoris: statusHistoris,
+            summary: getStudentPaymentSummary(mhs.nim, selectedTA) 
+        };
     }).filter(mhs => {
         const tahunMulaiTA = parseInt(selectedTA.split('/')[0]);
         const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
-        const statusMhs = String(mhs.status || '').toLowerCase();
         
-        let sudahTidakAktif = false;
-        if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) <= tahunMulaiTA) {
-            sudahTidakAktif = true;
-        } else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusMhs)) {
-            if (tahunMulaiTA >= tahunMasuk + 4) sudahTidakAktif = true;
-        }
+        // 2. Sembunyikan dari layar jika belum masuk kuliah pada TA tersebut
+        if (tahunMulaiTA < tahunMasuk) return false;
+        
+        // 3. Sembunyikan jika secara historis di TA tersebut mereka SUDAH Keluar/Lulus
+        const statusH = String(mhs.statusHistoris).toLowerCase();
+        if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusH)) return false;
 
-        // Mahasiswa Cuti/Tinggal Kelas TETAP DITAMPILKAN di tabel
-        return (tahunMulaiTA >= tahunMasuk) && !sudahTidakAktif;
+        return true; // Tampilkan sisanya (Aktif & Cuti)
     });
 
     const totalMhs = mappedStudents.length;
     
-    // Total mahasiswa wajib bayar (Bukan yang berstatus CUTI di TA ini)
-    const wajibBayarMhs = mappedStudents.filter(m => String(m.taCuti || '').trim() !== selectedTA).length;
-
+    // 4. HITUNG WAJIB BAYAR BERDASARKAN STATUS HISTORIS
+    const wajibBayarMhs = mappedStudents.filter(m => String(m.statusHistoris).toLowerCase() !== 'cuti').length;
     const paidMhs = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS').length;
     const partialMhs = mappedStudents.filter(m => m.summary.statusOverall === 'DICICIL').length;
     const unpaidMhs = mappedStudents.filter(m => m.summary.statusOverall === 'BELUM_BAYAR').length;
