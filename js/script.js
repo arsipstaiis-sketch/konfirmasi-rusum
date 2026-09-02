@@ -127,12 +127,24 @@ function getStudentPaymentSummary(nim, targetTA = null) {
         };
     }
 
-    // Kalkulasi Normal untuk Mahasiswa Aktif / Tinggal Kelas
-    const sisaTagihan = Math.max(0, BIAYA_RUSUM_STANDAR - totalDibayar);
-    const percentPaid = Math.min(100, Math.round((totalDibayar / BIAYA_RUSUM_STANDAR) * 100));
+    // PENYESUAIAN MULTIPLIER UNTUK 'SEMUA TA'
+    let targetNominal = BIAYA_RUSUM_STANDAR;
+    
+    if (targetTA === 'ALL' && mhs) {
+        const thnMasuk = parseInt(mhs.angkatan) || parseInt(globalTAAktif.split('/')[0]);
+        const thnSekarang = parseInt(globalTAAktif.split('/')[0]);
+        
+        // Hitung berapa tahun mahasiswa ini sudah berada di kampus
+        const totalTAs = Math.max(1, thnSekarang - thnMasuk + 1);
+        targetNominal = BIAYA_RUSUM_STANDAR * totalTAs;
+    }
+
+    // Kalkulasi Normal untuk Mahasiswa Aktif / Tinggal Kelas / Semua TA
+    const sisaTagihan = Math.max(0, targetNominal - totalDibayar);
+    const percentPaid = Math.min(100, Math.round((totalDibayar / targetNominal) * 100));
 
     let statusOverall = 'BELUM_BAYAR';
-    if (totalDibayar >= BIAYA_RUSUM_STANDAR) {
+    if (totalDibayar >= targetNominal) {
         statusOverall = 'LUNAS';
     } else if (totalDibayar > 0) {
         statusOverall = 'DICICIL';
@@ -774,6 +786,7 @@ function renderCabangTA() {
     wrapper.innerHTML = `
         <label class="block text-[10px] font-bold text-slate-400 uppercase mb-1">Cabang: Pilih TA Riwayat</label>
         <select id="filter-cabang-ta" onchange="renderAngkatanMonitoring()" class="form-input font-bold text-emerald-800 bg-emerald-50 border-emerald-200 shadow-sm cursor-pointer hover:bg-emerald-100 transition">
+            <option value="ALL">Semua TA (Akumulasi)</option>
             ${taRelevan.map(ta => `<option value="${ta}" ${ta === globalTAAktif ? 'selected' : ''}>TA ${ta}</option>`).join('')}
         </select>
     `;
@@ -838,6 +851,7 @@ function renderAngkatanMonitoring() {
 
     const isModeTAActive = (activeMonitoringMode !== 'angkatan');
     const showTingkatan = isModeTAActive && (selectedTA === globalTAAktif);
+    const activeTAForLogic = selectedTA === 'ALL' ? globalTAAktif : selectedTA;
 
     let cohortStudents = mahasiswaMaster;
     
@@ -850,22 +864,18 @@ function renderAngkatanMonitoring() {
     }
 
     const mappedStudents = cohortStudents.map(mhs => {
-        const tahunMulaiTA = parseInt(selectedTA.split('/')[0]);
+        const tahunMulaiTA = parseInt(activeTAForLogic.split('/')[0]);
         const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
         const currentStatusLower = String(mhs.status || '').toLowerCase();
         
         // 1. REKONSTRUKSI STATUS HISTORIS (TIME TRAVEL)
         let statusHistoris = 'Aktif'; // Asumsi dasar: mereka aktif di masa lalu
         
-        if (String(mhs.taCuti || '').trim() === selectedTA) {
+        if (String(mhs.taCuti || '').trim() === activeTAForLogic) { // Gunakan activeTAForLogic
             statusHistoris = 'Cuti';
-        } 
-        else if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) <= tahunMulaiTA) {
-            // Jika tahun keluarnya sama atau sebelum tahun mulai TA ini, berarti sudah keluar
+        } else if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) <= tahunMulaiTA) {
             statusHistoris = mhs.status; 
-        } 
-        else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(currentStatusLower)) {
-            // Fallback jika admin lupa mengisi tahunKeluar (asumsi max 4 tahun studi)
+        } else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(currentStatusLower)) {
             if (tahunMulaiTA >= tahunMasuk + 4) {
                 statusHistoris = mhs.status;
             }
@@ -877,7 +887,7 @@ function renderAngkatanMonitoring() {
             summary: getStudentPaymentSummary(mhs.nim, selectedTA) 
         };
     }).filter(mhs => {
-        const tahunMulaiTA = parseInt(selectedTA.split('/')[0]);
+        const tahunMulaiTA = parseInt(activeTAForLogic.split('/')[0]);
         const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
         
         // 2. Sembunyikan dari layar jika belum masuk kuliah pada TA tersebut
@@ -901,8 +911,10 @@ function renderAngkatanMonitoring() {
     const totalTerbayarCohort = mappedStudents.reduce((acc, curr) => acc + curr.summary.totalDibayar, 0);
     const totalTunggakanCohort = mappedStudents.reduce((acc, curr) => acc + curr.summary.sisaTagihan, 0);
     
-    // Target Total Hanya Dikalikan dengan Jumlah Mahasiswa Wajib Bayar
-    const totalTargetCohort = wajibBayarMhs * BIAYA_RUSUM_STANDAR;
+    // PENYESUAIAN TARGET UNTUK 'SEMUA TA'
+    const totalTargetCohort = selectedTA === 'ALL' 
+        ? (totalTerbayarCohort + totalTunggakanCohort) 
+        : (wajibBayarMhs * BIAYA_RUSUM_STANDAR);
     const overallPercentage = totalTargetCohort > 0 ? Math.round((totalTerbayarCohort / totalTargetCohort) * 100) : 0;
 
     document.getElementById('cohort-stat-total').innerText = `${totalMhs} Mhs`;
