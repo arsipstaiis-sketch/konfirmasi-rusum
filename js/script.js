@@ -110,32 +110,25 @@ function getStudentPaymentSummary(nim, targetTA = null) {
     }
 
     const totalDibayar = approvedTx.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
-    
-    // Cek status Cuti Mahasiswa
     const mhs = mahasiswaMaster.find(m => m.nim === nim);
-    const taCuti = mhs ? String(mhs.taCuti || '').trim() : '';
+    
+    // Ambil array tagihanWajib dari backend
+    const tagihan = mhs ? (mhs.tagihanWajib || []) : [];
+    const taCutiStr = mhs ? String(mhs.taCuti || '').trim() : '';
 
-    // Jika mahasiswa sedang Cuti pada TA yang dipilih, bebaskan tagihan
-    if (targetTA && targetTA !== 'ALL' && taCuti === targetTA) {
-        return { 
-            totalDibayar, 
-            sisaTagihan: 0, 
-            percentPaid: 100, 
-            statusOverall: 'CUTI', 
-            approvedCount: approvedTx.length, 
-            ta: targetTA 
-        };
+    // Jika filter spesifik TA, tapi TA tersebut TIDAK ADA di array tagihan wajib
+    if (targetTA !== 'ALL' && !tagihan.includes(targetTA)) {
+        if (taCutiStr.includes(targetTA)) {
+            return { totalDibayar, sisaTagihan: 0, percentPaid: 100, statusOverall: 'CUTI', approvedCount: approvedTx.length, ta: targetTA };
+        }
     }
 
     // PENYESUAIAN MULTIPLIER UNTUK 'SEMUA TA'
     let targetNominal = BIAYA_RUSUM_STANDAR;
     
     if (targetTA === 'ALL' && mhs) {
-        const thnMasuk = parseInt(mhs.angkatan) || parseInt(globalTAAktif.split('/')[0]);
-        const thnSekarang = parseInt(globalTAAktif.split('/')[0]);
-        
-        // Hitung berapa tahun mahasiswa ini sudah berada di kampus
-        const totalTAs = Math.max(1, thnSekarang - thnMasuk + 1);
+        // Kalikan standar rusum dengan JUMLAH elemen di array tagihan wajib (Tahun Kewajiban Murni)
+        const totalTAs = Math.max(1, tagihan.length);
         targetNominal = BIAYA_RUSUM_STANDAR * totalTAs;
     }
 
@@ -380,7 +373,15 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
     if (ta === 'ALL') {
         const approvedTx = studentTx.filter(d => d.status === 'Disetujui');
         totalDibayar = approvedTx.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
-        sisaTagihan = Math.max(0, (totalTAs * BIAYA_RUSUM_STANDAR) - totalDibayar);
+        
+        // Sesuaikan perhitungan ALL TA berdasarkan panjang array kewajiban backend (Jika ada data)
+        const mhs = mahasiswaMaster.find(m => m.nim === nim);
+        let validTotalTAs = totalTAs;
+        if (mhs && mhs.tagihanWajib) {
+            validTotalTAs = Math.max(1, mhs.tagihanWajib.length);
+        }
+        
+        sisaTagihan = Math.max(0, (validTotalTAs * BIAYA_RUSUM_STANDAR) - totalDibayar);
         labelDisetujui = 'Total Disetujui (Semua TA)';
         labelSisa = 'Total Sisa (Keseluruhan)';
     } else {
@@ -798,20 +799,9 @@ function onMainTAChanged() {
     if (!wrapper) return;
 
     if (selectedTA === globalTAAktif) {
-        const tahunMulaiTA = parseInt(globalTAAktif.split('/')[0]);
-        
         const mhsWajibBayar = mahasiswaMaster.filter(mhs => {
-            const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
-            const statusMhs = String(mhs.status || '').toLowerCase();
-            const tingkatanMhs = String(mhs.tingkatan || '').toLowerCase();
-            
-            let sudahTidakAktif = false;
-            
-            if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) < tahunMulaiTA) sudahTidakAktif = true;
-            else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusMhs)) sudahTidakAktif = true; 
-            if (['tamhidi', 'lulus'].includes(tingkatanMhs)) sudahTidakAktif = true;
-            
-            return (tahunMulaiTA >= tahunMasuk) && !sudahTidakAktif;
+            const tagihan = mhs.tagihanWajib || [];
+            return tagihan.includes(globalTAAktif);
         });
 
         const forbiddenOptions = ['tamhidi', 'lulus'];
@@ -864,46 +854,29 @@ function renderAngkatanMonitoring() {
     }
 
     const mappedStudents = cohortStudents.map(mhs => {
-        const tahunMulaiTA = parseInt(activeTAForLogic.split('/')[0]);
-        const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
-        const currentStatusLower = String(mhs.status || '').toLowerCase();
-        
-        // 1. REKONSTRUKSI STATUS HISTORIS (TIME TRAVEL)
-        let statusHistoris = 'Aktif'; // Asumsi dasar: mereka aktif di masa lalu
-        
-        if (String(mhs.taCuti || '').trim() === activeTAForLogic) { // Gunakan activeTAForLogic
-            statusHistoris = 'Cuti';
-        } else if (mhs.tahunKeluar && parseInt(mhs.tahunKeluar) <= tahunMulaiTA) {
-            statusHistoris = mhs.status; 
-        } else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(currentStatusLower)) {
-            if (tahunMulaiTA >= tahunMasuk + 4) {
-                statusHistoris = mhs.status;
-            }
-        }
-
         return { 
             ...mhs, 
-            statusHistoris: statusHistoris,
             summary: getStudentPaymentSummary(mhs.nim, selectedTA) 
         };
     }).filter(mhs => {
-        const tahunMulaiTA = parseInt(activeTAForLogic.split('/')[0]);
-        const tahunMasuk = parseInt(mhs.angkatan) || tahunMulaiTA;
-        
-        // 2. Sembunyikan dari layar jika belum masuk kuliah pada TA tersebut
-        if (tahunMulaiTA < tahunMasuk) return false;
-        
-        // 3. Sembunyikan jika secara historis di TA tersebut mereka SUDAH Keluar/Lulus
-        const statusH = String(mhs.statusHistoris).toLowerCase();
-        if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(statusH)) return false;
+        const tagihan = mhs.tagihanWajib || []; 
+        const taCutiStr = String(mhs.taCuti || '').trim();
 
-        return true; // Tampilkan sisanya (Aktif & Cuti)
+        // Jika filter Semua TA, tampilkan asal mahasiswa pernah ditagih atau cuti
+        if (selectedTA === 'ALL') return tagihan.length > 0 || taCutiStr !== '';
+
+        // Tampilkan mahasiswa di layar JIKA TA yang dipilih ada di array tagihan wajib ATAU array cuti
+        const wajibDiTAIni = tagihan.includes(activeTAForLogic);
+        const cutiDiTAIni = taCutiStr.includes(activeTAForLogic);
+
+        return wajibDiTAIni || cutiDiTAIni;
     });
 
     const totalMhs = mappedStudents.length;
     
-    // 4. HITUNG WAJIB BAYAR BERDASARKAN STATUS HISTORIS
-    const wajibBayarMhs = mappedStudents.filter(m => String(m.statusHistoris).toLowerCase() !== 'cuti').length;
+    // Wajib bayar MURNI (Hanya yang TA-nya terdaftar di array tagihanWajib dari backend)
+    const wajibBayarMhs = mappedStudents.filter(m => (m.tagihanWajib || []).includes(activeTAForLogic)).length;
+
     const paidMhs = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS').length;
     const partialMhs = mappedStudents.filter(m => m.summary.statusOverall === 'DICICIL').length;
     const unpaidMhs = mappedStudents.filter(m => m.summary.statusOverall === 'BELUM_BAYAR').length;
@@ -915,6 +888,7 @@ function renderAngkatanMonitoring() {
     const totalTargetCohort = selectedTA === 'ALL' 
         ? (totalTerbayarCohort + totalTunggakanCohort) 
         : (wajibBayarMhs * BIAYA_RUSUM_STANDAR);
+    
     const overallPercentage = totalTargetCohort > 0 ? Math.round((totalTerbayarCohort / totalTargetCohort) * 100) : 0;
 
     document.getElementById('cohort-stat-total').innerText = `${totalMhs} Mhs`;
@@ -925,7 +899,7 @@ function renderAngkatanMonitoring() {
     
     document.getElementById('cohort-progress-text').innerText = `${overallPercentage}%`;
     document.getElementById('cohort-progress-bar').style.width = `${overallPercentage}%`;
-    document.getElementById('cohort-progress-sub').innerText = `${paidMhs} dari ${wajibBayarMhs} Wajib Bayar`;
+    document.getElementById('cohort-progress-sub').innerText = `${paidMhs} dari ${selectedTA === 'ALL' ? totalMhs : wajibBayarMhs} Wajib Bayar`;
 
     let displayStudents = mappedStudents;
     if (activeAngkatanStatusFilter === 'PAID') displayStudents = mappedStudents.filter(m => m.summary.statusOverall === 'LUNAS');
@@ -1492,6 +1466,7 @@ function exportPemantauanPDF() {
     
     setTimeout(() => { showToast("Selesai", "File laporan PDF berhasil diunduh."); }, 1000);
 }
+
 // ==========================================
 // POPULATE DROPDOWN TA ADMIN VERIFIKASI
 // ==========================================
