@@ -371,7 +371,7 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
     let labelDisetujui = 'Total Disetujui';
     let labelSisa = 'Sisa Tagihan';
 
-    // --- LOGIKA BARU: CEK KEWAJIBAN BAYAR ---
+    // Ambil data mahasiswa untuk cek kewajiban bayar
     const student = mahasiswaMaster.find(m => m.nim === nim);
     let isWajibBayar = true;
     
@@ -382,14 +382,27 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
     if (ta === 'ALL') {
         const approvedTx = studentTx.filter(d => d.status === 'Disetujui');
         totalDibayar = approvedTx.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
-        sisaTagihan = Math.max(0, (totalTAs * BIAYA_RUSUM_STANDAR) - totalDibayar);
+        
+        // LOGIKA BARU: Hitung total tagihan keseluruhan berdasarkan array tagihanWajib dari backend
+        let totalKewajibanKeseluruhan = totalTAs * BIAYA_RUSUM_STANDAR;
+        if (student && student.tagihanWajib) {
+            totalKewajibanKeseluruhan = student.tagihanWajib.length * BIAYA_RUSUM_STANDAR;
+        }
+        
+        sisaTagihan = Math.max(0, totalKewajibanKeseluruhan - totalDibayar);
         labelDisetujui = 'Total Disetujui (Semua TA)';
         labelSisa = 'Total Sisa (Keseluruhan)';
     } else {
         filteredTx = studentTx.filter(d => d.tahunAkademik === ta);
         const summary = getStudentPaymentSummary(nim, ta);
         totalDibayar = summary.totalDibayar;
-        sisaTagihan = summary.sisaTagihan;
+        
+        // LOGIKA BARU: Jika tidak wajib bayar di TA spesifik ini, hilangkan sisa tagihannya
+        if (!isWajibBayar) {
+            sisaTagihan = 0;
+        } else {
+            sisaTagihan = summary.sisaTagihan;
+        }
     }
 
     const formattedTotal = formatRp(totalDibayar);
@@ -400,10 +413,10 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
     const textColor = isLunas ? 'text-emerald-300' : 'text-rose-300';
     const iconSign = isLunas ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-triangle-exclamation"></i>';
 
-    // 3. CETAK KOTAK KALKULASI
+    // CETAK KOTAK KALKULASI
     const calcContainer = document.getElementById('status-calculation-box');
     if (calcContainer) {
-        // Jika tidak wajib bayar DAN belum ada pembayaran sama sekali di TA tersebut
+        // Jika tidak wajib bayar DAN belum ada pembayaran sama sekali di TA tersebut (TA Spesifik)
         if (!isWajibBayar && totalDibayar === 0 && ta !== 'ALL') {
             calcContainer.innerHTML = `
                 <div class="col-span-1 sm:col-span-2 bg-emerald-950/40 p-4 rounded-xl border border-emerald-800/60 text-center flex flex-col items-center justify-center">
@@ -425,7 +438,7 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
         }
     }
 
-    // 4. CETAK DAFTAR RIWAYAT TRANSAKSI
+    // CETAK DAFTAR RIWAYAT TRANSAKSI
     const historyContainer = document.getElementById('status-history-list');
     if (historyContainer) {
         if (filteredTx.length === 0) {
