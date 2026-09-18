@@ -367,21 +367,22 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
     
     let totalDibayar = 0;
     let sisaTagihan = 0;
+    
     let labelDisetujui = 'Total Disetujui';
     let labelSisa = 'Sisa Tagihan';
+
+    // --- LOGIKA BARU: CEK KEWAJIBAN BAYAR ---
+    const student = mahasiswaMaster.find(m => m.nim === nim);
+    let isWajibBayar = true;
+    
+    if (student && student.tagihanWajib && ta !== 'ALL') {
+        isWajibBayar = student.tagihanWajib.includes(ta);
+    }
 
     if (ta === 'ALL') {
         const approvedTx = studentTx.filter(d => d.status === 'Disetujui');
         totalDibayar = approvedTx.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
-        
-        // Sesuaikan perhitungan ALL TA berdasarkan panjang array kewajiban backend (Jika ada data)
-        const mhs = mahasiswaMaster.find(m => m.nim === nim);
-        let validTotalTAs = totalTAs;
-        if (mhs && mhs.tagihanWajib) {
-            validTotalTAs = Math.max(1, mhs.tagihanWajib.length);
-        }
-        
-        sisaTagihan = Math.max(0, (validTotalTAs * BIAYA_RUSUM_STANDAR) - totalDibayar);
+        sisaTagihan = Math.max(0, (totalTAs * BIAYA_RUSUM_STANDAR) - totalDibayar);
         labelDisetujui = 'Total Disetujui (Semua TA)';
         labelSisa = 'Total Sisa (Keseluruhan)';
     } else {
@@ -391,39 +392,47 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
         sisaTagihan = summary.sisaTagihan;
     }
 
-    const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(totalDibayar);
-    const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(sisaTagihan);
+    const formattedTotal = formatRp(totalDibayar);
+    const formattedSisa = formatRp(sisaTagihan);
     
     const isLunas = sisaTagihan <= 0;
     const boxColor = isLunas ? 'bg-emerald-800/80 border-emerald-500' : 'bg-rose-950 border-rose-500';
     const textColor = isLunas ? 'text-emerald-300' : 'text-rose-300';
     const iconSign = isLunas ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-triangle-exclamation"></i>';
 
+    // 3. CETAK KOTAK KALKULASI
     const calcContainer = document.getElementById('status-calculation-box');
     if (calcContainer) {
-        calcContainer.innerHTML = `
-            <div class="bg-white/10 p-3.5 rounded-xl border border-white/10">
-                <span class="text-emerald-200 text-[10px] font-bold uppercase block">${labelDisetujui}</span>
-                <span class="text-lg font-black">${formattedTotal}</span>
-            </div>
-            <div class="${boxColor} p-3.5 rounded-xl border-2 shadow-inner transition-colors">
-                <span class="${textColor} text-[10px] font-extrabold uppercase block tracking-wider">${iconSign} ${labelSisa}</span>
-                <span class="text-xl font-black text-white">${formattedSisa}</span>
-            </div>
-        `;
+        // Jika tidak wajib bayar DAN belum ada pembayaran sama sekali di TA tersebut
+        if (!isWajibBayar && totalDibayar === 0 && ta !== 'ALL') {
+            calcContainer.innerHTML = `
+                <div class="col-span-1 sm:col-span-2 bg-emerald-950/40 p-4 rounded-xl border border-emerald-800/60 text-center flex flex-col items-center justify-center">
+                    <span class="text-emerald-300 text-sm font-bold block mb-1"><i class="fa-solid fa-circle-check"></i> Bebas Tagihan</span>
+                    <span class="text-emerald-100/70 text-xs block">Mahasiswa ini tidak memiliki kewajiban pembayaran Rusum pada TA ${ta} (Status Keluar/Cuti).</span>
+                </div>
+            `;
+        } else {
+            calcContainer.innerHTML = `
+                <div class="bg-white/10 p-3.5 rounded-xl border border-white/10">
+                    <span class="text-emerald-200 text-[10px] font-bold uppercase block">${labelDisetujui}</span>
+                    <span class="text-lg font-black">${formattedTotal}</span>
+                </div>
+                <div class="${boxColor} p-3.5 rounded-xl border-2 shadow-inner transition-colors">
+                    <span class="${textColor} text-[10px] font-extrabold uppercase block tracking-wider">${iconSign} ${labelSisa}</span>
+                    <span class="text-xl font-black text-white">${formattedSisa}</span>
+                </div>
+            `;
+        }
     }
 
+    // 4. CETAK DAFTAR RIWAYAT TRANSAKSI
     const historyContainer = document.getElementById('status-history-list');
     if (historyContainer) {
         if (filteredTx.length === 0) {
             historyContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs italic">Belum ada riwayat transaksi ${ta !== 'ALL' ? 'di TA ini' : ''}.</div>`;
         } else {
             historyContainer.innerHTML = filteredTx.map((item, index) => {
-                const formattedNominal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(item.nominal || 0);
-                let badge = item.status === 'Disetujui' ? 'bg-emerald-100 text-emerald-800' : (item.status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
-                let cleanDate = formatTanggalWaktu(item.tanggal);
                 let btn = item.status === 'Disetujui' ? `<button onclick="openKwitansiPreview('${item.id}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold shadow-sm flex items-center space-x-1.5"><i class="fa-solid fa-receipt"></i><span>Cetak Kwitansi</span></button>` : '';
-
                 return `
                     <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-3 text-xs mt-3">
                         <div class="flex justify-between items-center border-b border-slate-100 pb-2.5">
@@ -431,12 +440,12 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
                                 <span class="font-mono text-[11px] font-bold text-slate-400">#${filteredTx.length - index}</span>
                                 <span class="font-extrabold text-slate-800">${item.id}</span>
                                 <span class="text-slate-300">|</span>
-                                <span class="text-slate-600 font-medium">${formattedNominal} <span class="text-[10px] text-slate-400 font-normal">(TA ${item.tahunAkademik})</span></span>
+                                <span class="text-slate-600 font-medium">${formatRp(item.nominal)} <span class="text-[10px] text-slate-400 font-normal">(TA ${item.tahunAkademik})</span></span>
                             </div>
-                            <span class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${badge}">${item.status}</span>
+                            <span class="px-2.5 py-0.5 rounded-lg text-[11px] font-bold ${getBadge(item.status)}">${item.status}</span>
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-slate-600 text-[11px]">
-                            <div><b class="text-slate-400">Bank & Tgl:</b> ${item.bank || '-'} (${cleanDate})</div>
+                            <div><b class="text-slate-400">Bank & Tgl:</b> ${item.bank || '-'} (${formatTanggalWaktu(item.tanggal)})</div>
                             <div><b class="text-slate-400">Catatan:</b> ${item.catatan || '-'}</div>
                             <div class="sm:col-span-2"><b class="text-slate-400">Admin Note:</b> <span class="italic text-slate-700">${item.adminNote || '-'}</span></div>
                         </div>
@@ -447,7 +456,6 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
         }
     }
 }
-
 function executeStatusSearch() {
     const query = document.getElementById('search-status-input').value.trim().toLowerCase();
     const resultsContainer = document.getElementById('search-status-results');
