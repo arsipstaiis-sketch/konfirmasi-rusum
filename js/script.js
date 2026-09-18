@@ -472,12 +472,24 @@ function executeStatusSearch() {
         return;
     }
 
+    // Ambil Data Identitas
     const targetNim = student ? student.nim : studentTx[0].nim;
     const studentName = student ? student.nama : studentTx[0].nama;
     const studentProdi = student ? student.prodi : (studentTx[0].prodi || '-');
-    const studentTingkatan = student ? student.tingkatan : (studentTx[0].tingkatan || '-');
+    
+    // --- LOGIKA BARU: TAMPILKAN STATUS KELUAR & TAHUN ---
+    let studentTingkatan = student ? student.tingkatan : (studentTx[0].tingkatan || '-');
+    if (student) {
+        const statusMhs = String(student.status || '').toUpperCase();
+        if (['LULUS', 'KELUAR', 'DO', 'PINDAH'].includes(statusMhs)) {
+            const tahunKeluar = student.tahunKeluar ? ` ${student.tahunKeluar}` : '';
+            studentTingkatan += ` <span class="text-rose-300 font-bold italic text-[10px] ml-1">(${statusMhs}${tahunKeluar})</span>`;
+        }
+    }
+
     const studentAngkatan = student ? parseInt(student.angkatan) : parseInt((studentTx[0].tahunAkademik || globalTAAktif).split('/')[0]);
 
+    // Kalkulasi Jangkauan TA
     const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
     const startYear = studentAngkatan || tahunAktifStart;
     
@@ -493,6 +505,7 @@ function executeStatusSearch() {
         }
     }
 
+    // Bangun daftar dropdown TA
     let listTA = [];
     for (let y = batasAtasTA; y >= startYear; y--) {
         listTA.push(`${y}/${y+1}`);
@@ -500,29 +513,39 @@ function executeStatusSearch() {
     if (listTA.length === 0) listTA = [globalTAAktif];
     const initialTA = listTA.includes(globalTAAktif) ? globalTAAktif : listTA[0];
 
+    // BENTUK KERANGKA HTML
     let html = `
         <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-4">
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-emerald-800 pb-4 gap-4 sm:gap-0">
                 <div>
                     <h3 class="text-lg font-extrabold">${studentName} (${targetNim})</h3>
-                    <p class="text-xs text-emerald-200">${studentProdi} - ${studentTingkatan}</p>
+                    <p class="text-xs text-emerald-200 flex items-center">${studentProdi} - ${studentTingkatan}</p>
                 </div>
+
+                <!-- DROPDOWN TA -->
                 <div class="relative shrink-0 flex items-center group">
                     <div class="absolute left-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500">
                         <i class="fa-regular fa-calendar-days text-[11px]"></i>
                     </div>
+                    
                     <select onchange="updateStatusTADisplay(this.value, '${targetNim}', ${listTA.length})" class="appearance-none bg-emerald-950/50 border border-emerald-700/60 text-emerald-100 text-[11px] font-bold rounded-xl pl-8 pr-8 py-1.5 focus:outline-none focus:border-emerald-400 hover:border-emerald-500 cursor-pointer shadow-sm transition w-full">
                         <option value="ALL" class="bg-emerald-900">Semua TA</option>
                         ${listTA.map(ta => `<option value="${ta}" ${ta === initialTA ? 'selected' : ''} class="bg-emerald-900">${ta}</option>`).join('')}
                     </select>
+                    
                     <div class="absolute right-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500">
                         <i class="fa-solid fa-chevron-down text-[9px]"></i>
                     </div>
                 </div>
             </div>
+            
+            <!-- KOTAK KALKULASI (Wadah Kosong) -->
             <div id="status-calculation-box" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs"></div>
         </div>
+        
         <h4 class="text-xs font-bold text-slate-700 uppercase pt-4 pb-1 border-b border-slate-200">Riwayat Transaksi</h4>
+        
+        <!-- DAFTAR RIWAYAT TRANSAKSI (Wadah Kosong) -->
         <div id="status-history-list"></div>
     `;
 
