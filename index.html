@@ -674,10 +674,8 @@
         </div>
     </div>
     <!-- MODAL REKAPITULASI (Tersembunyi untuk Generate PDF) -->
-    <!-- Posisikan -9999px di luar layar agar terhindar dari limitasi lebar layar perangkat -->
-    <div id="rekap-pdf-container" style="position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none;">
-        <!-- Kunci lebar elemen di angka pasti 800px -->
-        <div id="rekap-print-area" class="p-8 bg-white text-slate-800 text-xs" style="width: 800px;">
+   <div id="rekap-pdf-container" class="hidden w-full max-w-4xl mx-auto bg-white text-slate-900 p-8">
+        <div id="rekap-print-area">
             <div class="border-b-2 border-emerald-900 pb-4 flex justify-between items-center mb-6">
                 <div class="flex items-center space-x-3">
                     <div class="w-14 h-14 shrink-0">
