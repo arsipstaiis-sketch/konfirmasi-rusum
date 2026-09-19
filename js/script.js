@@ -18,6 +18,7 @@ let activeMonitoringMode = 'angkatan'; // 'angkatan' atau 'ta'
 let globalTAAktif = '2025/2026'; // Default, nanti ditimpa dari Spreadsheet
 let activeVerifikasiStatusFilter = 'ALL';
 let pengajuanData = [];
+let payloadSuratTertunda = null;
 const defaultStatusNotes = {
     'Pending': 'Pembayaran sedang dalam proses verifikasi data dan mutasi rekening.',
     'Disetujui': 'Pembayaran setoran angsuran telah diverifikasi sah.',
@@ -1963,52 +1964,65 @@ async function prosesPengajuanSuratAdmin() {
 
     try {
         if (keputusan === 'Diterbitkan') {
-            // Jika Setuju -> Buat PDF
+            showToast("Memproses Dokumen", "Sedang me-render PDF, mohon tunggu sebentar...");
+            
             const now = new Date();
             const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
             
-            // Logika Nomor Urut Otomatis
             const indexData = pengajuanData.findIndex(p => p.ID === id);
             const nomorUrutAsli = pengajuanData.length - indexData; 
             const nomorFormat = String(nomorUrutAsli).padStart(3, '0');
             
+            // 1. UPDATE DATA PADA ELEMEN ASLI
             document.getElementById('surat-no').innerText = `No. ${nomorFormat}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
             document.getElementById('surat-nama').innerText = student.nama;
             document.getElementById('surat-nim').innerText = student.nim;
             document.getElementById('surat-prodi').innerText = student.prodi;
             document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
-            // 1. Simpan posisi scroll layar Admin saat ini
-            const posisiLayar = window.scrollY;
-            
-            // 2. Gulir paksa layar ke paling atas (Mencegah margin putih di PDF)
-            window.scrollTo(0, 0);
+            // 2. CLONE ELEMEN UNTUK RENDER SEMPURNA
+            const suratAsli = document.getElementById('surat-bebas-container');
+            const suratClone = suratAsli.cloneNode(true);
 
-            // 3. Buka penutup / Munculkan elemen ke layar
-            suratContainer.classList.remove('hidden');
+            suratClone.classList.remove('hidden');
+            suratClone.style.display = 'block';
+            suratClone.style.position = 'absolute';
+            suratClone.style.top = '0px';
+            suratClone.style.left = '0px';
+            suratClone.style.width = '210mm';
+            suratClone.style.minHeight = '297mm';
+            suratClone.style.backgroundColor = '#ffffff';
+            suratClone.style.zIndex = '999999'; 
             
-            // 4. JEDA 500ms: Membiarkan browser menggambar Kop Surat & Stempel
-            await new Promise(resolve => setTimeout(resolve, 500));
+            document.body.appendChild(suratClone);
+
+            // Jeda agar browser menggambar gambar/kop dengan sempurna
+            await new Promise(resolve => setTimeout(resolve, 800));
             
-            // 5. Eksekusi PDF (Tanpa parameter y:0 yang membuat blank)
-            payload.pdfBase64 = await html2pdf().set({
+            // 3. GENERATE PDF KE FORMAT STRING BASE64 (DATA URI)
+            const base64PDF = await html2pdf().set({
                 margin: 0, 
                 filename: `Surat_Bebas.pdf`, 
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2, 
-                    useCORS: true // Wajib agar gambar Kop dan Stempel tidak terblokir
-                }, 
+                html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 }, 
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            }).from(suratContainer).outputPdf('datauristring');
+            }).from(suratClone).outputPdf('datauristring');
             
-            // 6. Sembunyikan kembali surat dan kembalikan posisi layar Admin
-            suratContainer.classList.add('hidden');
-            window.scrollTo(0, posisiLayar);
+            document.body.removeChild(suratClone);
+            
+            // 4. SIMPAN DATA KE VARIABEL GLOBAL DAN TAMPILKAN PREVIEW
+            payload.pdfBase64 = base64PDF; // Simpan file PDF
+            payloadSuratTertunda = payload; // Simpan seluruh payload
+            
+            // Tampilkan PDF di Iframe Modal
+            document.getElementById('iframe-preview-surat').src = base64PDF;
+            document.getElementById('modal-preview-surat').classList.remove('hidden');
             
         } else {
-            // Jika Tolak -> Buat Tabel Rekap
+            // Jika statusnya Ditolak, langsung kirim ke server atau sesuaikan dengan alur Anda
             payload.htmlRekap = generateHTMLRekapTunggakan(nim);
+            payloadSuratTertunda = payload;
+            konfirmasiKirimSurat(); // Langsung kirim tanpa preview PDF jika Ditolak
         }
 
         // Kirim data lengkap ke Google Apps Script
@@ -2082,4 +2096,46 @@ function bukaModalRekapPengajuan(nim) {
 
 function tutupModalRekapPengajuan() {
     document.getElementById('modal-rekap-pengajuan').classList.add('hidden');
+}
+function tutupPreviewSurat() {
+    document.getElementById('modal-preview-surat').classList.add('hidden');
+    document.getElementById('iframe-preview-surat').src = "";
+    payloadSuratTertunda = null; // Hapus data tertunda
+}
+
+async function konfirmasiKirimSurat() {
+    if (!payloadSuratTertunda) return;
+
+    const btnKirim = document.getElementById('btn-final-kirim-surat');
+    if (btnKirim) {
+        btnKirim.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Mengirim...</span>`;
+        btnKirim.disabled = true;
+    }
+
+    try {
+        // EKSEKUSI PENGIRIMAN KE SERVER (Sesuaikan url dan method dengan kode Anda)
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payloadSuratTertunda)
+        });
+        const result = await response.json();
+
+        if (result.success) {
+            showToast("Sukses", "Surat berhasil diterbitkan dan email telah dikirim.");
+            tutupPreviewSurat();
+            closeModalReview(); // Tutup modal tinjauan awal jika ada
+            
+            // Refresh tabel data Anda di sini (misal: fetchSpreadsheetData() atau filterAdminTable())
+            fetchSpreadsheetData(); 
+        } else {
+            showToast("Gagal", "Gagal mengirim data ke server.");
+        }
+    } catch (error) {
+        showToast("Error", "Terjadi kesalahan koneksi jaringan.");
+    } finally {
+        if (btnKirim) {
+            btnKirim.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Kirim ke Mahasiswa</span>`;
+            btnKirim.disabled = false;
+        }
+    }
 }
