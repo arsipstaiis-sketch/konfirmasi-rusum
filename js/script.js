@@ -582,8 +582,9 @@ function executeStatusSearch() {
     const targetNim = student ? student.nim : studentTx[0].nim;
     const studentName = student ? student.nama : studentTx[0].nama;
     const studentProdi = student ? student.prodi : (studentTx[0].prodi || '-');
+    const studentEmail = (student && student.email) ? student.email : (studentTx.length > 0 ? studentTx[0].email : '');
     
-    // --- LOGIKA BARU: TAMPILKAN STATUS KELUAR & TAHUN ---
+    // --- LOGIKA: TAMPILKAN STATUS KELUAR & TAHUN ---
     let studentTingkatan = student ? student.tingkatan : (studentTx[0].tingkatan || '-');
     if (student) {
         const statusMhs = String(student.status || '').toUpperCase();
@@ -619,59 +620,16 @@ function executeStatusSearch() {
     if (listTA.length === 0) listTA = [globalTAAktif];
     const initialTA = listTA.includes(globalTAAktif) ? globalTAAktif : listTA[0];
 
-    // BENTUK KERANGKA HTML
-    let html = `
-        <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-4">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-emerald-800 pb-4 gap-4 sm:gap-0">
-                <div>
-                    <h3 class="text-lg font-extrabold">${studentName} (${targetNim})</h3>
-                    <p class="text-xs text-emerald-200 flex items-center">${studentProdi} - ${studentTingkatan}</p>
-                </div>
-
-                <!-- DROPDOWN TA -->
-                <!-- TOMBOL REKAP & DROPDOWN TA -->
-                <div class="flex items-center space-x-2 shrink-0 mt-4 sm:mt-0">
-                    <button onclick="downloadRekapPDF('${targetNim}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 border border-emerald-600 text-white text-[11px] font-bold rounded-xl transition shadow-sm flex items-center space-x-1.5">
-                        <i class="fa-solid fa-file-pdf"></i><span class="hidden sm:inline">Unduh Rekap</span>
-                    </button>
-                    <div class="relative flex items-center group">
-                        <div class="absolute left-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500"><i class="fa-regular fa-calendar-days text-[11px]"></i></div>
-                        <select onchange="updateStatusTADisplay(this.value, '${targetNim}',${listTA.length})" class="appearance-none bg-emerald-950/50 border border-emerald-700/60 text-emerald-100 text-[11px] font-bold rounded-xl pl-8 pr-8 py-1.5 focus:outline-none focus:border-emerald-400 hover:border-emerald-500 cursor-pointer shadow-sm transition w-full">
-                            <option value="ALL" class="bg-emerald-900">Semua TA</option>
-                            ${listTA.map(ta => `<option value="${ta}" ${ta === initialTA ? 'selected' : ''} class="bg-emerald-900">${ta}</option>`).join('')}
-                        </select>
-                        <div class="absolute right-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500"><i class="fa-solid fa-chevron-down text-[9px]"></i></div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- KOTAK KALKULASI (Wadah Kosong) -->
-            <div id="status-calculation-box" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs"></div>
-        </div>
-        
-        <h4 class="text-xs font-bold text-slate-700 uppercase pt-4 pb-1 border-b border-slate-200">Riwayat Transaksi</h4>
-        
-        <!-- DAFTAR RIWAYAT TRANSAKSI (Wadah Kosong) -->
-        <div id="status-history-list"></div>
-    `;
-
-    resultsContainer.innerHTML = html;
-    updateStatusTADisplay(initialTA, targetNim, listTA.length);
-    // (Di akhir fungsi executeStatusSearch)
-    
-    // Cek riwayat pengajuan di data master
-    // Catatan: Huruf besar/kecil key disesuaikan dengan header sheet (NIM, Status, dst)
+    // --- LOGIKA PENGAJUAN SURAT (Dihitung di awal sebelum render HTML) ---
     const dataPengajuanMhs = typeof pengajuanData !== 'undefined' ? pengajuanData.find(p => String(p.nim || p.NIM) === targetNim) : null;
-    
     let areaPengajuan = '';
 
     if (dataPengajuanMhs) {
-        // JIKA SUDAH MENGAJUKAN: Tampilkan Panel Monitoring
         let statusWarna = dataPengajuanMhs.Status === 'Diterbitkan' ? 'text-emerald-700 bg-emerald-100 border-emerald-200' : 'text-amber-700 bg-amber-100 border-amber-200';
         let iconStatus = dataPengajuanMhs.Status === 'Diterbitkan' ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-clock"></i>';
         
         areaPengajuan = `
-            <div class="mt-6 p-4 bg-white border border-slate-200 rounded-xl text-xs space-y-3 shadow-sm">
+            <div class="mt-4 mb-2 p-4 bg-white border border-slate-200 rounded-xl text-xs space-y-3 shadow-sm">
                 <h4 class="font-bold text-slate-700 uppercase border-b border-slate-100 pb-2"><i class="fa-solid fa-file-contract mr-1 text-emerald-600"></i> Status Surat Bebas Tanggungan</h4>
                 
                 <div class="flex justify-between items-center">
@@ -692,24 +650,62 @@ function executeStatusSearch() {
             </div>
         `;
     } else {
-        // JIKA BELUM MENGAJUKAN: Tampilkan Form Input Email Manual
         areaPengajuan = `
-            <div class="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3 shadow-sm">
+            <div class="mt-4 mb-2 p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3 shadow-sm">
                 <div>
                     <h4 class="text-xs font-extrabold text-emerald-900 uppercase mb-1"><i class="fa-solid fa-envelope-open-text mr-1"></i> Ajukan Surat Bebas</h4>
                     <p class="text-[10px] text-emerald-700 font-medium">Ketik email aktif Anda di bawah ini untuk menerima file PDF surat jika disetujui admin.</p>
                 </div>
                 <div>
-                    <input type="email" id="input-email-pengajuan" placeholder="Contoh: nama@gmail.com" class="w-full px-3 py-2.5 border border-emerald-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none shadow-inner bg-white text-emerald-900 font-medium">
+                    <input type="email" id="input-email-pengajuan" value="${studentEmail}" placeholder="Contoh: nama@gmail.com" class="w-full px-3 py-2 border border-emerald-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none shadow-inner bg-white text-emerald-900 font-medium">
                 </div>
-                <button onclick="ajukanSuratBebas('${targetNim}', '${studentName}')" class="w-full py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center space-x-2">
+                <button onclick="ajukanSuratBebas('${targetNim}', '${studentName}')" class="w-full py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center space-x-2">
                     <i class="fa-solid fa-paper-plane"></i> <span>Kirim Pengajuan</span>
                 </button>
             </div>
         `;
     }
 
-    resultsContainer.innerHTML += areaPengajuan;
+    // BENTUK KERANGKA HTML
+    let html = `
+        <div class="bg-emerald-900 text-white rounded-2xl p-6 shadow-md space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-emerald-800 pb-4 gap-4 sm:gap-0">
+                <div>
+                    <h3 class="text-lg font-extrabold">${studentName} (${targetNim})</h3>
+                    <p class="text-xs text-emerald-200 flex items-center">${studentProdi} - ${studentTingkatan}</p>
+                </div>
+
+                <!-- TOMBOL REKAP & DROPDOWN TA -->
+                <div class="flex items-center space-x-2 shrink-0 mt-4 sm:mt-0">
+                    <button onclick="downloadRekapPDF('${targetNim}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 border border-emerald-600 text-white text-[11px] font-bold rounded-xl transition shadow-sm flex items-center space-x-1.5">
+                        <i class="fa-solid fa-file-pdf"></i><span class="hidden sm:inline">Unduh Rekap</span>
+                    </button>
+                    <div class="relative flex items-center group">
+                        <div class="absolute left-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500"><i class="fa-regular fa-calendar-days text-[11px]"></i></div>
+                        <select onchange="updateStatusTADisplay(this.value, '${targetNim}',${listTA.length})" class="appearance-none bg-emerald-950/50 border border-emerald-700/60 text-emerald-100 text-[11px] font-bold rounded-xl pl-8 pr-8 py-1.5 focus:outline-none focus:border-emerald-400 hover:border-emerald-500 cursor-pointer shadow-sm transition w-full">
+                            <option value="ALL" class="bg-emerald-900">Semua TA</option>
+                            ${listTA.map(ta => `<option value="${ta}" ${ta === initialTA ? 'selected' : ''} class="bg-emerald-900">${ta}</option>`).join('')}
+                        </select>
+                        <div class="absolute right-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500"><i class="fa-solid fa-chevron-down text-[9px]"></i></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- KOTAK KALKULASI -->
+            <div id="status-calculation-box" class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs"></div>
+        </div>
+        
+        <!-- AREA PENGAJUAN (DISUNTIKKAN SEBELUM RIWAYAT TRANSAKSI) -->
+        ${areaPengajuan}
+        
+        <h4 class="text-xs font-bold text-slate-700 uppercase pt-4 pb-1 border-b border-slate-200">Riwayat Transaksi</h4>
+        
+        <!-- DAFTAR RIWAYAT TRANSAKSI -->
+        <div id="status-history-list"></div>
+    `;
+
+    resultsContainer.innerHTML = html;
+    updateStatusTADisplay(initialTA, targetNim, listTA.length);
 }
 
 // ==========================================
@@ -1834,7 +1830,12 @@ function renderTablePengajuan() {
         let badge = item.Status === 'Diterbitkan' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800';
         let btnAksi = item.Status === 'Diterbitkan' 
             ? `<span class="text-[10px] text-slate-400 italic">Selesai</span>`
-            : `<button onclick="bukaModalTerbitSurat('${item.ID}', '${item.NIM}', '${item.Email}')" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-bold transition shadow-sm"><i class="fa-solid fa-stamp mr-1"></i> Terbitkan</button>`;
+            : `
+              <div class="flex justify-center items-center space-x-1.5">
+                  <button onclick="bukaModalRekapPengajuan('${item.NIM}')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition shadow-sm"><i class="fa-solid fa-file-invoice-dollar"></i> Cek Rekap</button>
+                  <button onclick="bukaModalTerbitSurat('${item.ID}', '${item.NIM}', '${item.Email}')" class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-bold transition shadow-sm"><i class="fa-solid fa-stamp"></i> Terbitkan</button>
+              </div>
+              `;
 
         return `
             <tr class="hover:bg-slate-50 border-b">
@@ -1920,4 +1921,55 @@ async function prosesTerbitkanSuratEmail() {
         btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
         btnProses.disabled = false;
     }
+}
+function bukaModalRekapPengajuan(nim) {
+    const student = mahasiswaMaster.find(m => m.nim === nim);
+    if(!student) return showToast("Error", "Data mahasiswa tidak ditemukan.");
+
+    const tahunMulaiTA = parseInt(globalTAAktif.split('/')[0]);
+    const startYear = parseInt(student.angkatan) || tahunMulaiTA;
+    let batasAtas = tahunMulaiTA;
+
+    // Batasi pengecekan jika mahasiswa sudah lulus/keluar
+    if (student.tahunKeluar && parseInt(student.tahunKeluar) <= tahunMulaiTA) {
+        batasAtas = parseInt(student.tahunKeluar);
+    } else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(String(student.status).toLowerCase())) {
+        batasAtas = startYear + 3; 
+        if (batasAtas > tahunMulaiTA) batasAtas = tahunMulaiTA;
+    }
+
+    let rekapHtml = '';
+    let totalSeluruhTunggakan = 0;
+
+    for (let y = startYear; y <= batasAtas; y++) {
+        let ta = `${y}/${y+1}`;
+        let sum = getStudentPaymentSummary(nim, ta);
+        
+        // Lewati jika sedang cuti dan belum bayar sepeser pun
+        if (String(student.taCuti || '').trim() === ta && sum.totalDibayar === 0) continue;
+
+        totalSeluruhTunggakan += sum.sisaTagihan;
+        let statusColor = sum.sisaTagihan <= 0 ? 'text-emerald-600' : 'text-rose-600';
+        let icon = sum.sisaTagihan <= 0 ? '<i class="fa-solid fa-check-circle"></i> Lunas' : '<i class="fa-solid fa-triangle-exclamation"></i> Sisa';
+
+        rekapHtml += `
+            <div class="flex justify-between items-center py-2.5 border-b border-slate-100 last:border-0">
+                <span class="text-xs font-bold text-slate-700">TA ${ta}</span>
+                <div class="text-right">
+                    <div class="text-xs font-bold text-slate-800">${formatRp(sum.totalDibayar)}</div>
+                    <div class="text-[10px] ${statusColor}">${icon} ${formatRp(sum.sisaTagihan)}</div>
+                </div>
+            </div>
+        `;
+    }
+
+    document.getElementById('rekap-mhs-nama').innerText = student.nama;
+    document.getElementById('rekap-mhs-nim').innerText = student.nim;
+    document.getElementById('rekap-total-tunggakan').innerText = formatRp(totalSeluruhTunggakan);
+    document.getElementById('rekap-list-ta').innerHTML = rekapHtml || '<p class="text-xs text-slate-400 italic py-2">Tidak ada data tagihan wajib.</p>';
+    document.getElementById('modal-rekap-pengajuan').classList.remove('hidden');
+}
+
+function tutupModalRekapPengajuan() {
+    document.getElementById('modal-rekap-pengajuan').classList.add('hidden');
 }
