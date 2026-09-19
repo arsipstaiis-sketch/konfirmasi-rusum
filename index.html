@@ -49,17 +49,27 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         /* TAMBAHKAN BLOK INI UNTUK MERAPIKAN PRINT */
         @media print {
-            /* Sembunyikan semua kecuali rekap dan surat bebas */
-            body > *:not(#rekap-pdf-container):not(#surat-bebas-container) {
+            /* 1. Sembunyikan elemen utama aplikasi secara paksa */
+            header, main, footer, #toast-container {
                 display: none !important;
             }
-            #rekap-pdf-container, #surat-bebas-container {
+
+            /* 2. Sembunyikan wadah cetak jika sedang tidak aktif (memiliki class hidden) */
+            #rekap-pdf-container.hidden, 
+            #surat-bebas-container.hidden {
+                display: none !important;
+            }
+
+            /* 3. Format wadah cetak yang SEDANG AKTIF (tidak memiliki class hidden) */
+            #rekap-pdf-container:not(.hidden), 
+            #surat-bebas-container:not(.hidden) {
                 display: block !important;
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            /* Hilangkan margin kertas bawaan browser agar kop surat menempel rapi di ujung atas */
+
+            /* 4. Hilangkan margin kertas bawaan browser */
             @page { margin: 0; }
         }
     </style>
