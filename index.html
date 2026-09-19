@@ -854,6 +854,30 @@
             </div>
         </div>
     </div>
+    <!-- MODAL REKAP PEMBAYARAN UNTUK ADMIN -->
+    <div id="modal-rekap-pengajuan" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl overflow-hidden">
+            <div class="p-4 bg-slate-800 text-white flex justify-between items-center">
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-file-invoice-dollar"></i> Rekap Seluruh TA</h3>
+                <button onclick="tutupModalRekapPengajuan()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 space-y-3">
+                <div class="border-b border-slate-100 pb-2">
+                    <p id="rekap-mhs-nama" class="font-bold text-slate-800 text-sm"></p>
+                    <p id="rekap-mhs-nim" class="font-mono text-xs text-slate-500"></p>
+                </div>
+                
+                <div id="rekap-list-ta" class="space-y-1 max-h-60 overflow-y-auto pr-2 no-scrollbar">
+                    <!-- List TA di-generate oleh JS -->
+                </div>
+                
+                <div class="pt-3 border-t border-slate-200 flex justify-between items-center mt-2">
+                    <span class="text-xs font-bold text-slate-600">Total Tunggakan:</span>
+                    <span id="rekap-total-tunggakan" class="text-base font-black text-rose-600"></span>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Script dari folder js/ -->
     <script src="js/script.js"></script>
