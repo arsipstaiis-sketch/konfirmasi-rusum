@@ -1615,3 +1615,66 @@ function populateAdminTAFilter() {
         selectEl.value = currentValue;
     }
 }
+// ==========================================
+// FITUR CETAK SURAT BEBAS TANGGUNGAN
+// ==========================================
+function cetakSuratBebas(nim) {
+    const student = mahasiswaMaster.find(m => m.nim === nim);
+    if (!student) return;
+
+    // 1. Validasi Kelayakan (Wajib Lunas Secara Keseluruhan)
+    const summary = getStudentPaymentSummary(nim, 'ALL');
+    if (summary.statusOverall !== 'LUNAS') {
+        showToast("Akses Ditolak", "Mahasiswa belum melunasi seluruh tanggungan keuangan.");
+        return;
+    }
+
+    showToast("Menyiapkan Surat", "Menyusun Surat Keterangan Bebas Tanggungan...");
+
+    // 2. Logic Penomoran Otomatis (Berdasarkan urutan mahasiswa Lunas di database)
+    const lunasStudents = mahasiswaMaster
+        .filter(m => getStudentPaymentSummary(m.nim, 'ALL').statusOverall === 'LUNAS')
+        .sort((a, b) => a.nim.localeCompare(b.nim)); // Urutkan berdasarkan NIM
+    
+    // Cari urutan mahasiswa ini di daftar lunas, lalu pad dengan angka 0 di depan
+    const urutan = lunasStudents.findIndex(m => m.nim === nim) + 1;
+    const noUrut = String(urutan).padStart(3, '0');
+
+    // 3. Waktu & Tanggal Dinamis
+    const now = new Date();
+    const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
+    const tahun2Digit = String(now.getFullYear()).slice(-2);
+    const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    const tanggalSurat = `${now.getDate()} ${namaBulan[now.getMonth()]} ${now.getFullYear()}`;
+
+    // 4. Injeksi Data ke HTML
+    document.getElementById('surat-no').innerText = `No. ${noUrut}/Ket-SKet/STAIIS/${romawiBulan}/${tahun2Digit}`;
+    document.getElementById('surat-nama').innerText = student.nama;
+    document.getElementById('surat-nim').innerText = student.nim;
+    document.getElementById('surat-prodi').innerText = student.prodi;
+    document.getElementById('surat-tgl').innerText = `Cianjur, ${tanggalSurat}`;
+
+    // 5. Eksekusi Print Bawaan Browser
+    const headerEl = document.querySelector('header');
+    const mainEl = document.querySelector('main');
+    const toastEl = document.getElementById('toast-container');
+    const suratContainer = document.getElementById('surat-bebas-container');
+
+    // Sembunyikan UI
+    if (headerEl) headerEl.classList.add('hidden');
+    if (mainEl) mainEl.classList.add('hidden');
+    if (toastEl) toastEl.classList.add('hidden');
+    suratContainer.classList.remove('hidden');
+
+    setTimeout(() => {
+        window.print();
+
+        // Kembalikan UI setelah selesai
+        if (headerEl) headerEl.classList.remove('hidden');
+        if (mainEl) mainEl.classList.remove('hidden');
+        if (toastEl) toastEl.classList.remove('hidden');
+        suratContainer.classList.add('hidden');
+        
+        showToast("Selesai", "Proses cetak dokumen telah ditutup.");
+    }, 400);
+}
