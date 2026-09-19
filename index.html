@@ -49,14 +49,19 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         /* TAMBAHKAN BLOK INI UNTUK MERAPIKAN PRINT */
         @media print {
-            /* Sembunyikan elemen utama */
             header, main, footer, #toast-container { display: none !important; }
-            
-            /* Sembunyikan APAPUN yang memiliki class hidden */
             .hidden { display: none !important; }
 
-            /* Format khusus untuk wadah yang sedang dipanggil (tidak hidden) */
-            #rekap-pdf-container:not(.hidden), 
+            /* REKAPITULASI: Diberi padding agar tidak mepet tepi kertas */
+            #rekap-pdf-container:not(.hidden) {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 15mm 20mm !important; /* Atas/Bawah 15mm, Kiri/Kanan 20mm */
+                box-sizing: border-box !important;
+            }
+
+            /* SURAT BEBAS: Padding 0 karena margin sudah diatur di dalam elemen HTML-nya (210mm x 297mm) */
             #surat-bebas-container:not(.hidden) {
                 display: block !important;
                 width: 100% !important;
@@ -64,7 +69,7 @@
                 padding: 0 !important;
             }
 
-            @page { margin: 1; }
+            @page { margin: 0; }
         }
     </style>
     <link rel="stylesheet" href="css/style.css">
