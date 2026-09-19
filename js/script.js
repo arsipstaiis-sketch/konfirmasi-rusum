@@ -17,7 +17,7 @@ let selectedModalStatus = 'Pending';
 let activeMonitoringMode = 'angkatan'; // 'angkatan' atau 'ta'
 let globalTAAktif = '2025/2026'; // Default, nanti ditimpa dari Spreadsheet
 let activeVerifikasiStatusFilter = 'ALL';
-
+let pengajuanData = [];
 const defaultStatusNotes = {
     'Pending': 'Pembayaran sedang dalam proses verifikasi data dan mutasi rekening.',
     'Disetujui': 'Pembayaran setoran angsuran telah diverifikasi sah.',
@@ -92,7 +92,13 @@ async function fetchSpreadsheetData() {
         if (isAdminLoggedIn) {
             renderAdminDashboard();
         }
-        
+        // Di dalam fetchSpreadsheetData() setelah data mahasiswaMaster:
+        if (data.pengajuan) {
+            pengajuanData = data.pengajuan.map(p => ({
+                ...p,
+                nim: String(p.nim)
+            })).reverse(); // Balik agar yang terbaru di atas
+        }
     } catch (error) {
         console.error("DETAIL ERROR FETCH:", error); 
         showToast("Error", "Gagal memuat data. Periksa konsol (F12).");
@@ -651,6 +657,16 @@ function executeStatusSearch() {
 
     resultsContainer.innerHTML = html;
     updateStatusTADisplay(initialTA, targetNim, listTA.length);
+    // (Di akhir fungsi executeStatusSearch)
+    
+    // Cek apakah sudah pernah mengajukan
+    const isPernahAjukan = typeof pengajuanData !== 'undefined' && pengajuanData.some(p => p.nim === targetNim);
+    
+    let btnAjukan = isPernahAjukan 
+        ? `<div class="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-bold"><i class="fa-solid fa-clock mr-1"></i> Pengajuan Surat Bebas sedang diproses atau sudah diterbitkan.</div>`
+        : `<button onclick="ajukanSuratBebas('${targetNim}', '${studentName}', '${student?.email || ''}')" class="mt-6 w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition shadow-sm"><i class="fa-solid fa-envelope-open-text mr-1"></i> Ajukan Surat Bebas Tanggungan Keuangan</button>`;
+
+    resultsContainer.innerHTML += btnAjukan;
 }
 
 // ==========================================
@@ -699,26 +715,33 @@ function logoutAdmin() {
 
 function switchAdminSubtab(subtab) {
     activeAdminSubtab = subtab;
-    const btnVerifikasi = document.getElementById('admin-subtab-verifikasi');
-    const btnAngkatan = document.getElementById('admin-subtab-angkatan');
-    const viewVerifikasi = document.getElementById('admin-view-verifikasi');
-    const viewAngkatan = document.getElementById('admin-view-angkatan');
+    
+    // Daftar semua tab yang ada
+    const tabs = ['verifikasi', 'angkatan', 'pengajuan'];
+    
+    tabs.forEach(t => {
+        const btn = document.getElementById(`admin-subtab-${t}`);
+        const view = document.getElementById(`admin-view-${t}`);
+        
+        // Cek jika ID elemennya ada untuk mencegah error
+        if (btn && view) {
+            if (t === subtab) {
+                // Style untuk tab yang sedang aktif
+                btn.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold bg-white text-emerald-900 shadow-sm flex items-center justify-center space-x-2 min-w-max";
+                view.classList.remove('hidden');
+            } else {
+                // Style untuk tab yang tidak aktif
+                btn.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-center space-x-2 min-w-max hover:bg-white/50";
+                view.classList.add('hidden');
+            }
+        }
+    });
 
-    if (subtab === 'verifikasi') {
-        btnVerifikasi.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold bg-white text-emerald-900 shadow-sm flex items-center justify-center space-x-2";
-        btnAngkatan.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-center space-x-2";
-        viewVerifikasi.classList.remove('hidden');
-        viewAngkatan.classList.add('hidden');
-        filterAdminTable();
-    } else {
-        btnAngkatan.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold bg-white text-emerald-900 shadow-sm flex items-center justify-center space-x-2";
-        btnVerifikasi.className = "flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-center space-x-2";
-        viewAngkatan.classList.remove('hidden');
-        viewVerifikasi.classList.add('hidden');
-        renderAngkatanMonitoring();
-    }
+    // Jalankan fungsi render sesuai tab yang dibuka
+    if (subtab === 'verifikasi') filterAdminTable();
+    else if (subtab === 'angkatan') renderAngkatanMonitoring();
+    else if (subtab === 'pengajuan') renderTablePengajuan();
 }
-
 function renderAdminDashboard() {
     document.getElementById('admin-login-card').classList.add('hidden');
     document.getElementById('admin-dashboard').classList.remove('hidden');
@@ -1693,4 +1716,135 @@ function cetakSuratBebas(nim) {
         
         showToast("Selesai", "Proses cetak dokumen telah ditutup.");
     }, 400);
+}
+// ==========================================
+// FITUR PENGAJUAN SURAT BEBAS (MAHASISWA & ADMIN)
+// ==========================================
+
+async function ajukanSuratBebas(nim, nama, email) {
+    if (!email) {
+        showToast("Email Kosong", "Pastikan Anda mengisi form dengan email aktif sebelumnya, atau hubungi admin.");
+        return;
+    }
+    
+    showToast("Mengirim...", "Sedang memproses pengajuan surat Anda.");
+    
+    const now = new Date();
+    const payload = {
+        action: 'ajukanSurat',
+        id: `SBT-${Math.floor(1000 + Math.random() * 9000)}`,
+        nim: nim,
+        nama: nama,
+        email: email,
+        tanggal: `${now.getDate()}-${now.getMonth()+1}-${now.getFullYear()}`
+    };
+
+    try {
+        await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        showToast("Berhasil", "Pengajuan berhasil dikirim. Silakan tunggu balasan di email Anda.");
+        setTimeout(() => executeStatusSearch(), 2000); // Refresh tampilan
+    } catch (e) {
+        showToast("Error", "Gagal mengirim pengajuan.");
+    }
+}
+
+function renderTablePengajuan() {
+    const tbody = document.getElementById('pengajuan-table-body');
+    if (!tbody) return;
+
+    if (!pengajuanData || pengajuanData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400 text-xs">Belum ada data pengajuan surat.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = pengajuanData.map(item => {
+        let badge = item.Status === 'Diterbitkan' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800';
+        let btnAksi = item.Status === 'Diterbitkan' 
+            ? `<span class="text-[10px] text-slate-400 italic">Selesai</span>`
+            : `<button onclick="bukaModalTerbitSurat('${item.ID}', '${item.NIM}', '${item.Email}')" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-bold transition shadow-sm"><i class="fa-solid fa-stamp mr-1"></i> Terbitkan</button>`;
+
+        return `
+            <tr class="hover:bg-slate-50 border-b">
+                <td class="p-3">
+                    <div class="font-bold text-slate-800">${item.Nama}</div>
+                    <div class="text-[11px] text-slate-500 font-mono mt-0.5">${item.NIM}</div>
+                </td>
+                <td class="p-3 text-xs text-slate-600">${item.Tanggal}</td>
+                <td class="p-3 text-center"><span class="px-2.5 py-1 rounded-lg text-[10px] font-bold ${badge}">${item.Status}</span></td>
+                <td class="p-3 text-center">${btnAksi}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function bukaModalTerbitSurat(id, nim, email) {
+    document.getElementById('terbit-id-pengajuan').value = id;
+    document.getElementById('terbit-nim-mhs').value = nim;
+    document.getElementById('terbit-email-mhs').innerText = email;
+    document.getElementById('terbit-catatan').value = "Telah memenuhi seluruh/sebagian tanggungan keuangan (Sesuai kebijakan pimpinan).";
+    document.getElementById('modal-terbit-surat').classList.remove('hidden');
+}
+
+async function prosesTerbitkanSuratEmail() {
+    const id = document.getElementById('terbit-id-pengajuan').value;
+    const nim = document.getElementById('terbit-nim-mhs').value;
+    const catatan = document.getElementById('terbit-catatan').value;
+    const btnProses = document.getElementById('btn-proses-terbit');
+    
+    const student = mahasiswaMaster.find(m => m.nim === nim);
+    const itemPengajuan = pengajuanData.find(p => p.ID === id);
+    if (!student || !itemPengajuan) return;
+
+    btnProses.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Membuat PDF & Mengirim...</span>`;
+    btnProses.disabled = true;
+
+    // 1. Siapkan Data ke Template HTML Surat
+    const now = new Date();
+    const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
+    
+    document.getElementById('surat-no').innerText = `No. ${itemPengajuan.ID.replace('SBT-', '')}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
+    document.getElementById('surat-nama').innerText = student.nama;
+    document.getElementById('surat-nim').innerText = student.nim;
+    document.getElementById('surat-prodi').innerText = student.prodi;
+    document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
+
+    // 2. Generate PDF ke format Base64 secara background (hidden)
+    const element = document.getElementById('surat-bebas-container');
+    element.classList.remove('hidden');
+    
+    try {
+        const pdfBase64DataUrl = await html2pdf().set({
+            margin: 0, filename: `Surat_Bebas.pdf`, image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(element).outputPdf('datauristring');
+        
+        element.classList.add('hidden'); // Sembunyikan lagi
+
+        // 3. Kirim ke Server
+        const response = await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+                action: 'terbitkanSuratEmail',
+                id: id, nim: nim, nama: student.nama, email: itemPengajuan.Email,
+                catatanAdmin: catatan,
+                pdfBase64: pdfBase64DataUrl // Kirim base64 ke GAS
+            })
+        });
+
+        const res = await response.json();
+        if (res.success) {
+            itemPengajuan.Status = 'Diterbitkan'; // Update lokal
+            renderTablePengajuan();
+            document.getElementById('modal-terbit-surat').classList.add('hidden');
+            showToast("Sukses", "Surat diterbitkan dan email berhasil dikirim!");
+        } else {
+            showToast("Gagal", "Error sistem email.");
+        }
+    } catch (error) {
+        element.classList.add('hidden');
+        showToast("Error", "Gagal mengkonversi PDF atau terputus dari server.");
+    } finally {
+        btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
+        btnProses.disabled = false;
+    }
 }
