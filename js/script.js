@@ -1968,8 +1968,6 @@ async function prosesPengajuanSuratAdmin() {
             const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
             const indexData = pengajuanData.findIndex(p => p.ID === id);
             const nomorUrutAsli = pengajuanData.length - indexData; 
-            
-            // Format jadi 3 digit angka (Contoh: 001, 002, 015)
             const nomorFormat = String(nomorUrutAsli).padStart(3, '0');
             document.getElementById('surat-no').innerText = `No. ${itemPengajuan.ID.replace('SBT-', '')}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
             document.getElementById('surat-nama').innerText = student.nama;
@@ -1978,12 +1976,12 @@ async function prosesPengajuanSuratAdmin() {
             document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
             suratContainer.classList.remove('hidden');
-            
+            await new Promise(resolve => setTimeout(resolve, 500));
             payload.pdfBase64 = await html2pdf().set({
                 margin: 0, 
                 filename: `Surat_Bebas.pdf`, 
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, scrollY: 0, y: 0 }, // <-- Ini kunci menghilangkan spasi atas
+                html2canvas: { scale: 2, scrollY: 0, y: 0, useCORS: true }, // <-- Ini kunci menghilangkan spasi atas
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             }).from(suratContainer).outputPdf('datauristring');
             
