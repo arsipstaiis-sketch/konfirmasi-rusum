@@ -1817,23 +1817,28 @@ async function ajukanSuratBebas(nim, nama) {
         showToast("Error", "Gagal menghubungi server untuk mengirim pengajuan.");
     }
 }
+// ==========================================
+// FUNGSI ADMIN PENGAJUAN (SUDAH DIPERBARUI DENGAN FITUR TOLAK & CATATAN)
+// ==========================================
+
 function renderTablePengajuan() {
     const tbody = document.getElementById('pengajuan-table-body');
     if (!tbody) return;
 
     if (!pengajuanData || pengajuanData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-400 text-xs">Belum ada data pengajuan surat.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400 text-xs">Belum ada data pengajuan surat.</td></tr>`;
         return;
     }
 
     tbody.innerHTML = pengajuanData.map(item => {
-        let badge = item.Status === 'Diterbitkan' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800';
-        let btnAksi = item.Status === 'Diterbitkan' 
+        let badge = item.Status === 'Diterbitkan' ? 'bg-emerald-100 text-emerald-800' : (item.Status === 'Ditolak' ? 'bg-rose-100 text-rose-800' : 'bg-amber-100 text-amber-800');
+        
+        let btnAksi = (item.Status === 'Diterbitkan' || item.Status === 'Ditolak') 
             ? `<span class="text-[10px] text-slate-400 italic">Selesai</span>`
             : `
               <div class="flex justify-center items-center space-x-1.5">
-                  <button onclick="bukaModalRekapPengajuan('${item.NIM}')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition shadow-sm"><i class="fa-solid fa-file-invoice-dollar"></i> Cek Rekap</button>
-                  <button onclick="bukaModalTerbitSurat('${item.ID}', '${item.NIM}', '${item.Email}')" class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-bold transition shadow-sm"><i class="fa-solid fa-stamp"></i> Terbitkan</button>
+                  <button onclick="bukaModalRekapPengajuan('${item.NIM}')" class="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold transition shadow-sm" title="Cek Rekap Tunggakan"><i class="fa-solid fa-file-invoice-dollar"></i></button>
+                  <button onclick="bukaModalTerbitSurat('${item.ID}', '${item.NIM}', '${item.Email}')" class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-[10px] font-bold transition shadow-sm"><i class="fa-solid fa-pen-to-square"></i> Proses</button>
               </div>
               `;
 
@@ -1845,6 +1850,7 @@ function renderTablePengajuan() {
                 </td>
                 <td class="p-3 text-xs text-slate-600">${item.Tanggal}</td>
                 <td class="p-3 text-center"><span class="px-2.5 py-1 rounded-lg text-[10px] font-bold ${badge}">${item.Status}</span></td>
+                <td class="p-3 text-[10px] text-slate-500 italic max-w-xs break-words">${item.Catatan || '-'}</td>
                 <td class="p-3 text-center">${btnAksi}</td>
             </tr>
         `;
@@ -1855,68 +1861,148 @@ function bukaModalTerbitSurat(id, nim, email) {
     document.getElementById('terbit-id-pengajuan').value = id;
     document.getElementById('terbit-nim-mhs').value = nim;
     document.getElementById('terbit-email-mhs').innerText = email;
-    document.getElementById('terbit-catatan').value = "Telah memenuhi seluruh/sebagian tanggungan keuangan (Sesuai kebijakan pimpinan).";
+    
+    // Reset Modal Default ke opsi Terbitkan
+    document.getElementById('terbit-keputusan').value = 'Diterbitkan';
+    toggleCatatanPengajuan('Diterbitkan');
+    
     document.getElementById('modal-terbit-surat').classList.remove('hidden');
 }
 
-async function prosesTerbitkanSuratEmail() {
+function toggleCatatanPengajuan(keputusan) {
+    const wadahCatatan = document.getElementById('wadah-catatan-terbit');
+    const infoTerbit = document.getElementById('info-terbit-surat');
+    const txtCatatan = document.getElementById('terbit-catatan');
+    
+    if (keputusan === 'Ditolak') {
+        wadahCatatan.classList.remove('hidden');
+        infoTerbit.classList.add('hidden');
+        txtCatatan.value = ''; // Wajib diisi admin saat menolak
+    } else {
+        wadahCatatan.classList.add('hidden');
+        infoTerbit.classList.remove('hidden');
+        txtCatatan.value = ''; // Dikosongkan karena disetujui
+    }
+}
+
+// Helper: Menyusun HTML Rekap Jika Ditolak
+function generateHTMLRekapTunggakan(nim) {
+    const student = mahasiswaMaster.find(m => m.nim === nim);
+    const tahunMulaiTA = parseInt(globalTAAktif.split('/')[0]);
+    const startYear = parseInt(student.angkatan) || tahunMulaiTA;
+    let batasAtas = tahunMulaiTA;
+    
+    if (student.tahunKeluar && parseInt(student.tahunKeluar) <= tahunMulaiTA) batasAtas = parseInt(student.tahunKeluar);
+
+    let html = `
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-family: Arial, sans-serif; font-size: 12px;">
+            <tr style="background-color: #f1f5f9;">
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Tahun Akademik</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Dibayar</th>
+                <th style="padding: 8px; border: 1px solid #ddd; text-align: right; color: #be123c;">Sisa Tunggakan</th>
+            </tr>
+    `;
+
+    let totalTunggakan = 0;
+    for (let y = startYear; y <= batasAtas; y++) {
+        let ta = `${y}/${y+1}`;
+        let sum = getStudentPaymentSummary(nim, ta);
+        if (String(student.taCuti || '').trim() === ta && sum.totalDibayar === 0) continue;
+
+        totalTunggakan += sum.sisaTagihan;
+        html += `
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">${ta}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${formatRp(sum.totalDibayar)}</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right; color: ${sum.sisaTagihan > 0 ? '#be123c' : '#15803d'}; font-weight: bold;">${formatRp(sum.sisaTagihan)}</td>
+            </tr>
+        `;
+    }
+    
+    html += `
+            <tr>
+                <td colspan="2" style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold;">TOTAL KESELURUHAN TUNGGAKAN</td>
+                <td style="padding: 8px; border: 1px solid #ddd; text-align: right; font-weight: bold; font-size: 14px; color: #be123c;">${formatRp(totalTunggakan)}</td>
+            </tr>
+        </table>
+    `;
+    return html;
+}
+
+// Fungsi ini MENGGANTIKAN prosesTerbitkanSuratEmail()
+async function prosesPengajuanSuratAdmin() {
     const id = document.getElementById('terbit-id-pengajuan').value;
     const nim = document.getElementById('terbit-nim-mhs').value;
-    const catatan = document.getElementById('terbit-catatan').value;
+    const keputusan = document.getElementById('terbit-keputusan').value;
+    const catatan = document.getElementById('terbit-catatan').value.trim();
     const btnProses = document.getElementById('btn-proses-terbit');
     
+    if (keputusan === 'Ditolak' && catatan === '') {
+        showToast("Catatan Wajib", "Harap isi alasan penolakan!");
+        return;
+    }
+
     const student = mahasiswaMaster.find(m => m.nim === nim);
     const itemPengajuan = pengajuanData.find(p => p.ID === id);
     if (!student || !itemPengajuan) return;
 
-    btnProses.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Membuat PDF & Mengirim...</span>`;
+    btnProses.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memproses Data...</span>`;
     btnProses.disabled = true;
 
-    // 1. Siapkan Data ke Template HTML Surat
-    const now = new Date();
-    const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
-    
-    document.getElementById('surat-no').innerText = `No. ${itemPengajuan.ID.replace('SBT-', '')}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
-    document.getElementById('surat-nama').innerText = student.nama;
-    document.getElementById('surat-nim').innerText = student.nim;
-    document.getElementById('surat-prodi').innerText = student.prodi;
-    document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
+    let payload = {
+        action: 'prosesPengajuanSurat',
+        id: id,
+        nim: nim,
+        nama: student.nama,
+        email: itemPengajuan.Email,
+        status: keputusan,
+        catatanAdmin: catatan
+    };
 
-    // 2. Generate PDF ke format Base64 secara background (hidden)
-    const element = document.getElementById('surat-bebas-container');
-    element.classList.remove('hidden');
-    
+    const suratContainer = document.getElementById('surat-bebas-container');
+
     try {
-        const pdfBase64DataUrl = await html2pdf().set({
-            margin: 0, filename: `Surat_Bebas.pdf`, image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        }).from(element).outputPdf('datauristring');
-        
-        element.classList.add('hidden'); // Sembunyikan lagi
+        if (keputusan === 'Diterbitkan') {
+            // Jika Setuju -> Buat PDF
+            const now = new Date();
+            const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
+            
+            document.getElementById('surat-no').innerText = `No. ${itemPengajuan.ID.replace('SBT-', '')}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
+            document.getElementById('surat-nama').innerText = student.nama;
+            document.getElementById('surat-nim').innerText = student.nim;
+            document.getElementById('surat-prodi').innerText = student.prodi;
+            document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
-        // 3. Kirim ke Server
-        const response = await fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify({
-                action: 'terbitkanSuratEmail',
-                id: id, nim: nim, nama: student.nama, email: itemPengajuan.Email,
-                catatanAdmin: catatan,
-                pdfBase64: pdfBase64DataUrl // Kirim base64 ke GAS
-            })
-        });
-
-        const res = await response.json();
-        if (res.success) {
-            itemPengajuan.Status = 'Diterbitkan'; // Update lokal
-            renderTablePengajuan();
-            document.getElementById('modal-terbit-surat').classList.add('hidden');
-            showToast("Sukses", "Surat diterbitkan dan email berhasil dikirim!");
+            suratContainer.classList.remove('hidden');
+            
+            payload.pdfBase64 = await html2pdf().set({
+                margin: 0, filename: `Surat_Bebas.pdf`, image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).from(suratContainer).outputPdf('datauristring');
+            
+            suratContainer.classList.add('hidden');
+            
         } else {
-            showToast("Gagal", "Error sistem email.");
+            // Jika Tolak -> Buat Tabel Rekap
+            payload.htmlRekap = generateHTMLRekapTunggakan(nim);
+        }
+
+        // Kirim data lengkap ke Google Apps Script
+        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const res = await response.json();
+        
+        if (res.success) {
+            itemPengajuan.Status = keputusan; 
+            itemPengajuan.Catatan = catatan;
+            renderTablePengajuan(); // Segarkan tabel dengan kolom catatan baru
+            document.getElementById('modal-terbit-surat').classList.add('hidden');
+            showToast("Sukses", `Pengajuan berhasil ${keputusan === 'Diterbitkan' ? 'diterbitkan' : 'ditolak'} dan email telah dikirim.`);
+        } else {
+            showToast("Gagal", "Sistem gagal mengirim data ke server.");
         }
     } catch (error) {
-        element.classList.add('hidden');
-        showToast("Error", "Gagal mengkonversi PDF atau terputus dari server.");
+        suratContainer.classList.add('hidden');
+        showToast("Error Koneksi", "Terputus dari server atau gagal memproses pengajuan.");
     } finally {
         btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
         btnProses.disabled = false;
