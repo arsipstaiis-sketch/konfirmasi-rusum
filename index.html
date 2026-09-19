@@ -774,13 +774,13 @@
         </div>
     </div>
     <!-- WADAH SURAT KETERANGAN BEBAS TANGGUNGAN (HIDDEN DARI UI) -->
-    <div id="surat-bebas-container" class="hidden absolute top-0 left-0 bg-white text-black" style="width: 210mm; min-height: 297mm; font-family: 'Cambria', Georgia, serif; position: relative;">
+    <div id="surat-bebas-container" class="hidden absolute top-0 left-0 bg-white text-black" style="width: 210mm; min-height: 297mm; font-family: 'Cambria', Georgia, serif; margin: 0; padding: 0; box-sizing: border-box;">
         
-        <!-- Kop Surat (Menempel Paling Atas Kertas tanpa margin/padding) -->
-        <img src="assets/kop-staiis.png" alt="Kop Surat STAIIS" style="width: 100%; display: block; margin-top: 0;" class="mb-10">
+        <!-- Kop Surat (Diubah ke width 210mm agar pasti memenuhi kertas) -->
+        <img src="assets/kop-staiis.png" alt="Kop Surat STAIIS" style="width: 210mm; display: block; margin: 0; padding: 0; border: none;">
 
-        <!-- Wadah Konten Surat (Diberi padding kiri-kanan agar teks tidak menabrak batas kertas) -->
-        <div style="padding: 0 20mm;">
+        <!-- Wadah Konten Surat (Diberi padding kiri-kanan) -->
+        <div style="padding: 10mm 20mm 0 20mm;">
             <!-- Judul Surat -->
             <div class="text-center mb-12">
                 <h2 class="font-bold text-xl underline tracking-wide uppercase">Surat Keterangan</h2>
