@@ -539,10 +539,10 @@ function downloadRekapPDF(nim) {
     const element = document.getElementById('rekap-print-area');
 
     html2pdf().set({
-        margin: 0.5,
+        margin: 0.4, // Margin diperkecil sedikit agar tidak terlalu sesak
         filename: `Rekap_Rusum_${student.nim}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { scale: 2, windowWidth: 720 }, // Paksa lebar canvas ke 720px
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
     }).from(element).save().then(() => {
         container.classList.add('hidden'); // Sembunyikan lagi setelah selesai
