@@ -470,10 +470,10 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
     }
 }
 // ==========================================
-// FITUR DOWNLOAD REKAPITULASI (PDF)
+// FITUR DOWNLOAD REKAPITULASI (PRINT BROWSER)
 // ==========================================
 function downloadRekapPDF(nim) {
-    showToast("Memproses Dokumen", "Mengumpulkan data rekapitulasi pembayaran...");
+    showToast("Memproses Dokumen", "Menyiapkan data rekapitulasi untuk dicetak...");
     const student = mahasiswaMaster.find(m => m.nim === nim);
     if (!student) return;
 
@@ -533,20 +533,33 @@ function downloadRekapPDF(nim) {
         `).join('');
     }
 
-    // Eksekusi HTML2PDF (Sementara tampilkan wadah, generate, lalu sembunyikan lagi)
-    const container = document.getElementById('rekap-pdf-container'); 
-    const element = document.getElementById('rekap-print-area');
+    // ==========================================
+    // LOGIKA CETAK BAWAAN BROWSER
+    // ==========================================
+    const headerEl = document.querySelector('header');
+    const mainEl = document.querySelector('main');
+    const toastEl = document.getElementById('toast-container');
+    const rekapContainer = document.getElementById('rekap-pdf-container');
 
-    html2pdf().set({
-        margin: [0.5, 0.5, 0.5, 0.5], // Margin seragam untuk atas, kanan, bawah, kiri
-        filename: `Rekap_Rusum_${student.nim}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        // Kunci sinkronisasi lebar windowWidth dengan inline style HTML (800px)
-        html2canvas: { scale: 2, scrollX: 0, scrollY: 0, useCORS: true, windowWidth: 800 }, 
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-    }).from(element).save().then(() => {
-        showToast("Berhasil", "File Rekapitulasi PDF berhasil diunduh.");
-    });
+    // 1. Sembunyikan UI Aplikasi Utama
+    if (headerEl) headerEl.classList.add('hidden');
+    if (mainEl) mainEl.classList.add('hidden');
+    if (toastEl) toastEl.classList.add('hidden');
+
+    // 2. Tampilkan Halaman Rekapitulasi
+    rekapContainer.classList.remove('hidden');
+
+    // 3. Panggil dialog Print (Beri jeda agar DOM ter-render penuh)
+    setTimeout(() => {
+        window.print();
+
+        // 4. Kembalikan ke tampilan awal setelah dialog Print ditutup/selesai
+        if (headerEl) headerEl.classList.remove('hidden');
+        if (mainEl) mainEl.classList.remove('hidden');
+        if (toastEl) toastEl.classList.remove('hidden');
+        rekapContainer.classList.add('hidden');
+        
+    }, 500);
 }
 function executeStatusSearch() {
     const query = document.getElementById('search-status-input').value.trim().toLowerCase();
