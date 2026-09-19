@@ -659,14 +659,57 @@ function executeStatusSearch() {
     updateStatusTADisplay(initialTA, targetNim, listTA.length);
     // (Di akhir fungsi executeStatusSearch)
     
-    // Cek apakah sudah pernah mengajukan
-    const isPernahAjukan = typeof pengajuanData !== 'undefined' && pengajuanData.some(p => p.nim === targetNim);
+    // Cek riwayat pengajuan di data master
+    // Catatan: Huruf besar/kecil key disesuaikan dengan header sheet (NIM, Status, dst)
+    const dataPengajuanMhs = typeof pengajuanData !== 'undefined' ? pengajuanData.find(p => String(p.nim || p.NIM) === targetNim) : null;
     
-    let btnAjukan = isPernahAjukan 
-        ? `<div class="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-center text-xs text-emerald-800 font-bold"><i class="fa-solid fa-clock mr-1"></i> Pengajuan Surat Bebas sedang diproses atau sudah diterbitkan.</div>`
-        : `<button onclick="ajukanSuratBebas('${targetNim}', '${studentName}', '${student?.email || ''}')" class="mt-6 w-full py-3 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold transition shadow-sm"><i class="fa-solid fa-envelope-open-text mr-1"></i> Ajukan Surat Bebas Tanggungan Keuangan</button>`;
+    let areaPengajuan = '';
 
-    resultsContainer.innerHTML += btnAjukan;
+    if (dataPengajuanMhs) {
+        // JIKA SUDAH MENGAJUKAN: Tampilkan Panel Monitoring
+        let statusWarna = dataPengajuanMhs.Status === 'Diterbitkan' ? 'text-emerald-700 bg-emerald-100 border-emerald-200' : 'text-amber-700 bg-amber-100 border-amber-200';
+        let iconStatus = dataPengajuanMhs.Status === 'Diterbitkan' ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-clock"></i>';
+        
+        areaPengajuan = `
+            <div class="mt-6 p-4 bg-white border border-slate-200 rounded-xl text-xs space-y-3 shadow-sm">
+                <h4 class="font-bold text-slate-700 uppercase border-b border-slate-100 pb-2"><i class="fa-solid fa-file-contract mr-1 text-emerald-600"></i> Status Surat Bebas Tanggungan</h4>
+                
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500 font-medium">Tanggal Pengajuan:</span>
+                    <span class="font-bold text-slate-800">${dataPengajuanMhs.Tanggal}</span>
+                </div>
+                
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-500 font-medium">Status Saat Ini:</span>
+                    <span class="px-2 py-1 rounded-md font-extrabold text-[10px] uppercase border ${statusWarna}">${iconStatus} ${dataPengajuanMhs.Status}</span>
+                </div>
+                
+                <div class="pt-2 border-t border-slate-100 mt-2">
+                    ${dataPengajuanMhs.Status === 'Diterbitkan' 
+                        ? `<p class="text-[11px] text-emerald-700"><i class="fa-solid fa-envelope-circle-check mr-1"></i> Surat telah diterbitkan dan dikirim ke email: <b>${dataPengajuanMhs.Email}</b></p>` 
+                        : `<p class="text-[11px] text-amber-700 italic"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Admin sedang meninjau pengajuan Anda. Surat akan dikirim ke <b>${dataPengajuanMhs.Email}</b> jika disetujui.</p>`}
+                </div>
+            </div>
+        `;
+    } else {
+        // JIKA BELUM MENGAJUKAN: Tampilkan Form Input Email Manual
+        areaPengajuan = `
+            <div class="mt-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3 shadow-sm">
+                <div>
+                    <h4 class="text-xs font-extrabold text-emerald-900 uppercase mb-1"><i class="fa-solid fa-envelope-open-text mr-1"></i> Ajukan Surat Bebas</h4>
+                    <p class="text-[10px] text-emerald-700 font-medium">Ketik email aktif Anda di bawah ini untuk menerima file PDF surat jika disetujui admin.</p>
+                </div>
+                <div>
+                    <input type="email" id="input-email-pengajuan" placeholder="Contoh: nama@gmail.com" class="w-full px-3 py-2.5 border border-emerald-300 rounded-lg text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none shadow-inner bg-white text-emerald-900 font-medium">
+                </div>
+                <button onclick="ajukanSuratBebas('${targetNim}', '${studentName}')" class="w-full py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-lg text-xs font-bold transition shadow-sm flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-paper-plane"></i> <span>Kirim Pengajuan</span>
+                </button>
+            </div>
+        `;
+    }
+
+    resultsContainer.innerHTML += areaPengajuan;
 }
 
 // ==========================================
@@ -1721,33 +1764,63 @@ function cetakSuratBebas(nim) {
 // FITUR PENGAJUAN SURAT BEBAS (MAHASISWA & ADMIN)
 // ==========================================
 
-async function ajukanSuratBebas(nim, nama, email) {
-    if (!email) {
-        showToast("Email Kosong", "Pastikan Anda mengisi form dengan email aktif sebelumnya, atau hubungi admin.");
+async function ajukanSuratBebas(nim, nama) {
+    const inputEmail = document.getElementById('input-email-pengajuan');
+    if (!inputEmail) return;
+
+    const emailValid = inputEmail.value.trim();
+    
+    // Validasi kosong
+    if (!emailValid) {
+        showToast("Email Kosong", "Silakan ketikkan email Anda terlebih dahulu.");
+        inputEmail.focus();
+        return;
+    }
+
+    // Validasi format email sederhana
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValid)) {
+        showToast("Format Salah", "Masukkan format email yang benar (contoh: nama@gmail.com).");
+        inputEmail.focus();
         return;
     }
     
-    showToast("Mengirim...", "Sedang memproses pengajuan surat Anda.");
+    showToast("Mengirim...", "Sedang memproses pengajuan surat Anda ke server.");
     
     const now = new Date();
+    const newId = `SBT-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newTanggal = `${now.getDate()}-${now.getMonth()+1}-${now.getFullYear()}`;
+    
     const payload = {
         action: 'ajukanSurat',
-        id: `SBT-${Math.floor(1000 + Math.random() * 9000)}`,
+        id: newId,
         nim: nim,
         nama: nama,
-        email: email,
-        tanggal: `${now.getDate()}-${now.getMonth()+1}-${now.getFullYear()}`
+        email: emailValid,
+        tanggal: newTanggal
     };
 
     try {
         await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-        showToast("Berhasil", "Pengajuan berhasil dikirim. Silakan tunggu balasan di email Anda.");
-        setTimeout(() => executeStatusSearch(), 2000); // Refresh tampilan
+        
+        // Simpan data secara lokal agar UI langsung berubah tanpa perlu refresh halaman
+        if (typeof pengajuanData !== 'undefined') {
+            pengajuanData.unshift({
+                ID: newId,
+                NIM: nim,
+                nim: nim, 
+                Nama: nama,
+                Email: emailValid,
+                Tanggal: newTanggal,
+                Status: 'Menunggu'
+            });
+        }
+        
+        showToast("Berhasil", "Pengajuan berhasil dikirim. Silakan pantau status Anda.");
+        executeStatusSearch(); // Refresh tampilan panel pencarian
     } catch (e) {
-        showToast("Error", "Gagal mengirim pengajuan.");
+        showToast("Error", "Gagal menghubungi server untuk mengirim pengajuan.");
     }
 }
-
 function renderTablePengajuan() {
     const tbody = document.getElementById('pengajuan-table-body');
     if (!tbody) return;
