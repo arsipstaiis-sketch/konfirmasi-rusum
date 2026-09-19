@@ -526,9 +526,10 @@
                                 <thead>
                                     <tr>
                                         <th class="table-th">Mahasiswa</th>
-                                        <th class="table-th">Tanggal Ajukan</th>
+                                        <th class="table-th">Tgl Ajukan</th>
                                         <th class="table-th text-center">Status</th>
-                                        <th class="table-th text-center">Aksi Admin</th>
+                                        <th class="table-th w-1/4">Catatan</th> <!-- Kolom Baru -->
+                                        <th class="table-th text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody id="pengajuan-table-body" class="divide-y divide-slate-100"></tbody>
@@ -772,14 +773,14 @@
             </div>
         </div>
     </div>
-    <!-- WADAH SURAT KETERANGAN BEBAS TANGGUNGAN (HIDDEN) -->
-    <div id="surat-bebas-container" class="hidden w-full bg-white text-black font-serif">
-        <!-- Ukuran standar A4 (210mm x 297mm) -->
-        <div class="relative bg-white mx-auto" style="width: 210mm; min-height: 297mm; padding-bottom: 2cm;">
-            
-            <!-- Kop Surat -->
-            <img src="assets/kop-staiis.png" alt="Kop Surat STAIIS" class="w-full mb-10">
+    <!-- WADAH SURAT KETERANGAN BEBAS TANGGUNGAN (HIDDEN DARI UI) -->
+    <div id="surat-bebas-container" class="hidden absolute top-0 left-0 bg-white text-black" style="width: 210mm; min-height: 297mm; font-family: 'Cambria', Georgia, serif; position: relative;">
+        
+        <!-- Kop Surat (Menempel Paling Atas Kertas tanpa margin/padding) -->
+        <img src="assets/kop-staiis.png" alt="Kop Surat STAIIS" style="width: 100%; display: block; margin-top: 0;" class="mb-10">
 
+        <!-- Wadah Konten Surat (Diberi padding kiri-kanan agar teks tidak menabrak batas kertas) -->
+        <div style="padding: 0 20mm;">
             <!-- Judul Surat -->
             <div class="text-center mb-12">
                 <h2 class="font-bold text-xl underline tracking-wide uppercase">Surat Keterangan</h2>
@@ -787,13 +788,13 @@
             </div>
 
             <!-- Isi Surat -->
-            <div class="text-justify leading-relaxed text-[15px] px-16 space-y-6">
+            <div class="text-justify leading-relaxed text-[15px] px-8 space-y-6">
                 <p class="indent-10">
                     Ketua STAI Imam Syafi'i Cianjur (STAIIS), dengan ini menerangkan bahwa mahasiswa dengan identitas berikut ini,
                 </p>
 
                 <!-- Tabel Identitas -->
-                <table class="w-4/5 mx-auto text-[15px] my-6">
+                <table class="w-full max-w-lg mx-auto text-[15px] my-6">
                     <tr>
                         <td class="py-1.5 w-48 font-bold">Nama Lengkap</td>
                         <td class="py-1.5 font-bold">: <span id="surat-nama"></span></td>
@@ -815,40 +816,55 @@
                     Demikian surat keterangan ini dengan sebenarnya dibuat untuk digunakan sebagaimana mestinya.
                 </p>
             </div>
+        </div>
 
-            <!-- Bagian Legalitas (Keuangan & Stempel) -->
-            <div class="absolute bottom-32 right-16">
-                <div class="text-left">
-                    <p id="surat-tgl" class="mb-1 text-[15px]">Cianjur, 01 Januari 2026</p>
-                    <p class="font-bold mb-4 text-[15px]">Bagian Keuangan STAIIS,</p>
-                    
-                    <!-- Area Stempel (Tanpa Nama & Tanda Tangan) -->
-                    <div class="relative w-40 h-28 flex items-center justify-start mt-2">
-                        <!-- Mix-blend-multiply memastikan background putih stempel menjadi transparan saat dicetak -->
-                        <img src="assets/stempel-staiis.png" alt="Stempel STAIIS" class="absolute w-32 object-contain mix-blend-multiply opacity-90 -ml-4">
-                    </div>
+        <!-- Bagian Legalitas (Keuangan & Stempel) 
+             Menggunakan absolute bottom agar posisinya stabil di bagian bawah halaman A4 -->
+        <div class="absolute" style="bottom: 30mm; right: 25mm;">
+            <div class="text-left">
+                <p id="surat-tgl" class="mb-1 text-[15px]">Cianjur, 01 Januari 2026</p>
+                <p class="font-bold mb-4 text-[15px]">Bagian Keuangan STAIIS,</p>
+                
+                <!-- Area Stempel (Tanpa Nama & Tanda Tangan) -->
+                <div class="relative w-40 h-28 flex items-center justify-start mt-2">
+                    <!-- Mix-blend-multiply memastikan background putih stempel menjadi transparan saat dicetak -->
+                    <img src="assets/stempel-staiis.png" alt="Stempel STAIIS" class="absolute w-32 object-contain mix-blend-multiply opacity-90 -ml-4">
                 </div>
             </div>
         </div>
     </div>
-    <!-- MODAL PENERBITAN SURAT -->
+    <!-- MODAL TINJAU & TERBITKAN SURAT (DIPERBARUI) -->
     <div id="modal-terbit-surat" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden">
             <div class="p-4 bg-emerald-900 text-white flex justify-between items-center">
-                <h3 class="font-bold text-sm"><i class="fa-solid fa-stamp"></i> Terbitkan & Email Surat</h3>
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-clipboard-check"></i> Proses Pengajuan Surat</h3>
                 <button onclick="document.getElementById('modal-terbit-surat').classList.add('hidden')" class="text-emerald-200 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <div class="p-6 space-y-4">
-                <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-xs text-emerald-800">
-                    Sistem akan membuat PDF Surat Bebas Tanggungan dan langsung mengirimkannya ke email: <b id="terbit-email-mhs"></b>.
-                </div>
+            <div class="p-6 space-y-4 text-xs text-slate-700">
+                <p>Email Pemohon: <b id="terbit-email-mhs" class="text-emerald-700"></b></p>
+                
+                <!-- Pilihan Keputusan -->
                 <div>
-                    <label class="form-label">Catatan Admin / Kebijakan Khusus (Tampil di Email)</label>
-                    <textarea id="terbit-catatan" rows="3" placeholder="Contoh: Disetujui dengan kebijakan pembayaran dicicil 2x di semester depan..." class="form-input"></textarea>
+                    <label class="form-label">Keputusan *</label>
+                    <select id="terbit-keputusan" onchange="toggleCatatanPengajuan(this.value)" class="form-input font-bold text-slate-800">
+                        <option value="Diterbitkan">Setujui & Terbitkan Surat (PDF)</option>
+                        <option value="Ditolak">Tolak & Kirim Bukti Tunggakan</option>
+                    </select>
                 </div>
+                
+                <!-- Catatan Penolakan -->
+                <div id="wadah-catatan-terbit" class="hidden">
+                    <label class="form-label text-rose-600">Catatan Penolakan (Dikirim ke Email) *</label>
+                    <textarea id="terbit-catatan" rows="3" placeholder="Tuliskan alasan penolakan, contoh: Anda masih memiliki tunggakan sebesar..." class="form-input"></textarea>
+                </div>
+
+                <div id="info-terbit-surat" class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-emerald-800 italic">
+                    <i class="fa-solid fa-circle-info"></i> Surat PDF akan dibuat otomatis tanpa menyertakan catatan.
+                </div>
+
                 <input type="hidden" id="terbit-id-pengajuan">
                 <input type="hidden" id="terbit-nim-mhs">
-                <button type="button" id="btn-proses-terbit" onclick="prosesTerbitkanSuratEmail()" class="btn-primary w-full">
+                <button type="button" id="btn-proses-terbit" onclick="prosesPengajuanSuratAdmin()" class="btn-primary w-full mt-2">
                     <i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>
                 </button>
             </div>
