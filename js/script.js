@@ -2015,11 +2015,10 @@ async function prosesPengajuanSuratAdmin() {
 
     try {
         if (keputusan === 'Diterbitkan') {
-            showToast("Memproses Dokumen", "Sedang menyiapkan pratinjau surat...");
             
+            // 1. UPDATE DATA PADA ELEMEN ASLI
             const now = new Date();
             const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
-            
             const indexData = pengajuanData.findIndex(p => p.ID === id);
             const nomorUrutAsli = pengajuanData.length - indexData; 
             const nomorFormat = String(nomorUrutAsli).padStart(3, '0');
@@ -2030,9 +2029,28 @@ async function prosesPengajuanSuratAdmin() {
             document.getElementById('surat-prodi').innerText = student.prodi;
             document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
+            // 2. BUAT LAYAR LOADING SOLID (Mencegah kertas putih tembus pandang)
+            const loadingScreen = document.createElement('div');
+            loadingScreen.style.position = 'fixed';
+            loadingScreen.style.inset = '0';
+            loadingScreen.style.backgroundColor = '#0f172a'; // Warna gelap solid 100%
+            loadingScreen.style.zIndex = '9999999'; // Tumpukan paling atas
+            loadingScreen.style.display = 'flex';
+            loadingScreen.style.flexDirection = 'column';
+            loadingScreen.style.alignItems = 'center';
+            loadingScreen.style.justifyContent = 'center';
+            loadingScreen.innerHTML = `
+                <i class="fa-solid fa-file-pdf text-emerald-500 text-6xl mb-4 animate-bounce"></i>
+                <h2 class="text-2xl font-black text-white tracking-wide">Merender PDF Resolusi Tinggi</h2>
+                <p class="text-slate-400 text-sm mt-2 font-medium">Mohon tunggu sebentar, sedang mencetak dokumen...</p>
+            `;
+            document.body.appendChild(loadingScreen);
+
+            // 3. CLONE ELEMEN UNTUK RENDER SEMPURNA
             const suratAsli = document.getElementById('surat-bebas-container');
             const suratClone = suratAsli.cloneNode(true);
 
+            // Munculkan surat Clone tepat DI BAWAH Layar Loading
             suratClone.classList.remove('hidden');
             suratClone.style.display = 'block';
             suratClone.style.position = 'absolute';
@@ -2041,33 +2059,33 @@ async function prosesPengajuanSuratAdmin() {
             suratClone.style.width = '210mm';
             suratClone.style.minHeight = '297mm';
             suratClone.style.backgroundColor = '#ffffff';
-            
-            // PERBAIKAN 1: Z-index diatur ke 1 agar surat dirender "di bawah" lapisan bayangan hitam (backdrop) modal.
-            // Sistem tetap bisa memfotonya, tapi mata pengguna tidak akan melihat kilatan kertas putih yang menutupi layar.
-            suratClone.style.zIndex = '1'; 
+            suratClone.style.zIndex = '9999998'; 
             
             document.body.appendChild(suratClone);
 
+            // Jeda 800ms agar browser menggambar gambar/kop dengan sempurna di latar belakang
             await new Promise(resolve => setTimeout(resolve, 800));
             
+            // 4. GENERATE PDF (HAPUS KUNCI KOORDINAT SCROLL)
             const base64PDF = await html2pdf().set({
                 margin: 0, 
                 filename: `Surat_Bebas.pdf`, 
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 }, 
+                html2canvas: { scale: 2, useCORS: true }, // Menghapus scrollX dan scrollY menyelesaikan bug PDF kosong
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             }).from(suratClone).outputPdf('datauristring');
             
+            // 5. HAPUS CLONE & LAYAR LOADING
             document.body.removeChild(suratClone);
+            document.body.removeChild(loadingScreen);
             
-            // SIMPAN DATA DAN TAMPILKAN PREVIEW 
+            // 6. SIMPAN DATA DAN TAMPILKAN PREVIEW 
             payload.pdfBase64 = base64PDF; 
             payloadSuratTertunda = payload; 
             
             document.getElementById('iframe-preview-surat').src = base64PDF;
             document.getElementById('modal-preview-surat').classList.remove('hidden');
             
-            // PERBAIKAN 2: Hentikan fungsi di sini (return). Menunggu instruksi dari tombol "Kirim".
             btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
             btnProses.disabled = false;
             return; 
@@ -2077,7 +2095,7 @@ async function prosesPengajuanSuratAdmin() {
             payload.htmlRekap = generateHTMLRekapTunggakan(nim);
             payloadSuratTertunda = payload;
             
-            // Langsung eksekusi pengiriman tanpa pratinjau PDF
+            // Langsung eksekusi pengiriman
             await konfirmasiKirimSurat();
             
             btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
@@ -2085,6 +2103,12 @@ async function prosesPengajuanSuratAdmin() {
             return;
         }
     } catch (error) {
+        // Pengaman: Hapus layar loading jika sistem gagal
+        const loading = document.querySelector('div[style*="z-index: 9999999"]');
+        if (loading) document.body.removeChild(loading);
+        const clone = document.querySelector('div[style*="z-index: 9999998"]');
+        if (clone) document.body.removeChild(clone);
+
         showToast("Error", "Gagal memproses pembuatan PDF.");
         btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
         btnProses.disabled = false;
