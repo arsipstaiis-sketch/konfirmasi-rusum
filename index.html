@@ -356,6 +356,9 @@
                     <button id="admin-subtab-angkatan" onclick="switchAdminSubtab('angkatan')" class="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-center space-x-2">
                         <i class="fa-solid fa-users"></i><span>Pemantauan Angkatan</span>
                     </button>
+                    <button id="admin-subtab-pengajuan" onclick="switchAdminSubtab('pengajuan')" class="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold text-slate-600 flex items-center justify-center space-x-2 min-w-max hover:bg-white/50">
+                        <i class="fa-solid fa-envelope-open-text"></i><span>Pengajuan Surat</span>
+                    </button>
                 </div>
 
                 <!-- VIEW 1: VERIFIKASI -->
@@ -508,6 +511,27 @@
                                     <tr><th class="table-th">Mhs</th><th class="table-th">Info</th><th class="table-th">Dibayar</th><th class="table-th">Sisa</th><th class="table-th text-center">Status</th><th class="table-th text-center">Aksi</th></tr>
                                 </thead>
                                 <tbody id="cohort-table-body" class="divide-y divide-slate-100"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <!-- VIEW 3: PENGAJUAN SURAT -->
+                <div id="admin-view-pengajuan" class="space-y-6 hidden">
+                    <div class="card-main !p-0 overflow-hidden">
+                        <div class="p-4 bg-slate-50 border-b border-slate-100">
+                            <h3 class="text-xs font-bold uppercase text-slate-700"><i class="fa-solid fa-envelope-open-text mr-1"></i> Daftar Antrean Pengajuan Surat Bebas</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead>
+                                    <tr>
+                                        <th class="table-th">Mahasiswa</th>
+                                        <th class="table-th">Tanggal Ajukan</th>
+                                        <th class="table-th text-center">Status</th>
+                                        <th class="table-th text-center">Aksi Admin</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pengajuan-table-body" class="divide-y divide-slate-100"></tbody>
                             </table>
                         </div>
                     </div>
@@ -804,6 +828,29 @@
                         <img src="assets/stempel-staiis.png" alt="Stempel STAIIS" class="absolute w-32 object-contain mix-blend-multiply opacity-90 -ml-4">
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    <!-- MODAL PENERBITAN SURAT -->
+    <div id="modal-terbit-surat" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl overflow-hidden">
+            <div class="p-4 bg-emerald-900 text-white flex justify-between items-center">
+                <h3 class="font-bold text-sm"><i class="fa-solid fa-stamp"></i> Terbitkan & Email Surat</h3>
+                <button onclick="document.getElementById('modal-terbit-surat').classList.add('hidden')" class="text-emerald-200 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-xs text-emerald-800">
+                    Sistem akan membuat PDF Surat Bebas Tanggungan dan langsung mengirimkannya ke email: <b id="terbit-email-mhs"></b>.
+                </div>
+                <div>
+                    <label class="form-label">Catatan Admin / Kebijakan Khusus (Tampil di Email)</label>
+                    <textarea id="terbit-catatan" rows="3" placeholder="Contoh: Disetujui dengan kebijakan pembayaran dicicil 2x di semester depan..." class="form-input"></textarea>
+                </div>
+                <input type="hidden" id="terbit-id-pengajuan">
+                <input type="hidden" id="terbit-nim-mhs">
+                <button type="button" id="btn-proses-terbit" onclick="prosesTerbitkanSuratEmail()" class="btn-primary w-full">
+                    <i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>
+                </button>
             </div>
         </div>
     </div>
