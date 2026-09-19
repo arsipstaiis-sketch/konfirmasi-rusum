@@ -47,6 +47,22 @@
         .table-td { @apply p-3.5 border-b border-slate-50; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* TAMBAHKAN BLOK INI UNTUK MERAPIKAN PRINT */
+        @media print {
+            /* Sembunyikan semua elemen langsung di bawah body KECUALI wadah rekap */
+            body > *:not(#rekap-pdf-container) {
+                display: none !important;
+            }
+            /* Pastikan wadah rekap tampil penuh dan margin direset */
+            #rekap-pdf-container {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            /* Mengatur margin kertas untuk menghilangkan teks URL/Tanggal bawaan browser (opsional) */
+            @page { margin: 0.5cm; }
+        }
     </style>
     <link rel="stylesheet" href="css/style.css">
 </head>
