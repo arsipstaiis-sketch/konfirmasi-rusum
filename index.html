@@ -49,18 +49,13 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         /* TAMBAHKAN BLOK INI UNTUK MERAPIKAN PRINT */
         @media print {
-            /* 1. Sembunyikan elemen utama aplikasi secara paksa */
-            header, main, footer, #toast-container {
-                display: none !important;
-            }
+            /* Sembunyikan elemen utama */
+            header, main, footer, #toast-container { display: none !important; }
+            
+            /* Sembunyikan APAPUN yang memiliki class hidden */
+            .hidden { display: none !important; }
 
-            /* 2. Sembunyikan wadah cetak jika sedang tidak aktif (memiliki class hidden) */
-            #rekap-pdf-container.hidden, 
-            #surat-bebas-container.hidden {
-                display: none !important;
-            }
-
-            /* 3. Format wadah cetak yang SEDANG AKTIF (tidak memiliki class hidden) */
+            /* Format khusus untuk wadah yang sedang dipanggil (tidak hidden) */
             #rekap-pdf-container:not(.hidden), 
             #surat-bebas-container:not(.hidden) {
                 display: block !important;
@@ -69,7 +64,6 @@
                 padding: 0 !important;
             }
 
-            /* 4. Hilangkan margin kertas bawaan browser */
             @page { margin: 1; }
         }
     </style>
