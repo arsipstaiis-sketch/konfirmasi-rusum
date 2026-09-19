@@ -49,19 +49,18 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         /* TAMBAHKAN BLOK INI UNTUK MERAPIKAN PRINT */
         @media print {
-            /* Sembunyikan semua elemen langsung di bawah body KECUALI wadah rekap */
-            body > *:not(#rekap-pdf-container) {
+            /* Sembunyikan semua kecuali rekap dan surat bebas */
+            body > *:not(#rekap-pdf-container):not(#surat-bebas-container) {
                 display: none !important;
             }
-            /* Pastikan wadah rekap tampil penuh dan margin direset */
-            #rekap-pdf-container {
+            #rekap-pdf-container, #surat-bebas-container {
                 display: block !important;
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            /* Mengatur margin kertas untuk menghilangkan teks URL/Tanggal bawaan browser (opsional) */
-            @page { margin: 0.5cm; }
+            /* Hilangkan margin kertas bawaan browser agar kop surat menempel rapi di ujung atas */
+            @page { margin: 0; }
         }
     </style>
     <link rel="stylesheet" href="css/style.css">
@@ -737,6 +736,65 @@
             </div>
             <div class="mt-12 text-right pr-10">
                 <p class="font-bold">Keuangan STAIIS</p>
+            </div>
+        </div>
+    </div>
+    <!-- WADAH SURAT KETERANGAN BEBAS TANGGUNGAN (HIDDEN) -->
+    <div id="surat-bebas-container" class="hidden w-full bg-white text-black font-serif">
+        <!-- Ukuran standar A4 (210mm x 297mm) -->
+        <div class="relative bg-white mx-auto" style="width: 210mm; min-height: 297mm; padding-bottom: 2cm;">
+            
+            <!-- Kop Surat -->
+            <img src="assets/kop-staiis.png" alt="Kop Surat STAIIS" class="w-full mb-10">
+
+            <!-- Judul Surat -->
+            <div class="text-center mb-12">
+                <h2 class="font-bold text-xl underline tracking-wide uppercase">Surat Keterangan</h2>
+                <p class="font-bold text-sm mt-1" id="surat-no">No. 000/Ket-SKet/STAIIS/I/26</p>
+            </div>
+
+            <!-- Isi Surat -->
+            <div class="text-justify leading-relaxed text-[15px] px-16 space-y-6">
+                <p class="indent-10">
+                    Ketua STAI Imam Syafi'i Cianjur (STAIIS), dengan ini menerangkan bahwa mahasiswa dengan identitas berikut ini,
+                </p>
+
+                <!-- Tabel Identitas -->
+                <table class="w-4/5 mx-auto text-[15px] my-6">
+                    <tr>
+                        <td class="py-1.5 w-48 font-bold">Nama Lengkap</td>
+                        <td class="py-1.5 font-bold">: <span id="surat-nama"></span></td>
+                    </tr>
+                    <tr>
+                        <td class="py-1.5 font-bold">NIM</td>
+                        <td class="py-1.5 font-bold">: <span id="surat-nim"></span></td>
+                    </tr>
+                    <tr>
+                        <td class="py-1.5 font-bold">Program Studi</td>
+                        <td class="py-1.5 font-bold">: <span id="surat-prodi"></span></td>
+                    </tr>
+                </table>
+
+                <p class="indent-10">
+                    telah memenuhi semua tanggungan keuangan STAIIS.
+                </p>
+                <p class="indent-10">
+                    Demikian surat keterangan ini dengan sebenarnya dibuat untuk digunakan sebagaimana mestinya.
+                </p>
+            </div>
+
+            <!-- Bagian Legalitas (Keuangan & Stempel) -->
+            <div class="absolute bottom-32 right-16">
+                <div class="text-left">
+                    <p id="surat-tgl" class="mb-1 text-[15px]">Cianjur, 01 Januari 2026</p>
+                    <p class="font-bold mb-4 text-[15px]">Bagian Keuangan STAIIS,</p>
+                    
+                    <!-- Area Stempel (Tanpa Nama & Tanda Tangan) -->
+                    <div class="relative w-40 h-28 flex items-center justify-start mt-2">
+                        <!-- Mix-blend-multiply memastikan background putih stempel menjadi transparan saat dicetak -->
+                        <img src="assets/stempel-staiis.png" alt="Stempel STAIIS" class="absolute w-32 object-contain mix-blend-multiply opacity-90 -ml-4">
+                    </div>
+                </div>
             </div>
         </div>
     </div>
