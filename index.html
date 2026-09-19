@@ -673,6 +673,57 @@
             <iframe id="fullscreen-resi-iframe" src="" class="w-full h-full max-w-5xl border-0 rounded-xl bg-white shadow-2xl" allowfullscreen></iframe>
         </div>
     </div>
+    <!-- MODAL REKAPITULASI (Tersembunyi untuk Generate PDF) -->
+    <div id="rekap-pdf-container" class="hidden">
+        <div id="rekap-print-area" class="p-8 bg-white text-slate-800 text-xs w-[800px]">
+            <div class="border-b-2 border-emerald-900 pb-4 flex justify-between items-center mb-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-14 h-14 shrink-0">
+                        <!-- Pastikan logo ini bisa diakses jika error ganti jadi base64 -->
+                        <img src="assets/logo.png" alt="Logo STAIIS" class="w-full h-full object-contain">
+                    </div>
+                    <div>
+                        <h2 class="font-extrabold text-base uppercase">STAI Imam Syafi'i Cianjur</h2>
+                        <p class="text-xs text-slate-500">Bagian Keuangan - Pembayaran Rusum</p>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <h1 class="font-black text-lg text-emerald-900 tracking-wider">REKAPITULASI</h1>
+                    <p id="rekap-tgl-cetak" class="text-[10px] text-slate-500"></p>
+                </div>
+            </div>
+
+            <table class="w-full mb-6 text-xs">
+                <tr><td class="w-24 font-bold text-slate-500">Nama</td><td class="font-bold">: <span id="rekap-nama"></span></td><td class="w-24 font-bold text-slate-500">Prodi</td><td class="font-bold">: <span id="rekap-prodi"></span></td></tr>
+                <tr><td class="font-bold text-slate-500">NIM</td><td class="font-bold">: <span id="rekap-nim"></span></td><td class="font-bold text-slate-500">Status</td><td class="font-bold">: <span id="rekap-status"></span></td></tr>
+            </table>
+
+            <table class="w-full border-collapse border border-slate-300 text-xs mb-6">
+                <thead>
+                    <tr class="bg-emerald-100 text-emerald-900">
+                        <th class="border border-slate-300 p-2 text-left">No. Transaksi</th>
+                        <th class="border border-slate-300 p-2 text-left">Tanggal</th>
+                        <th class="border border-slate-300 p-2 text-center">Tahun Akademik</th>
+                        <th class="border border-slate-300 p-2 text-right">Nominal (Rp)</th>
+                    </tr>
+                </thead>
+                <tbody id="rekap-table-body">
+                    <!-- Baris tabel disuntikkan lewat JS -->
+                </tbody>
+            </table>
+
+            <div class="flex justify-end">
+                <table class="w-64 text-xs">
+                    <tr><td class="py-1 font-bold text-slate-600">Total Wajib Bayar</td><td class="py-1 text-right font-bold text-slate-800" id="rekap-total-wajib"></td></tr>
+                    <tr class="border-b border-slate-300"><td class="py-1 font-bold text-slate-600">Total Terbayar</td><td class="py-1 text-right font-bold text-emerald-700" id="rekap-total-bayar"></td></tr>
+                    <tr><td class="py-2 font-black text-slate-800">SISA TAGIHAN</td><td class="py-2 text-right font-black text-rose-700 text-sm" id="rekap-sisa"></td></tr>
+                </table>
+            </div>
+            <div class="mt-12 text-right pr-10">
+                <p class="font-bold">Keuangan STAIIS</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Script dari folder js/ -->
     <script src="js/script.js"></script>
