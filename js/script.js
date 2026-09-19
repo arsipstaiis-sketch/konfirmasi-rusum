@@ -538,12 +538,12 @@ function downloadRekapPDF(nim) {
     const element = document.getElementById('rekap-print-area');
 
     html2pdf().set({
-        margin: 0.4,
+        margin: [0.5, 0.5, 0.5, 0.5], // Margin seragam untuk atas, kanan, bawah, kiri
         filename: `Rekap_Rusum_${student.nim}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        // Tambahkan scrollX: 0 dan scrollY: 0 untuk mereset koordinat tangkapan
-        html2canvas: { scale: 2, scrollX: 0, scrollY: 0, useCORS: true }, 
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } // Gunakan format standar a4
+        // Kunci sinkronisasi lebar windowWidth dengan inline style HTML (800px)
+        html2canvas: { scale: 2, scrollX: 0, scrollY: 0, useCORS: true, windowWidth: 800 }, 
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
     }).from(element).save().then(() => {
         showToast("Berhasil", "File Rekapitulasi PDF berhasil diunduh.");
     });
