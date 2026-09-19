@@ -469,6 +469,86 @@ function updateStatusTADisplay(ta, nim, totalTAs = 1) {
         }
     }
 }
+// ==========================================
+// FITUR DOWNLOAD REKAPITULASI (PDF)
+// ==========================================
+function downloadRekapPDF(nim) {
+    showToast("Memproses Dokumen", "Mengumpulkan data rekapitulasi pembayaran...");
+    const student = mahasiswaMaster.find(m => m.nim === nim);
+    if (!student) return;
+
+    // Tentukan Tahun Awal TA Aktif saat ini
+    const tahunAktifStart = parseInt(globalTAAktif.split('/')[0]);
+    let taWajibList = [];
+
+    // Filter hanya TA wajib yang tahun awalnya <= tahun aktif berjalan
+    if (student.tagihanWajib) {
+        taWajibList = student.tagihanWajib.filter(ta => parseInt(ta.split('/')[0]) <= tahunAktifStart);
+    } else {
+        // Fallback jika tidak ada properti tagihanWajib
+        const angkatan = parseInt(student.angkatan) || tahunAktifStart;
+        let maxTahun = tahunAktifStart;
+        const statusMhs = String(student.status || '').toUpperCase();
+        if (['LULUS', 'KELUAR', 'DO', 'PINDAH'].includes(statusMhs) && student.tahunKeluar) {
+            maxTahun = Math.min(tahunAktifStart, parseInt(student.tahunKeluar));
+        }
+        for (let y = angkatan; y <= maxTahun; y++) {
+            taWajibList.push(`${y}/${y+1}`);
+        }
+    }
+
+    // Ambil transaksi yang disetujui, dan HANYA yang ada dalam daftar TA Wajib
+    const txSetuju = transaksiData.filter(d => d.nim === nim && d.status === 'Disetujui' && taWajibList.includes(d.tahunAkademik));
+
+    // Kalkulasi Total
+    const totalWajib = taWajibList.length * BIAYA_RUSUM_STANDAR;
+    const totalBayar = txSetuju.reduce((acc, curr) => acc + (Number(curr.nominal) || 0), 0);
+    const sisa = Math.max(0, totalWajib - totalBayar);
+
+    // Isi Data ke HTML Tersembunyi
+    document.getElementById('rekap-tgl-cetak').innerText = `Dicetak: ${formatTanggalWaktu(new Date().toISOString())}`;
+    document.getElementById('rekap-nama').innerText = student.nama;
+    document.getElementById('rekap-nim').innerText = student.nim;
+    document.getElementById('rekap-prodi').innerText = student.prodi;
+    
+    let statusText = String(student.status || 'Aktif').toUpperCase();
+    if (['LULUS', 'KELUAR', 'DO'].includes(statusText) && student.tahunKeluar) statusText += ` (${student.tahunKeluar})`;
+    document.getElementById('rekap-status').innerText = statusText;
+
+    document.getElementById('rekap-total-wajib').innerText = formatRp(totalWajib);
+    document.getElementById('rekap-total-bayar').innerText = formatRp(totalBayar);
+    document.getElementById('rekap-sisa').innerText = formatRp(sisa);
+
+    const tbody = document.getElementById('rekap-table-body');
+    if (txSetuju.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center p-4 italic text-slate-500 border border-slate-300">Belum ada data pembayaran yang disetujui.</td></tr>`;
+    } else {
+        tbody.innerHTML = txSetuju.map(tx => `
+            <tr>
+                <td class="border border-slate-300 p-2 font-mono text-[10px]">${tx.id}</td>
+                <td class="border border-slate-300 p-2">${formatTanggalWaktu(tx.tanggal)}</td>
+                <td class="border border-slate-300 p-2 text-center">${tx.tahunAkademik}</td>
+                <td class="border border-slate-300 p-2 text-right font-medium">${formatRp(tx.nominal)}</td>
+            </tr>
+        `).join('');
+    }
+
+    // Eksekusi HTML2PDF (Sementara tampilkan wadah, generate, lalu sembunyikan lagi)
+    const container = document.getElementById('rekap-pdf-container');
+    container.classList.remove('hidden'); 
+    const element = document.getElementById('rekap-print-area');
+
+    html2pdf().set({
+        margin: 0.5,
+        filename: `Rekap_Rusum_${student.nim}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    }).from(element).save().then(() => {
+        container.classList.add('hidden'); // Sembunyikan lagi setelah selesai
+        showToast("Berhasil", "File Rekapitulasi PDF berhasil diunduh.");
+    });
+}
 function executeStatusSearch() {
     const query = document.getElementById('search-status-input').value.trim().toLowerCase();
     const resultsContainer = document.getElementById('search-status-results');
@@ -544,18 +624,18 @@ function executeStatusSearch() {
                 </div>
 
                 <!-- DROPDOWN TA -->
-                <div class="relative shrink-0 flex items-center group">
-                    <div class="absolute left-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500">
-                        <i class="fa-regular fa-calendar-days text-[11px]"></i>
-                    </div>
-                    
-                    <select onchange="updateStatusTADisplay(this.value, '${targetNim}', ${listTA.length})" class="appearance-none bg-emerald-950/50 border border-emerald-700/60 text-emerald-100 text-[11px] font-bold rounded-xl pl-8 pr-8 py-1.5 focus:outline-none focus:border-emerald-400 hover:border-emerald-500 cursor-pointer shadow-sm transition w-full">
-                        <option value="ALL" class="bg-emerald-900">Semua TA</option>
-                        ${listTA.map(ta => `<option value="${ta}" ${ta === initialTA ? 'selected' : ''} class="bg-emerald-900">${ta}</option>`).join('')}
-                    </select>
-                    
-                    <div class="absolute right-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500">
-                        <i class="fa-solid fa-chevron-down text-[9px]"></i>
+                <!-- TOMBOL REKAP & DROPDOWN TA -->
+                <div class="flex items-center space-x-2 shrink-0 mt-4 sm:mt-0">
+                    <button onclick="downloadRekapPDF('${targetNim}')" class="px-3 py-1.5 bg-emerald-800 hover:bg-emerald-700 border border-emerald-600 text-white text-[11px] font-bold rounded-xl transition shadow-sm flex items-center space-x-1.5">
+                        <i class="fa-solid fa-file-pdf"></i><span class="hidden sm:inline">Unduh Rekap</span>
+                    </button>
+                    <div class="relative flex items-center group">
+                        <div class="absolute left-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500"><i class="fa-regular fa-calendar-days text-[11px]"></i></div>
+                        <select onchange="updateStatusTADisplay(this.value, '${targetNim}',${listTA.length})" class="appearance-none bg-emerald-950/50 border border-emerald-700/60 text-emerald-100 text-[11px] font-bold rounded-xl pl-8 pr-8 py-1.5 focus:outline-none focus:border-emerald-400 hover:border-emerald-500 cursor-pointer shadow-sm transition w-full">
+                            <option value="ALL" class="bg-emerald-900">Semua TA</option>
+                            ${listTA.map(ta => `<option value="${ta}" ${ta === initialTA ? 'selected' : ''} class="bg-emerald-900">${ta}</option>`).join('')}
+                        </select>
+                        <div class="absolute right-3 pointer-events-none transition group-hover:text-emerald-300 text-emerald-500"><i class="fa-solid fa-chevron-down text-[9px]"></i></div>
                     </div>
                 </div>
             </div>
@@ -986,12 +1066,16 @@ function renderAngkatanMonitoring() {
                     <div class="font-bold">${mhs.nama}</div><div class="text-[11px] text-slate-500">${mhs.nim}</div>
                 </td>
                 <td class="p-3 text-[11px]">
-                    ${mhs.prodi}<br>
-                    Angkatan ${mhs.angkatan}${showTingkatan ? ` &bull; ${mhs.tingkatan}` : ''}
+                    ${mhs.prodi}<br>Angkatan ${mhs.angkatan}${showTingkatan ? ` &bull; ${mhs.tingkatan}` : ''}
                 </td>
                 <td class="p-3 font-bold">${formattedTotal}</td>
                 <td class="p-3 font-bold text-rose-700">${formattedSisa}</td>
                 <td class="p-3 text-center">${statusBadge}</td>
+                <td class="p-3 text-center">
+                    <button onclick="downloadRekapPDF('${mhs.nim}')" title="Unduh Rekap PDF" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-emerald-800 transition shadow-sm inline-flex items-center justify-center">
+                        <i class="fa-solid fa-file-pdf"></i>
+                    </button>
+                </td>
             </tr>
         `;
     }).join('');
