@@ -653,7 +653,7 @@ function executeStatusSearch() {
         areaPengajuan = `
             <div class="mt-4 mb-2 p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-3 shadow-sm">
                 <div>
-                    <h4 class="text-xs font-extrabold text-emerald-900 uppercase mb-1"><i class="fa-solid fa-envelope-open-text mr-1"></i> Ajukan Surat Bebas</h4>
+                    <h4 class="text-xs font-extrabold text-emerald-900 uppercase mb-1"><i class="fa-solid fa-envelope-open-text mr-1"></i> Ajukan Surat Bebas Tanggungan</h4>
                     <p class="text-[10px] text-emerald-700 font-medium">Ketik email aktif Anda di bawah ini untuk menerima file PDF surat jika disetujui admin.</p>
                 </div>
                 <div>
