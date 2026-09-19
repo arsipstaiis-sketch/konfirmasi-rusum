@@ -537,17 +537,15 @@ function downloadRekapPDF(nim) {
     // LOGIKA CETAK BAWAAN BROWSER (LEBIH RINGKAS)
     // ==========================================
     const rekapContainer = document.getElementById('rekap-pdf-container');
+    const suratContainer = document.getElementById('surat-bebas-container');
 
-    // 1. Munculkan Halaman Rekapitulasi sebentar ke dalam DOM
+    // Pastikan surat disembunyikan, rekap ditampilkan
+    if(suratContainer) suratContainer.classList.add('hidden');
     rekapContainer.classList.remove('hidden');
 
-    // 2. Panggil dialog Print (CSS @media print akan otomatis mengatur sisanya)
     setTimeout(() => {
         window.print();
-
-        // 3. Sembunyikan kembali setelah dialog print selesai / ditutup
-        rekapContainer.classList.add('hidden');
-        showToast("Berhasil", "Proses cetak rekapitulasi selesai.");
+        rekapContainer.classList.add('hidden'); // Sembunyikan kembali
     }, 300);
 } // Penutup fungsi downloadRekapPDF
 function executeStatusSearch() {
@@ -1052,34 +1050,48 @@ function renderAngkatanMonitoring() {
     }
 
     tbody.innerHTML = displayStudents.map(mhs => {
-        const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.totalDibayar);
-        const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.sisaTagihan);
+            const formattedTotal = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.totalDibayar);
+            const formattedSisa = new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(mhs.summary.sisaTagihan);
 
-        let statusBadge = '';
-        if (mhs.summary.statusOverall === 'LUNAS') statusBadge = `<span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-[10px] font-bold">LUNAS</span>`;
-        else if (mhs.summary.statusOverall === 'DICICIL') statusBadge = `<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-[10px] font-bold">DICICIL</span>`;
-        else if (mhs.summary.statusOverall === 'CUTI') statusBadge = `<span class="bg-slate-200 text-slate-600 px-2 py-1 rounded text-[10px] font-bold">CUTI (BEBAS TAGIHAN)</span>`;
-        else statusBadge = `<span class="bg-rose-100 text-rose-800 px-2 py-1 rounded text-[10px] font-bold">BELUM BAYAR</span>`;
-        
-        return `
-            <tr class="hover:bg-slate-50 border-b">
-                <td class="p-3 font-medium">
-                    <div class="font-bold">${mhs.nama}</div><div class="text-[11px] text-slate-500">${mhs.nim}</div>
-                </td>
-                <td class="p-3 text-[11px]">
-                    ${mhs.prodi}<br>Angkatan ${mhs.angkatan}${showTingkatan ? ` &bull; ${mhs.tingkatan}` : ''}
-                </td>
-                <td class="p-3 font-bold">${formattedTotal}</td>
-                <td class="p-3 font-bold text-rose-700">${formattedSisa}</td>
-                <td class="p-3 text-center">${statusBadge}</td>
-                <td class="p-3 text-center">
-                    <button onclick="downloadRekapPDF('${mhs.nim}')" title="Unduh Rekap PDF" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-emerald-800 transition shadow-sm inline-flex items-center justify-center">
-                        <i class="fa-solid fa-file-pdf"></i>
+            let statusBadge = '';
+            let btnSuratBebas = ''; // Variabel untuk menyimpan tombol Surat Bebas
+
+            if (mhs.summary.statusOverall === 'LUNAS') {
+                statusBadge = `<span class="bg-emerald-100 text-emerald-800 px-2 py-1 rounded text-[10px] font-bold">LUNAS</span>`;
+                // Tombol hanya di-render jika statusnya LUNAS
+                btnSuratBebas = `
+                    <button onclick="cetakSuratBebas('${mhs.nim}')" title="Cetak Surat Bebas Tanggungan" class="w-8 h-8 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 transition shadow-sm inline-flex items-center justify-center">
+                        <i class="fa-solid fa-file-contract"></i>
                     </button>
-                </td>
-            </tr>
-        `;
-    }).join('');
+                `;
+            }
+            else if (mhs.summary.statusOverall === 'DICICIL') statusBadge = `<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-[10px] font-bold">DICICIL</span>`;
+            else if (mhs.summary.statusOverall === 'CUTI') statusBadge = `<span class="bg-slate-200 text-slate-600 px-2 py-1 rounded text-[10px] font-bold">CUTI (BEBAS TAGIHAN)</span>`;
+            else statusBadge = `<span class="bg-rose-100 text-rose-800 px-2 py-1 rounded text-[10px] font-bold">BELUM BAYAR</span>`;
+            
+            return `
+                <tr class="hover:bg-slate-50 border-b">
+                    <td class="p-3 font-medium">
+                        <div class="font-bold">${mhs.nama}</div><div class="text-[11px] text-slate-500">${mhs.nim}</div>
+                    </td>
+                    <td class="p-3 text-[11px]">
+                        ${mhs.prodi}<br>Angkatan ${mhs.angkatan}${showTingkatan ? ` &bull; ${mhs.tingkatan}` : ''}
+                    </td>
+                    <td class="p-3 font-bold">${formattedTotal}</td>
+                    <td class="p-3 font-bold text-rose-700">${formattedSisa}</td>
+                    <td class="p-3 text-center">${statusBadge}</td>
+                    <td class="p-3 text-center">
+                        <!-- Gunakan flexbox agar tombol Rekap & Surat Bebas sejajar -->
+                        <div class="flex items-center justify-center space-x-1.5">
+                            <button onclick="downloadRekapPDF('${mhs.nim}')" title="Unduh Rekap PDF" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-emerald-800 transition shadow-sm inline-flex items-center justify-center">
+                                <i class="fa-solid fa-file-pdf"></i>
+                            </button>
+                            ${btnSuratBebas}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
 }
 
 function filterAngkatanStatus(status) {
@@ -1659,11 +1671,15 @@ function cetakSuratBebas(nim) {
     const mainEl = document.querySelector('main');
     const toastEl = document.getElementById('toast-container');
     const suratContainer = document.getElementById('surat-bebas-container');
+    const rekapContainer = document.getElementById('rekap-pdf-container'); // TAMBAHAN INI
 
-    // Sembunyikan UI
+    // Sembunyikan UI & Rekapitulasi secara tegas
     if (headerEl) headerEl.classList.add('hidden');
     if (mainEl) mainEl.classList.add('hidden');
     if (toastEl) toastEl.classList.add('hidden');
+    if (rekapContainer) rekapContainer.classList.add('hidden'); // TAMBAHAN INI
+    
+    // Tampilkan hanya Surat Keterangan
     suratContainer.classList.remove('hidden');
 
     setTimeout(() => {
