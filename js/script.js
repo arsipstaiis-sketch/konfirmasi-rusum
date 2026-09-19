@@ -1966,26 +1966,45 @@ async function prosesPengajuanSuratAdmin() {
             // Jika Setuju -> Buat PDF
             const now = new Date();
             const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
+            
+            // Logika Nomor Urut Otomatis
             const indexData = pengajuanData.findIndex(p => p.ID === id);
             const nomorUrutAsli = pengajuanData.length - indexData; 
             const nomorFormat = String(nomorUrutAsli).padStart(3, '0');
-            document.getElementById('surat-no').innerText = `No. ${itemPengajuan.ID.replace('SBT-', '')}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
+            
+            document.getElementById('surat-no').innerText = `No. ${nomorFormat}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
             document.getElementById('surat-nama').innerText = student.nama;
             document.getElementById('surat-nim').innerText = student.nim;
             document.getElementById('surat-prodi').innerText = student.prodi;
             document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
+            // 1. Simpan posisi scroll layar Admin saat ini
+            const posisiLayar = window.scrollY;
+            
+            // 2. Gulir paksa layar ke paling atas (Mencegah margin putih di PDF)
+            window.scrollTo(0, 0);
+
+            // 3. Buka penutup / Munculkan elemen ke layar
             suratContainer.classList.remove('hidden');
+            
+            // 4. JEDA 500ms: Membiarkan browser menggambar Kop Surat & Stempel
             await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // 5. Eksekusi PDF (Tanpa parameter y:0 yang membuat blank)
             payload.pdfBase64 = await html2pdf().set({
                 margin: 0, 
                 filename: `Surat_Bebas.pdf`, 
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, scrollY: 0, y: 0, useCORS: true }, // <-- Ini kunci menghilangkan spasi atas
+                html2canvas: { 
+                    scale: 2, 
+                    useCORS: true // Wajib agar gambar Kop dan Stempel tidak terblokir
+                }, 
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
             }).from(suratContainer).outputPdf('datauristring');
             
+            // 6. Sembunyikan kembali surat dan kembalikan posisi layar Admin
             suratContainer.classList.add('hidden');
+            window.scrollTo(0, posisiLayar);
             
         } else {
             // Jika Tolak -> Buat Tabel Rekap
