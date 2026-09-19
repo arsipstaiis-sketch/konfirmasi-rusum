@@ -534,33 +534,22 @@ function downloadRekapPDF(nim) {
     }
 
     // ==========================================
-    // LOGIKA CETAK BAWAAN BROWSER
+    // LOGIKA CETAK BAWAAN BROWSER (LEBIH RINGKAS)
     // ==========================================
-    const headerEl = document.querySelector('header');
-    const mainEl = document.querySelector('main');
-    const toastEl = document.getElementById('toast-container');
     const rekapContainer = document.getElementById('rekap-pdf-container');
 
-    // 1. Sembunyikan UI Aplikasi Utama
-    if (headerEl) headerEl.classList.add('hidden');
-    if (mainEl) mainEl.classList.add('hidden');
-    if (toastEl) toastEl.classList.add('hidden');
-
-    // 2. Tampilkan Halaman Rekapitulasi
+    // 1. Munculkan Halaman Rekapitulasi sebentar ke dalam DOM
     rekapContainer.classList.remove('hidden');
 
-    // 3. Panggil dialog Print (Beri jeda agar DOM ter-render penuh)
+    // 2. Panggil dialog Print (CSS @media print akan otomatis mengatur sisanya)
     setTimeout(() => {
         window.print();
 
-        // 4. Kembalikan ke tampilan awal setelah dialog Print ditutup/selesai
-        if (headerEl) headerEl.classList.remove('hidden');
-        if (mainEl) mainEl.classList.remove('hidden');
-        if (toastEl) toastEl.classList.remove('hidden');
+        // 3. Sembunyikan kembali setelah dialog print selesai / ditutup
         rekapContainer.classList.add('hidden');
-        
-    }, 500);
-}
+        showToast("Berhasil", "Proses cetak rekapitulasi selesai.");
+    }, 300);
+} // Penutup fungsi downloadRekapPDF
 function executeStatusSearch() {
     const query = document.getElementById('search-status-input').value.trim().toLowerCase();
     const resultsContainer = document.getElementById('search-status-results');
