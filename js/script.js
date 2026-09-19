@@ -1930,122 +1930,6 @@ function generateHTMLRekapTunggakan(nim) {
     return html;
 }
 
-// Fungsi ini MENGGANTIKAN prosesTerbitkanSuratEmail()
-async function prosesPengajuanSuratAdmin() {
-    const id = document.getElementById('terbit-id-pengajuan').value;
-    const nim = document.getElementById('terbit-nim-mhs').value;
-    const keputusan = document.getElementById('terbit-keputusan').value;
-    const catatan = document.getElementById('terbit-catatan').value.trim();
-    const btnProses = document.getElementById('btn-proses-terbit');
-    
-    if (keputusan === 'Ditolak' && catatan === '') {
-        showToast("Catatan Wajib", "Harap isi alasan penolakan!");
-        return;
-    }
-
-    const student = mahasiswaMaster.find(m => m.nim === nim);
-    const itemPengajuan = pengajuanData.find(p => p.ID === id);
-    if (!student || !itemPengajuan) return;
-
-    btnProses.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memproses Data...</span>`;
-    btnProses.disabled = true;
-
-    let payload = {
-        action: 'prosesPengajuanSurat',
-        id: id,
-        nim: nim,
-        nama: student.nama,
-        email: itemPengajuan.Email,
-        status: keputusan,
-        catatanAdmin: catatan
-    };
-
-    const suratContainer = document.getElementById('surat-bebas-container');
-
-    try {
-        if (keputusan === 'Diterbitkan') {
-            showToast("Memproses Dokumen", "Sedang me-render PDF, mohon tunggu sebentar...");
-            
-            const now = new Date();
-            const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
-            
-            const indexData = pengajuanData.findIndex(p => p.ID === id);
-            const nomorUrutAsli = pengajuanData.length - indexData; 
-            const nomorFormat = String(nomorUrutAsli).padStart(3, '0');
-            
-            // 1. UPDATE DATA PADA ELEMEN ASLI
-            document.getElementById('surat-no').innerText = `No. ${nomorFormat}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
-            document.getElementById('surat-nama').innerText = student.nama;
-            document.getElementById('surat-nim').innerText = student.nim;
-            document.getElementById('surat-prodi').innerText = student.prodi;
-            document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
-
-            // 2. CLONE ELEMEN UNTUK RENDER SEMPURNA
-            const suratAsli = document.getElementById('surat-bebas-container');
-            const suratClone = suratAsli.cloneNode(true);
-
-            suratClone.classList.remove('hidden');
-            suratClone.style.display = 'block';
-            suratClone.style.position = 'absolute';
-            suratClone.style.top = '0px';
-            suratClone.style.left = '0px';
-            suratClone.style.width = '210mm';
-            suratClone.style.minHeight = '297mm';
-            suratClone.style.backgroundColor = '#ffffff';
-            suratClone.style.zIndex = '999999'; 
-            
-            document.body.appendChild(suratClone);
-
-            // Jeda agar browser menggambar gambar/kop dengan sempurna
-            await new Promise(resolve => setTimeout(resolve, 800));
-            
-            // 3. GENERATE PDF KE FORMAT STRING BASE64 (DATA URI)
-            const base64PDF = await html2pdf().set({
-                margin: 0, 
-                filename: `Surat_Bebas.pdf`, 
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 }, 
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            }).from(suratClone).outputPdf('datauristring');
-            
-            document.body.removeChild(suratClone);
-            
-            // 4. SIMPAN DATA KE VARIABEL GLOBAL DAN TAMPILKAN PREVIEW
-            payload.pdfBase64 = base64PDF; // Simpan file PDF
-            payloadSuratTertunda = payload; // Simpan seluruh payload
-            
-            // Tampilkan PDF di Iframe Modal
-            document.getElementById('iframe-preview-surat').src = base64PDF;
-            document.getElementById('modal-preview-surat').classList.remove('hidden');
-            
-        } else {
-            // Jika statusnya Ditolak, langsung kirim ke server atau sesuaikan dengan alur Anda
-            payload.htmlRekap = generateHTMLRekapTunggakan(nim);
-            payloadSuratTertunda = payload;
-            konfirmasiKirimSurat(); // Langsung kirim tanpa preview PDF jika Ditolak
-        }
-
-        // Kirim data lengkap ke Google Apps Script
-        const response = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const res = await response.json();
-        
-        if (res.success) {
-            itemPengajuan.Status = keputusan; 
-            itemPengajuan.Catatan = catatan;
-            renderTablePengajuan(); // Segarkan tabel dengan kolom catatan baru
-            document.getElementById('modal-terbit-surat').classList.add('hidden');
-            showToast("Sukses", `Pengajuan berhasil ${keputusan === 'Diterbitkan' ? 'diterbitkan' : 'ditolak'} dan email telah dikirim.`);
-        } else {
-            showToast("Gagal", "Sistem gagal mengirim data ke server.");
-        }
-    } catch (error) {
-        suratContainer.classList.add('hidden');
-        showToast("Error Koneksi", "Terputus dari server atau gagal memproses pengajuan.");
-    } finally {
-        btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
-        btnProses.disabled = false;
-    }
-}
 function bukaModalRekapPengajuan(nim) {
     const student = mahasiswaMaster.find(m => m.nim === nim);
     if(!student) return showToast("Error", "Data mahasiswa tidak ditemukan.");
@@ -2097,12 +1981,128 @@ function bukaModalRekapPengajuan(nim) {
 function tutupModalRekapPengajuan() {
     document.getElementById('modal-rekap-pengajuan').classList.add('hidden');
 }
+// ==============================================================================
+// 1. FUNGSI RENDER (HANYA MEMBUAT PDF & MENAMPILKAN PREVIEW, TANPA MENGIRIM)
+// ==============================================================================
+async function prosesPengajuanSuratAdmin() {
+    const id = document.getElementById('terbit-id-pengajuan').value;
+    const nim = document.getElementById('terbit-nim-mhs').value;
+    const keputusan = document.getElementById('terbit-keputusan').value;
+    const catatan = document.getElementById('terbit-catatan').value.trim();
+    const btnProses = document.getElementById('btn-proses-terbit');
+    
+    if (keputusan === 'Ditolak' && catatan === '') {
+        showToast("Catatan Wajib", "Harap isi alasan penolakan!");
+        return;
+    }
+
+    const student = mahasiswaMaster.find(m => m.nim === nim);
+    const itemPengajuan = pengajuanData.find(p => p.ID === id);
+    if (!student || !itemPengajuan) return;
+
+    btnProses.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memproses Data...</span>`;
+    btnProses.disabled = true;
+
+    let payload = {
+        action: 'prosesPengajuanSurat',
+        id: id,
+        nim: nim,
+        nama: student.nama,
+        email: itemPengajuan.Email,
+        status: keputusan,
+        catatanAdmin: catatan
+    };
+
+    try {
+        if (keputusan === 'Diterbitkan') {
+            showToast("Memproses Dokumen", "Sedang menyiapkan pratinjau surat...");
+            
+            const now = new Date();
+            const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
+            
+            const indexData = pengajuanData.findIndex(p => p.ID === id);
+            const nomorUrutAsli = pengajuanData.length - indexData; 
+            const nomorFormat = String(nomorUrutAsli).padStart(3, '0');
+            
+            document.getElementById('surat-no').innerText = `No. ${nomorFormat}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
+            document.getElementById('surat-nama').innerText = student.nama;
+            document.getElementById('surat-nim').innerText = student.nim;
+            document.getElementById('surat-prodi').innerText = student.prodi;
+            document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
+
+            const suratAsli = document.getElementById('surat-bebas-container');
+            const suratClone = suratAsli.cloneNode(true);
+
+            suratClone.classList.remove('hidden');
+            suratClone.style.display = 'block';
+            suratClone.style.position = 'absolute';
+            suratClone.style.top = '0px';
+            suratClone.style.left = '0px';
+            suratClone.style.width = '210mm';
+            suratClone.style.minHeight = '297mm';
+            suratClone.style.backgroundColor = '#ffffff';
+            
+            // PERBAIKAN 1: Z-index diatur ke 1 agar surat dirender "di bawah" lapisan bayangan hitam (backdrop) modal.
+            // Sistem tetap bisa memfotonya, tapi mata pengguna tidak akan melihat kilatan kertas putih yang menutupi layar.
+            suratClone.style.zIndex = '1'; 
+            
+            document.body.appendChild(suratClone);
+
+            await new Promise(resolve => setTimeout(resolve, 800));
+            
+            const base64PDF = await html2pdf().set({
+                margin: 0, 
+                filename: `Surat_Bebas.pdf`, 
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0 }, 
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            }).from(suratClone).outputPdf('datauristring');
+            
+            document.body.removeChild(suratClone);
+            
+            // SIMPAN DATA DAN TAMPILKAN PREVIEW 
+            payload.pdfBase64 = base64PDF; 
+            payloadSuratTertunda = payload; 
+            
+            document.getElementById('iframe-preview-surat').src = base64PDF;
+            document.getElementById('modal-preview-surat').classList.remove('hidden');
+            
+            // PERBAIKAN 2: Hentikan fungsi di sini (return). Menunggu instruksi dari tombol "Kirim".
+            btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
+            btnProses.disabled = false;
+            return; 
+            
+        } else {
+            // JIKA DITOLAK
+            payload.htmlRekap = generateHTMLRekapTunggakan(nim);
+            payloadSuratTertunda = payload;
+            
+            // Langsung eksekusi pengiriman tanpa pratinjau PDF
+            await konfirmasiKirimSurat();
+            
+            btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
+            btnProses.disabled = false;
+            return;
+        }
+    } catch (error) {
+        showToast("Error", "Gagal memproses pembuatan PDF.");
+        btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
+        btnProses.disabled = false;
+    } 
+}
+
+// ==============================================================================
+// 2. FUNGSI PEMBATALAN (MERESET DATA SEMENTARA)
+// ==============================================================================
 function tutupPreviewSurat() {
     document.getElementById('modal-preview-surat').classList.add('hidden');
     document.getElementById('iframe-preview-surat').src = "";
-    payloadSuratTertunda = null; // Hapus data tertunda
+    payloadSuratTertunda = null; // Bersihkan data agar sistem tahu aksi dibatalkan
 }
 
+// ==============================================================================
+// 3. FUNGSI EKSEKUSI PENGIRIMAN FINAL KE GOOGLE SHEETS
+// ==============================================================================
 async function konfirmasiKirimSurat() {
     if (!payloadSuratTertunda) return;
 
@@ -2113,7 +2113,6 @@ async function konfirmasiKirimSurat() {
     }
 
     try {
-        // EKSEKUSI PENGIRIMAN KE SERVER (Sesuaikan url dan method dengan kode Anda)
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify(payloadSuratTertunda)
@@ -2121,17 +2120,25 @@ async function konfirmasiKirimSurat() {
         const result = await response.json();
 
         if (result.success) {
-            showToast("Sukses", "Surat berhasil diterbitkan dan email telah dikirim.");
-            tutupPreviewSurat();
-            closeModalReview(); // Tutup modal tinjauan awal jika ada
+            // PERBAIKAN 3: Hanya ubah data lokal dan tabel JIKA pengiriman benar-benar sukses
+            const itemPengajuan = pengajuanData.find(p => p.ID === payloadSuratTertunda.id);
+            if (itemPengajuan) {
+                itemPengajuan.Status = payloadSuratTertunda.status; 
+                itemPengajuan.Catatan = payloadSuratTertunda.catatanAdmin;
+            }
             
-            // Refresh tabel data Anda di sini (misal: fetchSpreadsheetData() atau filterAdminTable())
-            fetchSpreadsheetData(); 
+            renderTablePengajuan(); 
+            
+            // Tutup kedua lapis modal
+            tutupPreviewSurat();
+            document.getElementById('modal-terbit-surat').classList.add('hidden');
+            
+            showToast("Sukses", `Pengajuan berhasil ${payloadSuratTertunda.status === 'Diterbitkan' ? 'diterbitkan' : 'ditolak'} dan email telah dikirim.`);
         } else {
-            showToast("Gagal", "Gagal mengirim data ke server.");
+            showToast("Gagal", "Sistem gagal mengirim data ke server.");
         }
     } catch (error) {
-        showToast("Error", "Terjadi kesalahan koneksi jaringan.");
+        showToast("Error Koneksi", "Terputus dari server atau gagal mengirim email.");
     } finally {
         if (btnKirim) {
             btnKirim.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Kirim ke Mahasiswa</span>`;
