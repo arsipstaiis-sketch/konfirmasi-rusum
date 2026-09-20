@@ -2029,21 +2029,19 @@ async function prosesPengajuanSuratAdmin() {
             document.getElementById('surat-prodi').innerText = student.prodi;
             document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
-            // 2. SIMPAN PAYLOAD
-            payload.pdfBase64 = "DIRECT_PRINT_MODE"; 
-            payloadSuratTertunda = payload; 
+            // Ubah teks tombol menjadi indikator loading
+            btnProses.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Menyiapkan Dokumen...</span>`;
 
-            // 3. TAMPILKAN PRATINJAU SURAT ASLI LANGSUNG DI MODAL
+            // 2. KLONING SURAT DAN UBAH URL GAMBAR JADI ABSOLUT
             const suratContainer = document.getElementById('surat-bebas-container');
             const suratClone = suratContainer.cloneNode(true);
             
-            // TRIK AMPUH: Ubah path gambar relatif (assets/...) menjadi URL Absolut secara paksa
             const images = suratClone.getElementsByTagName('img');
             for (let i = 0; i < images.length; i++) {
-                // Properti .src akan selalu menghasilkan alamat asli dan lengkap dari browser
                 images[i].setAttribute('src', images[i].src); 
             }
             
+            // 3. BUAT PREVIEW CEPAT DENGAN HTML (Visual Sempurna)
             const isiSuratHTML = `
                 <!DOCTYPE html>
                 <html>
@@ -2057,14 +2055,44 @@ async function prosesPengajuanSuratAdmin() {
                 </body>
                 </html>
             `;
+            document.getElementById('iframe-preview-surat').srcdoc = isiSuratHTML;
 
-            const iframe = document.getElementById('iframe-preview-surat');
-            
-            // Gunakan srcdoc agar tidak berbenturan dengan kebijakan keamanan GitHub / Localhost
-            iframe.srcdoc = isiSuratHTML;
-            
-            document.getElementById('modal-preview-surat').classList.remove('hidden');
-            
+            // 4. GENERATE PDF ASLI DI LATAR BELAKANG UNTUK SERVER (Di luar area layar)
+            suratClone.classList.remove('hidden');
+            suratClone.style.display = 'block';
+            suratClone.style.position = 'absolute';
+            suratClone.style.top = '-9999px'; // Buang jauh dari pandangan pengguna
+            suratClone.style.left = '0';
+            suratClone.style.width = '210mm';
+            document.body.appendChild(suratClone);
+
+            // Beri jeda kecil agar browser merender gambar absolut tadi
+            await new Promise(resolve => setTimeout(resolve, 800));
+
+            try {
+                const base64PDF = await html2pdf().set({
+                    margin: 0, 
+                    filename: `Surat_Bebas.pdf`, 
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true }, // useCORS sekarang berfungsi sempurna berkat gambar URL absolut
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                }).from(suratClone).outputPdf('datauristring');
+                
+                // Bersihkan sampah kloning
+                document.body.removeChild(suratClone);
+                
+                // SIMPAN FILE ASLI KE PAYLOAD
+                payload.pdfBase64 = base64PDF; 
+                payloadSuratTertunda = payload; 
+                
+                // Tampilkan Modal
+                document.getElementById('modal-preview-surat').classList.remove('hidden');
+                
+            } catch (err) {
+                if (document.body.contains(suratClone)) document.body.removeChild(suratClone);
+                showToast("Error Render", "Gagal membuat file PDF untuk dilampirkan.");
+            }
+
             btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
             btnProses.disabled = false;
             return; 
