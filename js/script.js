@@ -2029,7 +2029,6 @@ async function prosesPengajuanSuratAdmin() {
             document.getElementById('surat-prodi').innerText = student.prodi;
             document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
-            // Ubah teks tombol menjadi indikator loading
             btnProses.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Menyiapkan Dokumen...</span>`;
 
             // 2. KLONING SURAT DAN UBAH URL GAMBAR JADI ABSOLUT
@@ -2057,29 +2056,40 @@ async function prosesPengajuanSuratAdmin() {
             `;
             document.getElementById('iframe-preview-surat').srcdoc = isiSuratHTML;
 
-            // 4. GENERATE PDF ASLI DI LATAR BELAKANG UNTUK SERVER (Di luar area layar)
+            // 4. GENERATE PDF ASLI DI LATAR BELAKANG UNTUK SERVER
+            // TRIK BARU: Masukkan ke wadah berukuran 1 pixel yang tidak terlihat pengguna, tapi diakui oleh sistem
+            const renderWrapper = document.createElement('div');
+            renderWrapper.style.position = 'fixed';
+            renderWrapper.style.top = '0';
+            renderWrapper.style.left = '0';
+            renderWrapper.style.width = '1px';
+            renderWrapper.style.height = '1px';
+            renderWrapper.style.overflow = 'hidden';
+            renderWrapper.style.zIndex = '-9999';
+
             suratClone.classList.remove('hidden');
             suratClone.style.display = 'block';
-            suratClone.style.position = 'absolute';
-            suratClone.style.top = '-9999px'; // Buang jauh dari pandangan pengguna
-            suratClone.style.left = '0';
             suratClone.style.width = '210mm';
-            document.body.appendChild(suratClone);
+            
+            renderWrapper.appendChild(suratClone);
+            document.body.appendChild(renderWrapper);
 
-            // Beri jeda kecil agar browser merender gambar absolut tadi
+            // Beri jeda kecil agar gambar absolut termuat sempurna
             await new Promise(resolve => setTimeout(resolve, 800));
 
             try {
+                // Skala diturunkan dari 2.0 ke 1.5, dan quality dari 0.98 ke 0.85
+                // Ini menekan ukuran Base64 payload agar server Google TIDAK ERROR / TIMEOUT saat diproses
                 const base64PDF = await html2pdf().set({
                     margin: 0, 
                     filename: `Surat_Bebas.pdf`, 
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true }, // useCORS sekarang berfungsi sempurna berkat gambar URL absolut
+                    image: { type: 'jpeg', quality: 0.85 }, 
+                    html2canvas: { scale: 1.5, useCORS: true }, 
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                 }).from(suratClone).outputPdf('datauristring');
                 
                 // Bersihkan sampah kloning
-                document.body.removeChild(suratClone);
+                document.body.removeChild(renderWrapper);
                 
                 // SIMPAN FILE ASLI KE PAYLOAD
                 payload.pdfBase64 = base64PDF; 
@@ -2089,7 +2099,7 @@ async function prosesPengajuanSuratAdmin() {
                 document.getElementById('modal-preview-surat').classList.remove('hidden');
                 
             } catch (err) {
-                if (document.body.contains(suratClone)) document.body.removeChild(suratClone);
+                if (document.body.contains(renderWrapper)) document.body.removeChild(renderWrapper);
                 showToast("Error Render", "Gagal membuat file PDF untuk dilampirkan.");
             }
 
