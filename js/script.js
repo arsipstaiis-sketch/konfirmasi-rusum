@@ -2029,23 +2029,30 @@ async function prosesPengajuanSuratAdmin() {
             document.getElementById('surat-prodi').innerText = student.prodi;
             document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
-            // 2. SIMPAN PAYLOAD SEMENTARA KE VARIABEL GLOBAL
-            payload.pdfBase64 = "DIRECT_PRINT_MODE"; // Penanda bahwa ini menggunakan mode cetak langsung/email server
+            // 2. SIMPAN PAYLOAD
+            payload.pdfBase64 = "DIRECT_PRINT_MODE"; 
             payloadSuratTertunda = payload; 
 
-            // 3. TAMPILKAN PRATINJAU SURAT ASLI LANGSUNG DI MODAL (Tanpa html2canvas yang sering blank)
+            // 3. TAMPILKAN PRATINJAU SURAT ASLI LANGSUNG DI MODAL
             const suratContainer = document.getElementById('surat-bebas-container');
+            const suratClone = suratContainer.cloneNode(true);
             
-            // Buat salinan HTML surat untuk dimasukkan ke dalam Iframe Preview Modal
+            // TRIK AMPUH: Ubah path gambar relatif (assets/...) menjadi URL Absolut secara paksa
+            const images = suratClone.getElementsByTagName('img');
+            for (let i = 0; i < images.length; i++) {
+                // Properti .src akan selalu menghasilkan alamat asli dan lengkap dari browser
+                images[i].setAttribute('src', images[i].src); 
+            }
+            
             const isiSuratHTML = `
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <script src="https://cdn.tailwindcss.com"></script>
                 </head>
-                <body class="bg-white flex justify-center p-0 m-0">
-                    <div style="width: 210mm; min-height: 297mm; position: relative; background: white; font-family: 'Cambria', Georgia, serif;">
-                        ${suratContainer.innerHTML}
+                <body class="bg-slate-300 flex justify-center p-4 m-0 min-h-screen">
+                    <div style="width: 210mm; min-height: 297mm; position: relative; background: white; font-family: 'Cambria', Georgia, serif; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+                        ${suratClone.innerHTML}
                     </div>
                 </body>
                 </html>
@@ -2053,11 +2060,9 @@ async function prosesPengajuanSuratAdmin() {
 
             const iframe = document.getElementById('iframe-preview-surat');
             
-            // Masukkan konten HTML langsung ke dalam iframe preview menggunakan blob/data uri
-            const blob = new Blob([isiSuratHTML], { type: 'text/html' });
-            iframe.src = URL.createObjectURL(blob);
+            // Gunakan srcdoc agar tidak berbenturan dengan kebijakan keamanan GitHub / Localhost
+            iframe.srcdoc = isiSuratHTML;
             
-            // Munculkan Modal Pratinjau
             document.getElementById('modal-preview-surat').classList.remove('hidden');
             
             btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
@@ -2083,8 +2088,10 @@ async function prosesPengajuanSuratAdmin() {
 // ==============================================================================
 function tutupPreviewSurat() {
     document.getElementById('modal-preview-surat').classList.add('hidden');
-    document.getElementById('iframe-preview-surat').src = "";
-    payloadSuratTertunda = null; // Bersihkan data agar sistem tahu aksi dibatalkan
+    const iframe = document.getElementById('iframe-preview-surat');
+    iframe.src = "";
+    iframe.removeAttribute('srcdoc'); // Bersihkan sisa html
+    payloadSuratTertunda = null;
 }
 
 // ==============================================================================
