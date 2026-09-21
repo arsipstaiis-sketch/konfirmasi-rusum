@@ -2015,103 +2015,37 @@ async function prosesPengajuanSuratAdmin() {
 
     try {
         if (keputusan === 'Diterbitkan') {
-            
-            // 1. UPDATE DATA PADA ELEMEN SURAT ASLI
             const now = new Date();
             const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
             const indexData = pengajuanData.findIndex(p => p.ID === id);
-            const nomorUrutAsli = pengajuanData.length - indexData; 
-            const nomorFormat = String(nomorUrutAsli).padStart(3, '0');
-            
-            document.getElementById('surat-no').innerText = `No. ${nomorFormat}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
-            document.getElementById('surat-nama').innerText = student.nama;
-            document.getElementById('surat-nim').innerText = student.nim;
-            document.getElementById('surat-prodi').innerText = student.prodi;
-            document.getElementById('surat-tgl').innerText = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
+            const nomorFormat = String(pengajuanData.length - indexData).padStart(3, '0');
+            const tanggalFormat = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
-            btnProses.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Menyiapkan Dokumen...</span>`;
-            btnProses.disabled = true;
-
-            // 2. KLONING SURAT DAN UBAH URL GAMBAR JADI ABSOLUT
-            const suratContainer = document.getElementById('surat-bebas-container');
-            const suratClone = suratContainer.cloneNode(true);
+            // 1. KITA HANYA MENGIRIM DATA TEKS KE SERVER (Sangat Ringan!)
+            payload.dataSurat = {
+                nomorSurat: `No. ${nomorFormat}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`,
+                nama: student.nama,
+                nim: student.nim,
+                prodi: student.prodi,
+                tanggal: tanggalFormat
+            };
+            payloadSuratTertunda = payload; 
             
-            const images = suratClone.getElementsByTagName('img');
-            for (let i = 0; i < images.length; i++) {
-                images[i].setAttribute('src', images[i].src); 
-            }
-            
-            // 3. BUAT PREVIEW CEPAT DENGAN HTML (Untuk ditonton admin)
+            // 2. TAMPILKAN PREVIEW HTML CEPAT (Untuk panduan visual admin saja)
+            const suratClone = document.getElementById('surat-bebas-container').cloneNode(true);
             const isiSuratHTML = `
                 <!DOCTYPE html>
-                <html>
-                <head>
-                    <script src="https://cdn.tailwindcss.com"></script>
-                </head>
-                <body class="bg-slate-300 flex justify-center p-4 m-0 min-h-screen">
-                    <div style="width: 210mm; min-height: 297mm; position: relative; background: white; font-family: 'Cambria', Georgia, serif; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+                <html><head><script src="https://cdn.tailwindcss.com"></script></head>
+                <body class="bg-slate-300 flex justify-center p-4 m-0">
+                    <div style="width: 210mm; min-height: 297mm; background: white; padding: 20px;">
                         ${suratClone.innerHTML}
                     </div>
-                </body>
-                </html>
+                </body></html>
             `;
             document.getElementById('iframe-preview-surat').srcdoc = isiSuratHTML;
-
-            // 4. TRIK RENDER: Posisikan surat di koordinat (0,0) agar tidak meleset, tapi buat transparan!
-            const renderWrapper = document.createElement('div');
-            renderWrapper.style.position = 'absolute';
-            renderWrapper.style.top = '0px';
-            renderWrapper.style.left = '0px';
-            renderWrapper.style.width = '210mm';
-            renderWrapper.style.zIndex = '-9999';   // Sembunyikan jauh di belakang latar
-            renderWrapper.style.opacity = '0.01';   // Hampir 100% transparan, tapi tetap terbaca sistem
-            renderWrapper.style.pointerEvents = 'none';
-
-            suratClone.classList.remove('hidden');
-            suratClone.style.display = 'block';
+            document.getElementById('modal-preview-surat').classList.remove('hidden');
             
-            renderWrapper.appendChild(suratClone);
-            document.body.appendChild(renderWrapper);
-
-            // Jeda yang cukup agar browser selesai menggambar gambar absolut
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            try {
-                // 5. EKSEKUSI HTML2PDF DENGAN KUNCI KAMERA
-                const opt = {
-                    margin: 0, 
-                    filename: `Surat_Bebas.pdf`, 
-                    image: { type: 'jpeg', quality: 0.90 }, // Kompresi agar file lebih ringan
-                    html2canvas: { 
-                        scale: 1.5,           // Ukuran aman, tidak bikin server Google kewalahan
-                        useCORS: true, 
-                        scrollY: 0,           // Paksa kamera memotret dari titik Y paling atas
-                        scrollX: 0            // Paksa kamera memotret dari titik X paling kiri
-                    },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                };
-
-                const base64PDF = await html2pdf().set(opt).from(suratClone).outputPdf('datauristring');
-                
-                // Bersihkan elemen transparan dari sistem
-                document.body.removeChild(renderWrapper);
-                
-                // 6. SIMPAN FILE ASLI KE PAYLOAD
-                payload.pdfBase64 = base64PDF; 
-                payloadSuratTertunda = payload; 
-                
-                // Tampilkan Modal
-                document.getElementById('modal-preview-surat').classList.remove('hidden');
-                
-            } catch (err) {
-                if (document.body.contains(renderWrapper)) document.body.removeChild(renderWrapper);
-                showToast("Error Render", "Gagal membuat file PDF untuk dilampirkan.");
-            }
-
-            btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
-            btnProses.disabled = false;
             return; 
-            
         }
     } catch (error) {
         // Pengaman: Hapus layar loading jika sistem gagal
