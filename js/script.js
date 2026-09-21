@@ -2,7 +2,7 @@
 // KONFIGURASI & GLOBAL VARIABEL
 // ==========================================
 let BIAYA_RUSUM_STANDAR = 6000000;
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx_fY35sIKSqdG_0bFfvAY8opZPMA_gNcsQWyrFu7ezt5EBXBLOcQdO0djzZlTbBSDI/exec'; // URL Google Apps Script Anda
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby2qMXWIgDxBFqZ_oaBpKrnXXphnDATfP0V-qfApPHeV7HTTcgQfb3IPq5YutXEm5Ug/exec'; // URL Google Apps Script Anda
 
 let transaksiData = []; 
 let mahasiswaMaster = []; 
