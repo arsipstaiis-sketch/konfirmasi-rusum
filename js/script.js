@@ -2015,35 +2015,72 @@ async function prosesPengajuanSuratAdmin() {
 
     try {
         if (keputusan === 'Diterbitkan') {
+            
+            // 1. SIAPKAN DATA FORMAT NOMOR & TANGGAL
             const now = new Date();
             const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
             const indexData = pengajuanData.findIndex(p => p.ID === id);
-            const nomorFormat = String(pengajuanData.length - indexData).padStart(3, '0');
-            const tanggalFormat = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
+            const nomorUrutAsli = pengajuanData.length - indexData; 
+            const nomorFormat = String(nomorUrutAsli).padStart(3, '0');
+            
+            const nomorSuratStr = `No. ${nomorFormat}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
+            const tanggalStr = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
-            // 1. KITA HANYA MENGIRIM DATA TEKS KE SERVER (Sangat Ringan!)
+            // 2. UPDATE ELEMEN HTML (Agar pratinjau di layar admin terlihat terisi)
+            document.getElementById('surat-no').innerText = nomorSuratStr;
+            document.getElementById('surat-nama').innerText = student.nama;
+            document.getElementById('surat-nim').innerText = student.nim;
+            document.getElementById('surat-prodi').innerText = student.prodi;
+            document.getElementById('surat-tgl').innerText = tanggalStr;
+
+            // 3. BUAT PREVIEW VISUAL CEPAT DENGAN HTML
+            const suratContainer = document.getElementById('surat-bebas-container');
+            const suratClone = suratContainer.cloneNode(true);
+            
+            // Amankan gambar agar absolut (opsional, khusus untuk preview browser)
+            const images = suratClone.getElementsByTagName('img');
+            for (let i = 0; i < images.length; i++) {
+                images[i].setAttribute('src', images[i].src); 
+            }
+            
+            const isiSuratHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <script src="https://cdn.tailwindcss.com"></script>
+                </head>
+                <body class="bg-slate-300 flex justify-center p-4 m-0 min-h-screen">
+                    <div style="width: 210mm; min-height: 297mm; position: relative; background: white; font-family: 'Cambria', Georgia, serif; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
+                        ${suratClone.innerHTML}
+                    </div>
+                </body>
+                </html>
+            `;
+            
+            // Masukkan HTML ke Iframe pratinjau
+            document.getElementById('iframe-preview-surat').srcdoc = isiSuratHTML;
+
+            // 4. SIAPKAN PAYLOAD SANGAT RINGAN UNTUK SERVER
+            // Kita HANYA mengirimkan data teksnya saja, tidak ada lagi file Base64 raksasa
             payload.dataSurat = {
-                nomorSurat: `No. ${nomorFormat}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`,
                 nama: student.nama,
                 nim: student.nim,
                 prodi: student.prodi,
-                tanggal: tanggalFormat
+                nomorSurat: nomorSuratStr,
+                tanggal: tanggalStr
             };
+            
+            // Pastikan tidak ada data pdfBase64 yang ikut terbawa (jika sebelumnya ada)
+            delete payload.pdfBase64; 
+            
             payloadSuratTertunda = payload; 
             
-            // 2. TAMPILKAN PREVIEW HTML CEPAT (Untuk panduan visual admin saja)
-            const suratClone = document.getElementById('surat-bebas-container').cloneNode(true);
-            const isiSuratHTML = `
-                <!DOCTYPE html>
-                <html><head><script src="https://cdn.tailwindcss.com"></script></head>
-                <body class="bg-slate-300 flex justify-center p-4 m-0">
-                    <div style="width: 210mm; min-height: 297mm; background: white; padding: 20px;">
-                        ${suratClone.innerHTML}
-                    </div>
-                </body></html>
-            `;
-            document.getElementById('iframe-preview-surat').srcdoc = isiSuratHTML;
+            // 5. TAMPILKAN MODAL
             document.getElementById('modal-preview-surat').classList.remove('hidden');
+            
+            // Pastikan tombol dalam keadaan siap
+            btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
+            btnProses.disabled = false;
             
             return; 
         }
