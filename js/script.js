@@ -2112,45 +2112,40 @@ function tutupPreviewSurat() {
 // 3. FUNGSI EKSEKUSI PENGIRIMAN FINAL KE GOOGLE SHEETS
 // ==============================================================================
 async function konfirmasiKirimSurat() {
-    if (!payloadSuratTertunda) return;
-
-    const btnKirim = document.getElementById('btn-final-kirim-surat');
-    if (btnKirim) {
-        btnKirim.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Mengirim...</span>`;
-        btnKirim.disabled = true;
-    }
+    // 1. Ubah tampilan tombol menjadi loading
+    const btnProses = document.getElementById('btn-konfirmasi-modal'); // Sesuaikan ID tombol Anda
+    const teksAsli = btnProses.innerHTML;
+    btnProses.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
+    btnProses.disabled = true;
 
     try {
+        // 2. Kirim data ke Google Apps Script
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
-            body: JSON.stringify(payloadSuratTertunda)
+            // Sangat penting menggunakan text/plain agar Google tidak memblokirnya dengan CORS preflight
+            headers: {
+                'Content-Type': 'text/plain;charset=utf-8', 
+            },
+            body: JSON.stringify(payloadSuratTertunda) // Variabel dari proses sebelumnya
         });
+
+        // 3. Baca respon dari backend
         const result = await response.json();
 
         if (result.success) {
-            // PERBAIKAN 3: Hanya ubah data lokal dan tabel JIKA pengiriman benar-benar sukses
-            const itemPengajuan = pengajuanData.find(p => p.ID === payloadSuratTertunda.id);
-            if (itemPengajuan) {
-                itemPengajuan.Status = payloadSuratTertunda.status; 
-                itemPengajuan.Catatan = payloadSuratTertunda.catatanAdmin;
-            }
-            
-            renderTablePengajuan(); 
-            
-            // Tutup kedua lapis modal
-            tutupPreviewSurat();
-            document.getElementById('modal-terbit-surat').classList.add('hidden');
-            
-            showToast("Sukses", `Pengajuan berhasil ${payloadSuratTertunda.status === 'Diterbitkan' ? 'diterbitkan' : 'ditolak'} dan email telah dikirim.`);
+            alert('Sukses! Surat berhasil diterbitkan dan diemail ke mahasiswa.');
+            document.getElementById('modal-preview-surat').classList.add('hidden'); // Tutup modal
+            // Panggil fungsi untuk me-refresh data tabel jika ada (opsional)
         } else {
-            showToast("Gagal", "Sistem gagal mengirim data ke server.");
+            alert('Gagal memproses data di server:\n' + result.error);
         }
+
     } catch (error) {
-        showToast("Error Koneksi", "Terputus dari server atau gagal mengirim email.");
+        console.error('Network Error:', error);
+        alert('Terjadi kesalahan jaringan atau koneksi terputus. Silakan cek konsol.');
     } finally {
-        if (btnKirim) {
-            btnKirim.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Kirim ke Mahasiswa</span>`;
-            btnKirim.disabled = false;
-        }
+        // Kembalikan kondisi tombol
+        btnProses.innerHTML = teksAsli;
+        btnProses.disabled = false;
     }
 }
