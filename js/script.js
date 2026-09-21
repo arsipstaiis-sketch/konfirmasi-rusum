@@ -16,7 +16,7 @@ let isAdminLoggedIn = false;
 let selectedModalStatus = 'Pending';
 let activeMonitoringMode = 'angkatan'; // 'angkatan' atau 'ta'
 let globalTAAktif = '2025/2026'; // Default, nanti ditimpa dari Spreadsheet
-let activeVerifikasiStatusFilter = 'ALL';
+let activeVerifikasiStatusFilter = 'Pending';
 let pengajuanData = [];
 let payloadSuratTertunda = null;
 const defaultStatusNotes = {
@@ -787,7 +787,8 @@ function renderAdminDashboard() {
     document.getElementById('admin-dashboard').classList.remove('hidden');
     if (activeAdminSubtab === 'verifikasi') {
         updateAdminStats();
-        filterAdminTable();
+        // Pastikan tombol tab dan tabel langsung memfilter data Pending saat login
+        filterVerifikasiStatus(activeVerifikasiStatusFilter); 
     } else {
         renderAngkatanMonitoring();
     }
@@ -1890,10 +1891,20 @@ function toggleCatatanPengajuan(keputusan) {
 function generateHTMLRekapTunggakan(nim) {
     const student = mahasiswaMaster.find(m => m.nim === nim);
     const tahunMulaiTA = parseInt(globalTAAktif.split('/')[0]);
-    const startYear = parseInt(student.angkatan) || tahunMulaiTA;
-    let batasAtas = tahunMulaiTA;
     
-    if (student.tahunKeluar && parseInt(student.tahunKeluar) <= tahunMulaiTA) batasAtas = parseInt(student.tahunKeluar);
+    // LOGIKA TAGIHAN WAJIB
+    let taWajibList = [];
+    if (student.tagihanWajib) {
+        taWajibList = student.tagihanWajib.filter(ta => parseInt(ta.split('/')[0]) <= tahunMulaiTA);
+    } else {
+        // Fallback jika array tagihanWajib tidak tersedia
+        const startYear = parseInt(student.angkatan) || tahunMulaiTA;
+        let batasAtas = tahunMulaiTA;
+        if (student.tahunKeluar && parseInt(student.tahunKeluar) <= tahunMulaiTA) batasAtas = parseInt(student.tahunKeluar);
+        for (let y = startYear; y <= batasAtas; y++) {
+            taWajibList.push(`${y}/${y+1}`);
+        }
+    }
 
     let html = `
         <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-family: Arial, sans-serif; font-size: 12px;">
@@ -1905,10 +1916,13 @@ function generateHTMLRekapTunggakan(nim) {
     `;
 
     let totalTunggakan = 0;
-    for (let y = startYear; y <= batasAtas; y++) {
-        let ta = `${y}/${y+1}`;
+    
+    // Looping hanya pada TA yang wajib saja
+    taWajibList.forEach(ta => {
         let sum = getStudentPaymentSummary(nim, ta);
-        if (String(student.taCuti || '').trim() === ta && sum.totalDibayar === 0) continue;
+        
+        // Abaikan jika sedang cuti dan belum ada pembayaran di TA tersebut
+        if (String(student.taCuti || '').trim() === ta && sum.totalDibayar === 0) return;
 
         totalTunggakan += sum.sisaTagihan;
         html += `
@@ -1918,7 +1932,7 @@ function generateHTMLRekapTunggakan(nim) {
                 <td style="padding: 8px; border: 1px solid #ddd; text-align: right; color: ${sum.sisaTagihan > 0 ? '#be123c' : '#15803d'}; font-weight: bold;">${formatRp(sum.sisaTagihan)}</td>
             </tr>
         `;
-    }
+    });
     
     html += `
             <tr>
@@ -1935,26 +1949,36 @@ function bukaModalRekapPengajuan(nim) {
     if(!student) return showToast("Error", "Data mahasiswa tidak ditemukan.");
 
     const tahunMulaiTA = parseInt(globalTAAktif.split('/')[0]);
-    const startYear = parseInt(student.angkatan) || tahunMulaiTA;
-    let batasAtas = tahunMulaiTA;
+    
+    // LOGIKA TAGIHAN WAJIB
+    let taWajibList = [];
+    if (student.tagihanWajib) {
+        taWajibList = student.tagihanWajib.filter(ta => parseInt(ta.split('/')[0]) <= tahunMulaiTA);
+    } else {
+        // Fallback jika array tagihanWajib tidak tersedia
+        const startYear = parseInt(student.angkatan) || tahunMulaiTA;
+        let batasAtas = tahunMulaiTA;
 
-    // Batasi pengecekan jika mahasiswa sudah lulus/keluar
-    if (student.tahunKeluar && parseInt(student.tahunKeluar) <= tahunMulaiTA) {
-        batasAtas = parseInt(student.tahunKeluar);
-    } else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(String(student.status).toLowerCase())) {
-        batasAtas = startYear + 3; 
-        if (batasAtas > tahunMulaiTA) batasAtas = tahunMulaiTA;
+        if (student.tahunKeluar && parseInt(student.tahunKeluar) <= tahunMulaiTA) {
+            batasAtas = parseInt(student.tahunKeluar);
+        } else if (['lulus', 'keluar', 'do', 'pindah', 'non-aktif'].includes(String(student.status).toLowerCase())) {
+            batasAtas = startYear + 3; 
+            if (batasAtas > tahunMulaiTA) batasAtas = tahunMulaiTA;
+        }
+        for (let y = startYear; y <= batasAtas; y++) {
+            taWajibList.push(`${y}/${y+1}`);
+        }
     }
 
     let rekapHtml = '';
     let totalSeluruhTunggakan = 0;
 
-    for (let y = startYear; y <= batasAtas; y++) {
-        let ta = `${y}/${y+1}`;
+    // Looping hanya pada TA yang wajib saja
+    taWajibList.forEach(ta => {
         let sum = getStudentPaymentSummary(nim, ta);
         
         // Lewati jika sedang cuti dan belum bayar sepeser pun
-        if (String(student.taCuti || '').trim() === ta && sum.totalDibayar === 0) continue;
+        if (String(student.taCuti || '').trim() === ta && sum.totalDibayar === 0) return;
 
         totalSeluruhTunggakan += sum.sisaTagihan;
         let statusColor = sum.sisaTagihan <= 0 ? 'text-emerald-600' : 'text-rose-600';
@@ -1969,15 +1993,14 @@ function bukaModalRekapPengajuan(nim) {
                 </div>
             </div>
         `;
-    }
+    });
 
     document.getElementById('rekap-mhs-nama').innerText = student.nama;
     document.getElementById('rekap-mhs-nim').innerText = student.nim;
     document.getElementById('rekap-total-tunggakan').innerText = formatRp(totalSeluruhTunggakan);
-    document.getElementById('rekap-list-ta').innerHTML = rekapHtml || '<p class="text-xs text-slate-400 italic py-2">Tidak ada data tagihan wajib.</p>';
+    document.getElementById('rekap-list-ta').innerHTML = rekapHtml || '<p class="text-xs text-slate-400 italic py-2">Tidak ada data tagihan wajib untuk ditampilkan.</p>';
     document.getElementById('modal-rekap-pengajuan').classList.remove('hidden');
 }
-
 function tutupModalRekapPengajuan() {
     document.getElementById('modal-rekap-pengajuan').classList.add('hidden');
 }
