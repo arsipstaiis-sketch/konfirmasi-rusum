@@ -2046,7 +2046,7 @@ async function prosesPengajuanSuratAdmin() {
             const nomorUrutAsli = pengajuanData.length - indexData; 
             const nomorFormat = String(nomorUrutAsli).padStart(3, '0');
             
-            const nomorSuratStr = `No. ${nomorFormat}/Ket-SKet/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
+            const nomorSuratStr = `No. ${nomorFormat}/SKBT/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
             const tanggalStr = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
             // 2. UPDATE ELEMEN HTML (Agar pratinjau di layar admin terlihat terisi)
