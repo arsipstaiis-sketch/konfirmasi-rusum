@@ -2005,7 +2005,7 @@ function tutupModalRekapPengajuan() {
     document.getElementById('modal-rekap-pengajuan').classList.add('hidden');
 }
 // ==============================================================================
-// 1. FUNGSI RENDER (HANYA MEMBUAT PDF & MENAMPILKAN PREVIEW, TANPA MENGIRIM)
+// 1. FUNGSI RENDER (DIPERBARUI)
 // ==============================================================================
 async function prosesPengajuanSuratAdmin() {
     const id = document.getElementById('terbit-id-pengajuan').value;
@@ -2049,18 +2049,17 @@ async function prosesPengajuanSuratAdmin() {
             const nomorSuratStr = `No. ${nomorFormat}/SKBT/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
             const tanggalStr = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
-            // 2. UPDATE ELEMEN HTML (Agar pratinjau di layar admin terlihat terisi)
+            // 2. UPDATE ELEMEN HTML 
             document.getElementById('surat-no').innerText = nomorSuratStr;
             document.getElementById('surat-nama').innerText = student.nama;
             document.getElementById('surat-nim').innerText = student.nim;
-            document.getElementById('surat-prodi').innerText = student.prodi;
+            document.getElementById('surat-prodi').innerText = student.prodi || '-'; // Amankan jika prodi kosong
             document.getElementById('surat-tgl').innerText = tanggalStr;
 
             // 3. BUAT PREVIEW VISUAL CEPAT DENGAN HTML
             const suratContainer = document.getElementById('surat-bebas-container');
             const suratClone = suratContainer.cloneNode(true);
             
-            // Amankan gambar agar absolut (opsional, khusus untuk preview browser)
             const images = suratClone.getElementsByTagName('img');
             for (let i = 0; i < images.length; i++) {
                 images[i].setAttribute('src', images[i].src); 
@@ -2080,40 +2079,37 @@ async function prosesPengajuanSuratAdmin() {
                 </html>
             `;
             
-            // Masukkan HTML ke Iframe pratinjau
             document.getElementById('iframe-preview-surat').srcdoc = isiSuratHTML;
 
-            // 4. SIAPKAN PAYLOAD SANGAT RINGAN UNTUK SERVER
-            // Kita HANYA mengirimkan data teksnya saja, tidak ada lagi file Base64 raksasa
+            // 4. SIAPKAN PAYLOAD UNTUK SERVER
             payload.dataSurat = {
-                nama: student.nama,
-                nim: student.nim,
-                prodi: student.prodi,
+                nama: student.nama || '-',
+                nim: student.nim || '-',
+                prodi: student.prodi || '-',
                 nomorSurat: nomorSuratStr,
                 tanggal: tanggalStr
             };
             
-            // Pastikan tidak ada data pdfBase64 yang ikut terbawa (jika sebelumnya ada)
             delete payload.pdfBase64; 
-            
             payloadSuratTertunda = payload; 
             
-            // 5. TAMPILKAN MODAL
+            // 5. TAMPILKAN MODAL PREVIEW
             document.getElementById('modal-preview-surat').classList.remove('hidden');
             
-            // Pastikan tombol dalam keadaan siap
             btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
             btnProses.disabled = false;
-            
             return; 
+        } 
+        // [PERBAIKAN] JIKA DITOLAK, LANGSUNG EKSEKUSI TANPA PREVIEW
+        else if (keputusan === 'Ditolak') {
+            payloadSuratTertunda = payload;
+            konfirmasiKirimSurat(); // Panggil fungsi kirim
+            
+            btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
+            btnProses.disabled = false;
+            return;
         }
     } catch (error) {
-        // Pengaman: Hapus layar loading jika sistem gagal
-        const loading = document.querySelector('div[style*="z-index: 9999999"]');
-        if (loading) document.body.removeChild(loading);
-        const clone = document.querySelector('div[style*="z-index: 9999998"]');
-        if (clone) document.body.removeChild(clone);
-
         showToast("Error", "Gagal memproses pembuatan PDF.");
         btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
         btnProses.disabled = false;
@@ -2132,20 +2128,18 @@ function tutupPreviewSurat() {
 }
 
 // ==============================================================================
-// 3. FUNGSI EKSEKUSI PENGIRIMAN FINAL KE GOOGLE SHEETS
+// 3. FUNGSI EKSEKUSI PENGIRIMAN FINAL KE GOOGLE SHEETS (DIPERBARUI)
 // ==============================================================================
 async function konfirmasiKirimSurat() {
     if (!payloadSuratTertunda) return;
 
-    // Sistem akan mencoba mencari tombol berdasarkan ID yang paling umum digunakan
     const btnKirim = document.getElementById('btn-final-kirim-surat') || 
                      document.getElementById('btn-konfirmasi-modal');
                      
     let teksAsli = '<i class="fa-solid fa-paper-plane"></i><span>Kirim ke Mahasiswa</span>';
 
-    // Jika tombol ditemukan, ubah tampilannya menjadi loading
     if (btnKirim) {
-        teksAsli = btnKirim.innerHTML; // Simpan tampilan asli tombol
+        teksAsli = btnKirim.innerHTML;
         btnKirim.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Mengirim...</span>`;
         btnKirim.disabled = true;
     }
@@ -2168,19 +2162,19 @@ async function konfirmasiKirimSurat() {
                 renderTablePengajuan(); 
             }
             
-            // Tutup kedua lapis modal
             tutupPreviewSurat();
             const modalTerbit = document.getElementById('modal-terbit-surat');
             if (modalTerbit) modalTerbit.classList.add('hidden');
             
             showToast("Sukses", `Pengajuan berhasil ${payloadSuratTertunda.status === 'Diterbitkan' ? 'diterbitkan' : 'ditolak'} dan email telah dikirim.`);
         } else {
-            showToast("Gagal", "Sistem gagal mengirim data ke server.");
+            // [PERBAIKAN KRUSIAL] Menampilkan error asli dari Google Apps Script
+            showToast("Gagal Memproses", result.error || "Sistem menolak permintaan.");
+            console.error("DETAIL ERROR BACKEND:", result.error);
         }
     } catch (error) {
         showToast("Error Koneksi", "Terputus dari server atau gagal mengirim email.");
     } finally {
-        // Kembalikan tampilan tombol ke semula jika tombol ditemukan
         if (btnKirim) {
             btnKirim.innerHTML = teksAsli;
             btnKirim.disabled = false;
