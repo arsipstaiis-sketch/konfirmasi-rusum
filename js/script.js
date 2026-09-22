@@ -2005,7 +2005,7 @@ function tutupModalRekapPengajuan() {
     document.getElementById('modal-rekap-pengajuan').classList.add('hidden');
 }
 // ==============================================================================
-// 1. FUNGSI RENDER (DIPERBARUI)
+// 1. FUNGSI RENDER (DIPERBARUI DENGAN htmlRekap)
 // ==============================================================================
 async function prosesPengajuanSuratAdmin() {
     const id = document.getElementById('terbit-id-pengajuan').value;
@@ -2039,7 +2039,6 @@ async function prosesPengajuanSuratAdmin() {
     try {
         if (keputusan === 'Diterbitkan') {
             
-            // 1. SIAPKAN DATA FORMAT NOMOR & TANGGAL
             const now = new Date();
             const romawiBulan = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"][now.getMonth()];
             const indexData = pengajuanData.findIndex(p => p.ID === id);
@@ -2049,14 +2048,12 @@ async function prosesPengajuanSuratAdmin() {
             const nomorSuratStr = `No. ${nomorFormat}/SKBT/STAIIS/${romawiBulan}/${String(now.getFullYear()).slice(-2)}`;
             const tanggalStr = `Cianjur, ${now.getDate()} ${["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"][now.getMonth()]} ${now.getFullYear()}`;
 
-            // 2. UPDATE ELEMEN HTML 
             document.getElementById('surat-no').innerText = nomorSuratStr;
             document.getElementById('surat-nama').innerText = student.nama;
             document.getElementById('surat-nim').innerText = student.nim;
-            document.getElementById('surat-prodi').innerText = student.prodi || '-'; // Amankan jika prodi kosong
+            document.getElementById('surat-prodi').innerText = student.prodi || '-'; 
             document.getElementById('surat-tgl').innerText = tanggalStr;
 
-            // 3. BUAT PREVIEW VISUAL CEPAT DENGAN HTML
             const suratContainer = document.getElementById('surat-bebas-container');
             const suratClone = suratContainer.cloneNode(true);
             
@@ -2068,9 +2065,7 @@ async function prosesPengajuanSuratAdmin() {
             const isiSuratHTML = `
                 <!DOCTYPE html>
                 <html>
-                <head>
-                    <script src="https://cdn.tailwindcss.com"></script>
-                </head>
+                <head><script src="https://cdn.tailwindcss.com"></script></head>
                 <body class="bg-slate-300 flex justify-center p-4 m-0 min-h-screen">
                     <div style="width: 210mm; min-height: 297mm; position: relative; background: white; font-family: 'Cambria', Georgia, serif; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
                         ${suratClone.innerHTML}
@@ -2081,7 +2076,6 @@ async function prosesPengajuanSuratAdmin() {
             
             document.getElementById('iframe-preview-surat').srcdoc = isiSuratHTML;
 
-            // 4. SIAPKAN PAYLOAD UNTUK SERVER
             payload.dataSurat = {
                 nama: student.nama || '-',
                 nim: student.nim || '-',
@@ -2093,24 +2087,24 @@ async function prosesPengajuanSuratAdmin() {
             delete payload.pdfBase64; 
             payloadSuratTertunda = payload; 
             
-            // 5. TAMPILKAN MODAL PREVIEW
             document.getElementById('modal-preview-surat').classList.remove('hidden');
             
             btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
             btnProses.disabled = false;
             return; 
         } 
-        // [PERBAIKAN] JIKA DITOLAK, LANGSUNG EKSEKUSI TANPA PREVIEW
         else if (keputusan === 'Ditolak') {
+            // [PERBAIKAN] Tambahkan tabel rincian tunggakan ke dalam payload untuk email
+            payload.htmlRekap = generateHTMLRekapTunggakan(student.nim); 
             payloadSuratTertunda = payload;
-            konfirmasiKirimSurat(); // Panggil fungsi kirim
+            konfirmasiKirimSurat(); 
             
             btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
             btnProses.disabled = false;
             return;
         }
     } catch (error) {
-        showToast("Error", "Gagal memproses pembuatan PDF.");
+        showToast("Error", "Gagal memproses pembuatan form.");
         btnProses.innerHTML = `<i class="fa-solid fa-paper-plane"></i><span>Proses & Kirim Email</span>`;
         btnProses.disabled = false;
     } 
@@ -2128,7 +2122,7 @@ function tutupPreviewSurat() {
 }
 
 // ==============================================================================
-// 3. FUNGSI EKSEKUSI PENGIRIMAN FINAL KE GOOGLE SHEETS (DIPERBARUI)
+// 3. FUNGSI EKSEKUSI PENGIRIMAN FINAL (DIPERBARUI URUTANNYA)
 // ==============================================================================
 async function konfirmasiKirimSurat() {
     if (!payloadSuratTertunda) return;
@@ -2145,6 +2139,10 @@ async function konfirmasiKirimSurat() {
     }
 
     try {
+        // [PERBAIKAN] Simpan status keputusan (Diterbitkan/Ditolak) terlebih dahulu
+        // sebelum variabel payloadSuratTertunda dihapus oleh tutupPreviewSurat()
+        const statusKeputusan = payloadSuratTertunda.status; 
+
         const response = await fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify(payloadSuratTertunda)
@@ -2152,28 +2150,29 @@ async function konfirmasiKirimSurat() {
         const result = await response.json();
 
         if (result.success) {
-            // Ubah data lokal dan tabel JIKA pengiriman sukses
             if (typeof pengajuanData !== 'undefined') {
                 const itemPengajuan = pengajuanData.find(p => p.ID === payloadSuratTertunda.id);
                 if (itemPengajuan) {
-                    itemPengajuan.Status = payloadSuratTertunda.status; 
+                    itemPengajuan.Status = statusKeputusan; 
                     itemPengajuan.Catatan = payloadSuratTertunda.catatanAdmin;
                 }
                 renderTablePengajuan(); 
             }
             
-            tutupPreviewSurat();
+            tutupPreviewSurat(); // Menghapus variabel
             const modalTerbit = document.getElementById('modal-terbit-surat');
             if (modalTerbit) modalTerbit.classList.add('hidden');
             
-            showToast("Sukses", `Pengajuan berhasil ${payloadSuratTertunda.status === 'Diterbitkan' ? 'diterbitkan' : 'ditolak'} dan email telah dikirim.`);
+            // Gunakan statusKeputusan yang sudah kita "selamatkan" di atas
+            showToast("Sukses", `Pengajuan berhasil ${statusKeputusan === 'Diterbitkan' ? 'diterbitkan' : 'ditolak'} dan email telah dikirim.`);
         } else {
-            // [PERBAIKAN KRUSIAL] Menampilkan error asli dari Google Apps Script
             showToast("Gagal Memproses", result.error || "Sistem menolak permintaan.");
-            console.error("DETAIL ERROR BACKEND:", result.error);
         }
     } catch (error) {
+        // Karena error crash sebelumnya sudah diperbaiki, jika masuk ke blok ini berarti
+        // benar-benar masalah pada jaringan internet Anda.
         showToast("Error Koneksi", "Terputus dari server atau gagal mengirim email.");
+        console.error(error);
     } finally {
         if (btnKirim) {
             btnKirim.innerHTML = teksAsli;
